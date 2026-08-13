@@ -7,9 +7,9 @@ export const studyConfig = {
     en: 'M1 Structural Relationship Study',
   },
   scope: {
-    'zh-CN': '未来三年，跨境电商物流企业推进 ESG 实践的过程',
-    'zh-HK': '未來三年，跨境電商物流企業推進 ESG 實踐的過程',
-    en: 'ESG implementation in cross-border e-commerce logistics over the next three years',
+    'zh-CN': '未来三年，供应链企业推进 ESG 实践的过程',
+    'zh-HK': '未來三年，供應鏈企業推進 ESG 實踐的過程',
+    en: 'ESG implementation in supply-chain enterprises over the next three years',
   },
   factors: [
     {
