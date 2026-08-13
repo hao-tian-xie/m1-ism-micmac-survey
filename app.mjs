@@ -1,4 +1,3 @@
-import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
 import {
   applySourceSelections,
   buildDirectMatrix,
@@ -278,17 +277,13 @@ function renderWelcome() {
         <div class="welcome-copy">
           <p class="eyebrow">${escapeHtml(t('eyebrow'))}</p>
           <h1 data-page-title tabindex="-1">${escapeHtml(t('heroTitle'))}</h1>
-          <p class="hero-lead">${escapeHtml(t('heroText'))}</p>
-
           <div class="scope-card">
             <span>${escapeHtml(t('scopeLabel'))}</span>
             <p>${escapeHtml(localeText(studyConfig.scope))}</p>
           </div>
 
           <div class="study-stats" aria-label="${escapeHtml(t('overviewLabel'))}">
-            <span><b>${factors.length}</b>${escapeHtml(t('factorsUnit'))}</span>
-            <span><b>${factors.length}</b>${escapeHtml(t('topicsUnit'))}</span>
-            <span>${escapeHtml(t('minutesUnit'))}</span>
+            <span class="study-summary">${escapeHtml(t('minutesUnit'))}</span>
           </div>
 
           <button class="primary-button hero-button" type="button" data-action="start">
@@ -379,6 +374,9 @@ function renderSurvey() {
   const noneSelected = hasExplicitNone(source.id);
   const hasChoice = selectedTargets(source.id).length > 0 || noneSelected;
   const isLast = state.currentIndex === factors.length - 1;
+  const topicNotes = targets.map((target) => `
+    <li><b>${escapeHtml(target.id)} · ${escapeHtml(target.label)}</b><span>${escapeHtml(target.description)}</span></li>
+  `).join('');
 
   return renderShell(`
     <div class="survey-page topic-survey">
@@ -405,10 +403,9 @@ function renderSurvey() {
         <section class="topic-decision">
           <div class="topic-question">
             <h1 data-page-title tabindex="-1">${escapeHtml(t('topicQuestion', { topic: source.label }))}</h1>
-            <p id="direct-help">${escapeHtml(t('directOnly'))}</p>
           </div>
 
-          <fieldset class="target-fieldset" aria-describedby="direct-help">
+          <fieldset class="target-fieldset">
             <legend class="visually-hidden">${escapeHtml(t('targetLegend'))}</legend>
             <div class="target-list">
               ${targets.map((target) => targetOption(source, target)).join('')}
@@ -432,6 +429,10 @@ function renderSurvey() {
           ${escapeHtml(state.editingFromReview ? t('confirmAndReview') : isLast ? t('confirmAndReview') : t('confirmAndNext'))}<span aria-hidden="true">→</span>
         </button>
       </div>
+      <section class="topic-notes" aria-label="${escapeHtml(t('candidateNotes'))}">
+        <h2>${escapeHtml(t('candidateNotes'))}</h2>
+        <ul>${topicNotes}</ul>
+      </section>
     </div>
   `, 'survey-shell');
 }
@@ -584,7 +585,7 @@ function render() {
   document.documentElement.lang = state.locale;
   document.body.dataset.screen = state.screen;
   document.title = `${localeText(studyConfig.title)} | BEXtools`;
-  document.querySelector('meta[name="description"]').content = t('heroText');
+  document.querySelector('meta[name="description"]').content = t('heroTitle');
   document.querySelector('#brand-subtitle').textContent = t('brand').replace('BEXtools', '').trim();
   renderLanguages();
 
@@ -743,7 +744,7 @@ async function submitResponse() {
       state.clientSubmissionId = clientSubmissionId;
       persist();
     }
-    const response = await fetch(resolveSubmissionEndpoint(), {
+    const response = await fetch('/api/m1-submissions', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(buildCurrentSubmission()),
