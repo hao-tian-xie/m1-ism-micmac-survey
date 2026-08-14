@@ -393,8 +393,9 @@ function renderSurvey() {
 
       <div class="topic-workspace">
         <section class="source-topic" aria-labelledby="source-topic-name">
-          <span>${source.id}</span>
+          <span class="topic-kicker">${escapeHtml(t('ifLabel'))}</span>
           <div>
+            <span class="source-code">${source.id}</span>
             <h2 id="source-topic-name">${escapeHtml(source.label)}</h2>
             <p>${escapeHtml(source.description)}</p>
           </div>
@@ -402,10 +403,12 @@ function renderSurvey() {
 
         <section class="topic-decision">
           <div class="topic-question">
-            <h1 data-page-title tabindex="-1">${escapeHtml(t('topicQuestion', { topic: source.label }))}</h1>
+            <span class="question-kicker">${escapeHtml(t('thenLabel'))}</span>
+            <h1 data-page-title tabindex="-1">${escapeHtml(t('topicQuestion'))}</h1>
+            <p class="choice-hint" id="choice-help">${escapeHtml(t('selectTargets'))}</p>
           </div>
 
-          <fieldset class="target-fieldset">
+          <fieldset class="target-fieldset" aria-describedby="choice-help">
             <legend class="visually-hidden">${escapeHtml(t('targetLegend'))}</legend>
             <div class="target-list">
               ${targets.map((target) => targetOption(source, target)).join('')}
