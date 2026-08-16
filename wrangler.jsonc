@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "m1-ism-micmac-collector",
+  "main": "cloudflare/m1-worker.mjs",
+  "compatibility_date": "2026-08-17",
+  "workers_dev": true,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "m1-ism-micmac-submissions",
+      "database_id": "3aa188af-414e-409d-a682-5624bf4e5264"
+    }
+  ],
+  "vars": {
+    "ALLOWED_ORIGINS": "https://hao-tian-xie.github.io,http://localhost:5173,http://127.0.0.1:5173"
+  }
+}
