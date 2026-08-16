@@ -2554,6 +2554,10 @@ body[data-screen="welcome"] .save-status {
   transition: color 130ms ease, background-color 130ms ease;
 }
 
+.target-option.is-definition-visible {
+  z-index: 5;
+}
+
 .target-option::before {
   position: absolute;
   inset: 0 auto 0 0;
@@ -2603,6 +2607,39 @@ body[data-screen="welcome"] .save-status {
   hyphens: auto;
   overflow-wrap: normal;
   word-break: normal;
+}
+
+.target-definition {
+  position: absolute;
+  z-index: 30;
+  top: 50%;
+  inset-inline-start: calc(100% + 10px);
+  display: none;
+  width: min(300px, 30vw);
+  transform: translateY(-50%);
+  padding: 11px 13px;
+  border: 1px solid var(--line-strong);
+  border-inline-start: 3px solid var(--accent);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.36;
+  pointer-events: none;
+  overflow-wrap: anywhere;
+}
+
+.target-definition[hidden] {
+  display: none !important;
+}
+
+.target-option.is-definition-visible .target-definition {
+  display: block;
+}
+
+.target-option.definition-left .target-definition {
+  inset-inline-start: auto;
+  inset-inline-end: calc(100% + 10px);
 }
 
 .target-option.is-selected .target-copy strong {
@@ -2886,6 +2923,18 @@ body[data-screen="welcome"] .save-status {
   .target-copy strong {
     font-size: 14.5px;
     line-height: 1.14;
+  }
+
+  .target-definition,
+  .target-option.definition-left .target-definition {
+    top: calc(100% + 6px);
+    inset-inline-start: 8px;
+    inset-inline-end: 8px;
+    width: auto;
+    transform: none;
+    padding: 9px 10px;
+    font-size: 14px;
+    line-height: 1.32;
   }
 
   .topic-actions {

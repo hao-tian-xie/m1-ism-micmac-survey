@@ -11,6 +11,7 @@ import { copy, languageNames, locales } from './translations.mjs';
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
 import { guideStepsForScreen } from './guide-steps.mjs';
 import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs';
+import { attachTopicDefinitionHints } from './topic-definition-hints.mjs';
 
 const STORAGE_KEY = `bextools:${studyConfig.id}:${studyConfig.version}`;
 const NONE_VALUE = '__none__';
@@ -34,6 +35,7 @@ const guideClose = document.querySelector('#guide-close');
 const roleKeys = ['roleOperations', 'roleEsg', 'roleTechnology', 'roleManagement', 'roleAcademic', 'roleOther'];
 const experienceKeys = ['exp1', 'exp2', 'exp3', 'exp4'];
 let storageAvailable = true;
+let detachTopicDefinitionHints = () => {};
 
 function preferredLocale() {
   const queryLocale = new URLSearchParams(window.location.search).get('lang');
@@ -548,12 +550,13 @@ function renderProfile() {
 function targetOption(source, target) {
   const selected = selectedTargets(source.id).includes(target.id);
   return `
-    <label class="target-option ${selected ? 'is-selected' : ''}">
+    <label class="target-option ${selected ? 'is-selected' : ''}" aria-expanded="false">
       <input type="checkbox" name="direct-target" value="${target.id}" data-source-id="${source.id}" ${selected ? 'checked' : ''} />
       <span class="target-code">${target.id}</span>
       <span class="target-copy">
         <strong>${escapeHtml(target.label)}</strong>
       </span>
+      <span class="target-definition" role="tooltip" hidden aria-hidden="true">${escapeHtml(target.description)}</span>
     </label>
   `;
 }
@@ -784,6 +787,7 @@ function render() {
   document.querySelector('#brand-subtitle').textContent = t('brand').replace('BEXtools', '').trim();
   renderLanguages();
 
+  detachTopicDefinitionHints();
   app.innerHTML = {
     welcome: renderWelcome,
     profile: renderProfile,
@@ -791,6 +795,9 @@ function render() {
     review: renderReview,
     complete: renderComplete,
   }[state.screen]();
+  detachTopicDefinitionHints = state.screen === 'survey'
+    ? attachTopicDefinitionHints(document.querySelector('.target-list'))
+    : () => {};
   renderGuide();
 }
 
