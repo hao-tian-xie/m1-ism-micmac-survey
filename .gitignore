@@ -1,0 +1,4 @@
+node_modules/
+dist/
+data/m1-submissions.ndjson
+.DS_Store

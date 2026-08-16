@@ -8,6 +8,9 @@ import {
 } from './survey-core.mjs';
 import { localisedFactors, studyConfig } from './survey-config.mjs';
 import { copy, languageNames, locales } from './translations.mjs';
+import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
+import { guideStepsForScreen } from './guide-steps.mjs';
+import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs';
 
 const STORAGE_KEY = `bextools:${studyConfig.id}:${studyConfig.version}`;
 const NONE_VALUE = '__none__';
@@ -16,7 +19,18 @@ const factorIds = factors.map((factor) => factor.id);
 const pairs = createPairs(factors);
 const app = document.querySelector('#app');
 const languageSwitch = document.querySelector('#language-switch');
-
+const guideButton = document.querySelector('#guide-button');
+const guideButtonLabel = document.querySelector('#guide-button-label');
+const guideOverlay = document.querySelector('#guide-overlay');
+const guideSpotlight = document.querySelector('#guide-spotlight');
+const guideCallout = document.querySelector('#guide-callout');
+const guideDialogStep = document.querySelector('#guide-dialog-step');
+const guideDialogTitle = document.querySelector('#guide-dialog-title');
+const guideDialogCopy = document.querySelector('#guide-dialog-copy');
+const guideDots = document.querySelector('#guide-dots');
+const guidePrevious = document.querySelector('#guide-previous');
+const guideNext = document.querySelector('#guide-next');
+const guideClose = document.querySelector('#guide-close');
 const roleKeys = ['roleOperations', 'roleEsg', 'roleTechnology', 'roleManagement', 'roleAcademic', 'roleOther'];
 const experienceKeys = ['exp1', 'exp2', 'exp3', 'exp4'];
 let storageAvailable = true;
@@ -103,6 +117,10 @@ function loadState() {
 }
 
 let state = loadState();
+let guideIndex = 0;
+let guideReturnScreen = state.screen;
+let guideIsOpen = false;
+let guideSessionSteps = guideStepsForScreen(state.screen);
 
 function t(key, values = {}) {
   const template = copy[state.locale][key] || copy.en[key] || key;
@@ -205,6 +223,35 @@ function goTo(screen, { scroll = true } = {}) {
   focusPageHeading();
 }
 
+function navigateToStage(targetStage) {
+  if (!canNavigateToStage(state.screen, targetStage)) return;
+  const fromReview = state.screen === 'review';
+
+  if (targetStage === 'profile') {
+    state.editingFromReview = fromReview;
+    state.showValidation = false;
+    goTo('profile');
+    return;
+  }
+
+  if (targetStage === 'survey') {
+    state.currentIndex = fromReview ? 0 : Math.min(state.currentIndex, factors.length - 1);
+    state.editingFromReview = fromReview;
+    goTo('survey');
+  }
+}
+
+function navigateToTopic(index) {
+  if (state.screen !== 'survey' || !Number.isInteger(index) || !factors[index]) return;
+  const factor = factors[index];
+  if (!topicIsAvailable(index, state.currentIndex, state.reviewedFactors, factor.id)) return;
+  state.currentIndex = index;
+  persist();
+  render();
+  pageTop();
+  focusPageHeading();
+}
+
 function renderLanguages() {
   const languageLabel = {
     'zh-CN': '语言切换',
@@ -219,6 +266,114 @@ function renderLanguages() {
   `).join('');
 }
 
+function renderGuide() {
+  if (!guideOverlay) return;
+  guideButtonLabel.textContent = t('guideButton');
+  guideButton.title = t('guideTitle');
+  guideOverlay.hidden = !guideIsOpen;
+  if (!guideIsOpen) return;
+
+  const step = guideSessionSteps[guideIndex];
+  if (!step) return;
+  guideDialogStep.textContent = t('guideStep', { i: guideIndex + 1, total: guideSessionSteps.length });
+  guideDialogTitle.textContent = t(step.title);
+  guideDialogCopy.textContent = t(step.text);
+  guideCallout.setAttribute('aria-label', t(step.title));
+  guideClose.setAttribute('aria-label', t('guideClose'));
+  guidePrevious.textContent = t('guidePrevious');
+  guidePrevious.disabled = guideIndex === 0;
+  guideNext.textContent = guideIndex === guideSessionSteps.length - 1 ? t('guideFinish') : t('guideNext');
+  guideDots.innerHTML = guideSessionSteps.map((item, index) => `<span class="${index === guideIndex ? 'is-active' : ''}"></span>`).join('');
+  requestAnimationFrame(positionGuide);
+}
+
+function positionGuide(allowScrollAdjust = false) {
+  if (!guideIsOpen || !guideOverlay || guideOverlay.hidden) return;
+  const step = guideSessionSteps[guideIndex];
+  const target = document.querySelector(step.target);
+  if (!target) return;
+
+  const rect = target.getBoundingClientRect();
+  const padding = 7;
+  guideSpotlight.style.left = `${Math.max(8, rect.left - padding)}px`;
+  guideSpotlight.style.top = `${Math.max(8, rect.top - padding)}px`;
+  guideSpotlight.style.width = `${Math.max(24, rect.width + padding * 2)}px`;
+  guideSpotlight.style.height = `${Math.max(24, rect.height + padding * 2)}px`;
+
+  const calloutWidth = guideCallout.offsetWidth || 320;
+  const calloutHeight = guideCallout.offsetHeight || 240;
+  const gap = 16;
+  const edge = 16;
+  let left = rect.right + gap;
+  let top = rect.top;
+
+  if (left + calloutWidth > window.innerWidth - edge) {
+    const leftSide = rect.left - calloutWidth - gap;
+    if (leftSide >= edge) {
+      left = leftSide;
+    } else {
+      left = rect.left;
+      top = rect.bottom + gap;
+    }
+  }
+  if (top + calloutHeight > window.innerHeight - edge) {
+    top = rect.top - calloutHeight - gap;
+  }
+  if (top < edge) top = edge;
+  if (left + calloutWidth > window.innerWidth - edge) left = window.innerWidth - calloutWidth - edge;
+  if (left < edge) left = edge;
+
+  const targetRight = rect.left + rect.width;
+  const targetBottom = rect.top + rect.height;
+  const overlapsTarget = left < targetRight + padding
+    && left + calloutWidth > rect.left - padding
+    && top < targetBottom + padding
+    && top + calloutHeight > rect.top - padding;
+  if (overlapsTarget && !allowScrollAdjust) {
+    target.scrollIntoView({ block: 'end', inline: 'nearest', behavior: 'auto' });
+    requestAnimationFrame(() => positionGuide(true));
+    return;
+  }
+
+  guideCallout.style.left = `${left}px`;
+  guideCallout.style.top = `${top}px`;
+}
+
+function showGuideStep(index) {
+  if (!guideSessionSteps.length) return;
+  guideIndex = Math.min(Math.max(index, 0), guideSessionSteps.length - 1);
+  const step = guideSessionSteps[guideIndex];
+  if (guideReturnScreen === 'welcome' && state.screen !== step.screen) {
+    state.screen = step.screen;
+    render();
+  } else {
+    renderGuide();
+  }
+
+  requestAnimationFrame(() => {
+    const target = document.querySelector(step.target);
+    target?.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' });
+    requestAnimationFrame(positionGuide);
+  });
+  guideNext?.focus({ preventScroll: true });
+}
+
+function openGuide() {
+  guideReturnScreen = state.screen;
+  guideSessionSteps = guideStepsForScreen(state.screen);
+  guideIsOpen = true;
+  guideIndex = 0;
+  showGuideStep(0);
+}
+
+function closeGuide() {
+  if (!guideIsOpen) return;
+  guideIsOpen = false;
+  state.screen = guideReturnScreen;
+  render();
+  guideButton?.focus({ preventScroll: true });
+}
+
 function renderStepper() {
   const activeIndex = {
     profile: 0,
@@ -227,17 +382,53 @@ function renderStepper() {
     complete: 2,
   }[state.screen] ?? 0;
   const steps = [t('stepProfile'), t('stepSurvey'), t('stepReview')];
+  const stageIds = ['profile', 'survey', 'review'];
+  const stageItems = steps.map((label, index) => {
+    const stage = stageIds[index];
+    const isActive = index === activeIndex;
+    const isDone = index < activeIndex;
+    const canGoBack = canNavigateToStage(state.screen, stage);
+    const stepContent = `
+      <span>${String(index + 1).padStart(2, '0')}</span>
+      <b>${escapeHtml(label)}</b>
+    `;
+    return `
+      <li class="${isActive ? 'is-active' : ''} ${isDone ? 'is-done' : ''}" ${isActive ? 'aria-current="step"' : ''}>
+        ${canGoBack
+          ? `<button class="step-link" type="button" data-action="stage-nav" data-stage="${stage}" aria-label="${escapeHtml(label)}">${stepContent}</button>`
+          : stepContent}
+      </li>
+    `;
+  }).join('');
+  const topicDirectory = state.screen === 'survey' ? `
+    <nav class="topic-index" aria-label="${escapeHtml(t('topicDirectoryLabel'))}">
+      <div class="topic-index-grid">
+        ${factors.map((factor, index) => {
+          const number = String(index + 1).padStart(2, '0');
+          const isActive = index === state.currentIndex;
+          const isDone = state.reviewedFactors.includes(factor.id);
+          const available = topicIsAvailable(index, state.currentIndex, state.reviewedFactors, factor.id);
+          return `
+            <button
+              class="topic-index-item ${isActive ? 'is-active' : ''} ${isDone ? 'is-done' : ''}"
+              type="button"
+              data-action="topic-index"
+              data-topic-index="${index}"
+              aria-label="${escapeHtml(t('topicDirectoryItem', { n: number }))}"
+              ${isActive ? 'aria-current="step"' : ''}
+              ${available ? '' : 'disabled'}
+            >${number}</button>
+          `;
+        }).join('')}
+      </div>
+    </nav>
+  ` : '';
 
   return `
     <aside class="step-sidebar" aria-label="${escapeHtml(t('progressLabel'))}">
       <div class="mini-brand">M1 <span>·</span> ISM / MICMAC</div>
       <ol class="steps">
-        ${steps.map((label, index) => `
-          <li class="${index === activeIndex ? 'is-active' : ''} ${index < activeIndex ? 'is-done' : ''}" ${index === activeIndex ? 'aria-current="step"' : ''}>
-            <span>${String(index + 1).padStart(2, '0')}</span>
-            <b>${escapeHtml(label)}</b>
-          </li>
-        `).join('')}
+        ${stageItems}
       </ol>
       <div class="sidebar-progress">
         <div class="sidebar-progress-copy">
@@ -247,6 +438,7 @@ function renderStepper() {
         <progress class="native-progress" max="${factors.length}" value="${reviewedCount()}" aria-label="${escapeHtml(t('progressLabel'))}"></progress>
         <small data-progress-count>${escapeHtml(t('confirmedProgress', { n: reviewedCount(), total: factors.length }))}</small>
       </div>
+      ${topicDirectory}
     </aside>
   `;
 }
@@ -587,7 +779,7 @@ function renderComplete() {
 function render() {
   document.documentElement.lang = state.locale;
   document.body.dataset.screen = state.screen;
-  document.title = `${localeText(studyConfig.title)} | BEXtools`;
+  document.title = `${localeText(studyConfig.title)} | M1 Survey`;
   document.querySelector('meta[name="description"]').content = t('heroTitle');
   document.querySelector('#brand-subtitle').textContent = t('brand').replace('BEXtools', '').trim();
   renderLanguages();
@@ -599,6 +791,7 @@ function render() {
     review: renderReview,
     complete: renderComplete,
   }[state.screen]();
+  renderGuide();
 }
 
 function profileIsReady() {
@@ -747,7 +940,7 @@ async function submitResponse() {
       state.clientSubmissionId = clientSubmissionId;
       persist();
     }
-    const response = await fetch('/api/m1-submissions', {
+    const response = await fetch(resolveSubmissionEndpoint(), {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(buildCurrentSubmission()),
@@ -781,6 +974,31 @@ languageSwitch.addEventListener('click', (event) => {
   render();
   languageSwitch.querySelector(`[data-locale="${state.locale}"]`)?.focus({ preventScroll: true });
 });
+
+guideButton?.addEventListener('click', openGuide);
+guideClose?.addEventListener('click', closeGuide);
+guidePrevious?.addEventListener('click', () => {
+  if (guideIndex === 0) return;
+  showGuideStep(guideIndex - 1);
+});
+guideNext?.addEventListener('click', () => {
+  if (guideIndex === guideSessionSteps.length - 1) {
+    closeGuide();
+    return;
+  }
+  showGuideStep(guideIndex + 1);
+});
+guideOverlay?.addEventListener('click', (event) => {
+  if (event.target === guideOverlay) closeGuide();
+});
+guideOverlay?.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeGuide();
+  }
+});
+window.addEventListener('resize', positionGuide);
+window.addEventListener('scroll', positionGuide, { passive: true });
 
 app.addEventListener('submit', (event) => {
   if (event.target.id !== 'profile-form') return;
@@ -845,6 +1063,12 @@ app.addEventListener('click', (event) => {
   if (state.submitState === 'submitting') return;
 
   switch (button.dataset.action) {
+    case 'stage-nav':
+      navigateToStage(button.dataset.stage);
+      break;
+    case 'topic-index':
+      navigateToTopic(Number(button.dataset.topicIndex));
+      break;
     case 'start':
       if (state.submissionId) {
         goTo('complete');
