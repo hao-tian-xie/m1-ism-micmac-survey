@@ -260,7 +260,7 @@ export default {
 
     const url = new URL(request.url);
     if (url.pathname === '/api/m1-submissions/health' && request.method === 'GET') {
-      return json(request, env, { ok: true, service: 'm1-ism-micmac-collector' });
+      return json(request, env, { ok: true, service: 'm1-ism-micmac-survey-api' });
     }
     if (url.pathname === '/api/m1-submissions' && request.method === 'POST') {
       try {
