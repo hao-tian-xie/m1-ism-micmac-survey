@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "m1-ism-micmac-collector",
+  "name": "m1-ism-micmac-survey-api",
   "main": "cloudflare/m1-worker.mjs",
   "compatibility_date": "2026-08-17",
   "workers_dev": true,
