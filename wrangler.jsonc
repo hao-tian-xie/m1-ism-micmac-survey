@@ -7,8 +7,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "m1-ism-micmac-submissions",
-      "database_id": "3aa188af-414e-409d-a682-5624bf4e5264"
+      "database_name": "m1-ism-micmac-survey-submissions",
+      "database_id": "7d7d597d-3e19-4327-9232-f8fba3627671"
     }
   ],
   "vars": {
