@@ -628,7 +628,11 @@ export const studyConfig = {
 export function localisedFactors(locale) {
   return studyConfig.factors.map((factor) => ({
     id: factor.id,
-    label: factor.name[locale] || factor.name.en,
+    label: displayTopicName(factor.name, locale),
     description: factor.description[locale] || factor.description.en,
   }));
+}
+
+export function displayTopicName(name, locale) {
+  return (name?.[locale] || name?.en || '').replace(/^ESRS\s+[ESG][1-5]\s*·\s*/, '');
 }

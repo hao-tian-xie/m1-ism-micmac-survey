@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { studyConfig } from '../survey-config.mjs';
+import { localisedFactors, studyConfig } from '../survey-config.mjs';
 
 const expectedSubtopics = [
   'E1:climate-change-adaptation',
@@ -60,5 +60,11 @@ test('study config uses the 38 ESRS Set 1 sustainability matters selected for th
     assert.match(factor.esrs.standard, /^(E[1-5]|S[1-4]|G1)$/);
     assert.ok(factor.esrs.topic.en.trim());
     assert.ok(factor.esrs.subtopic.en.trim());
+  }
+
+  for (const locale of ['zh-CN', 'zh-HK', 'en']) {
+    for (const factor of localisedFactors(locale)) {
+      assert.doesNotMatch(factor.label, /^ESRS\s+[ESG][1-5]?\s*·/);
+    }
   }
 });

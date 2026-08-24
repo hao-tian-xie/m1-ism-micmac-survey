@@ -6,7 +6,7 @@ import {
   selectedTargetsForSource,
   tryWriteStorage,
 } from './survey-core.mjs';
-import { localisedFactors, studyConfig } from './survey-config.mjs';
+import { displayTopicName, localisedFactors, studyConfig } from './survey-config.mjs';
 import { copy, languageNames, locales } from './translations.mjs';
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
 import { guideStepsForScreen } from './guide-steps.mjs';
@@ -165,7 +165,7 @@ function factorFor(id) {
   const factor = factors.find((item) => item.id === id);
   return {
     id: factor.id,
-    label: localeText(factor.name),
+    label: displayTopicName(factor.name, state.locale),
     description: localeText(factor.description),
   };
 }
@@ -460,7 +460,7 @@ function renderWelcome() {
     || state.participant.code;
   const factorCards = factors.map((factor) => `
     <details class="factor-preview">
-      <summary><span>${factor.id}</span><b>${escapeHtml(localeText(factor.name))}</b><i aria-hidden="true">+</i></summary>
+      <summary><span>${factor.id}</span><b>${escapeHtml(displayTopicName(factor.name, state.locale))}</b><i aria-hidden="true">+</i></summary>
       <p>${escapeHtml(localeText(factor.description))}</p>
     </details>
   `).join('');
