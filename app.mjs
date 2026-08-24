@@ -612,8 +612,10 @@ function renderSurvey() {
 
         <section class="topic-decision">
           <div class="topic-question">
-            <span class="question-kicker">${escapeHtml(t('thenLabel'))}</span>
-            <h1 data-page-title tabindex="-1">${escapeHtml(t('topicQuestion'))}</h1>
+            <div class="topic-question-line">
+              <span class="question-kicker">${escapeHtml(t('thenLabel'))}</span>
+              <h1 data-page-title tabindex="-1">${escapeHtml(t('topicQuestion'))}</h1>
+            </div>
             <p class="choice-hint" id="choice-help">${escapeHtml(t('selectTargets'))}</p>
           </div>
 
