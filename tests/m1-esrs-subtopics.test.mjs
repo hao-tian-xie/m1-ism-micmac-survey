@@ -45,7 +45,7 @@ const expectedSubtopics = [
 ];
 
 test('study config uses the 38 ESRS Set 1 sustainability matters selected for the survey', () => {
-  assert.equal(studyConfig.version, 'esrs-set1-subtopics-v1-38');
+  assert.equal(studyConfig.version, 'esrs-set1-subtopics-v2-38-verified');
   assert.equal(studyConfig.factors.length, expectedSubtopics.length);
   assert.deepEqual(studyConfig.factors.map((factor) => factor.esrs.key), expectedSubtopics);
   assert.equal(new Set(studyConfig.factors.map((factor) => factor.id)).size, 38);
@@ -67,4 +67,31 @@ test('study config uses the 38 ESRS Set 1 sustainability matters selected for th
       assert.doesNotMatch(factor.label, /^ESRS\s+[ESG][1-5]?\s*·/);
     }
   }
+});
+
+test('topic labels and definitions follow the verified ESRS terminology', () => {
+  const byId = Object.fromEntries(studyConfig.factors.map((factor) => [factor.id, factor]));
+
+  assert.equal(byId.F1.name['zh-CN'], 'ESRS E1 · 适应气候变化');
+  assert.equal(byId.F2.name['zh-CN'], 'ESRS E1 · 减缓气候变化');
+  assert.equal(byId.F11.name['zh-CN'], 'ESRS E3 · 水');
+  assert.equal(byId.F13.esrs.topic['zh-CN'], '生物多样性与生态系统');
+  assert.equal(byId.F13.name['zh-CN'], 'ESRS E4 · 生物多样性丧失的直接影响驱动因素');
+  assert.equal(byId.F14.name['zh-CN'], 'ESRS E4 · 对物种状态的影响');
+  assert.equal(byId.F16.name['zh-CN'], 'ESRS E4 · 对生态系统服务的影响和依赖性');
+  assert.equal(byId.F17.name['zh-CN'], 'ESRS E5 · 资源流入（包括资源使用）');
+  assert.equal(byId.F18.name['zh-CN'], 'ESRS E5 · 与产品和服务相关的资源流出');
+  assert.equal(byId.F17.esrs.topic['zh-CN'], '资源利用与循环经济');
+  assert.equal(byId.F20.esrs.topic['zh-CN'], '自有劳动力');
+  assert.equal(byId.F20.name['zh-CN'], 'ESRS S1 · 自有劳动力的工作条件');
+  assert.equal(byId.F23.esrs.topic['zh-CN'], '价值链中的工人');
+  assert.equal(byId.F23.name['zh-CN'], 'ESRS S2 · 价值链中工人的工作条件');
+  assert.equal(byId.F28.name['zh-CN'], 'ESRS S3 · 土著人民权利');
+  assert.equal(byId.F29.name['zh-CN'], 'ESRS S4 · 消费者和最终用户的信息相关影响');
+  assert.equal(byId.F35.name['zh-CN'], 'ESRS G1 · 政治参与和游说活动');
+  assert.equal(byId.F36.name['zh-CN'], 'ESRS G1 · 供应商关系管理（包括付款做法）');
+  assert.match(byId.F2.description['zh-CN'], /碳汇/);
+  assert.match(byId.F22.description['zh-CN'], /水和卫生/);
+  assert.match(byId.F13.description['zh-CN'], /气候变化/);
+  assert.match(byId.F37.name.en, /training/i);
 });
