@@ -3223,3 +3223,51 @@ body[data-screen="welcome"] .save-status {
     padding: 10px 8px;
   }
 }
+
+/* M1 survey layout: desktop/tablet read IF then THEN top-to-bottom. */
+@media (min-width: 768px) {
+  .topic-workspace {
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(22px, 3vw, 32px);
+    margin-top: 28px;
+  }
+
+  .source-topic {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 16px 24px;
+    align-items: start;
+    padding: 18px 0 20px;
+    border-bottom: 0;
+  }
+
+  .source-topic > div,
+  .topic-decision {
+    min-width: 0;
+  }
+
+  .source-topic .topic-kicker {
+    margin: 3px 0 0;
+    white-space: nowrap;
+  }
+
+  .topic-decision {
+    padding-top: 22px;
+    border-top: 1px solid var(--line-strong);
+  }
+
+  .target-fieldset {
+    margin-top: 22px;
+  }
+
+  .target-list {
+    grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1040px) {
+  .target-option {
+    min-height: 80px;
+    padding: 11px 9px;
+  }
+}
