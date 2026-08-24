@@ -288,8 +288,12 @@ function renderGuide() {
   if (!guideOverlay) return;
   guideButtonLabel.textContent = t('guideButton');
   guideButton.title = t('guideTitle');
+  guideButton.setAttribute('aria-label', t('guideTitle'));
   if (esrsPdfLinkLabel) esrsPdfLinkLabel.textContent = t('esrsPdfLabel');
-  if (esrsPdfLink) esrsPdfLink.title = t('esrsPdfTitle');
+  if (esrsPdfLink) {
+    esrsPdfLink.title = t('esrsPdfTitle');
+    esrsPdfLink.setAttribute('aria-label', t('esrsPdfTitle'));
+  }
   guideOverlay.hidden = !guideIsOpen;
   if (!guideIsOpen) return;
 
