@@ -1,5 +1,5 @@
 const STUDY_ID = 'M1-ESG-ISM-MICMAC';
-const FACTOR_VERSION = 'factors-v2-38';
+const FACTOR_VERSION = 'esrs-set1-subtopics-v1-38';
 const FACTOR_COUNT = 38;
 const PAIR_COUNT = FACTOR_COUNT * (FACTOR_COUNT - 1) / 2;
 const MAX_BODY_BYTES = 256 * 1024;
