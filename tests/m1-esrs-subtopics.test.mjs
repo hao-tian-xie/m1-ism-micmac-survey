@@ -44,10 +44,55 @@ const expectedSubtopics = [
   'G1:corruption-and-bribery-incidents',
 ];
 
+const expectedEnglishNames = [
+  'Climate change adaptation',
+  'Climate change mitigation',
+  'Energy',
+  'Pollution of air',
+  'Pollution of water',
+  'Pollution of soil',
+  'Pollution of living organisms and food resources',
+  'Substances of concern',
+  'Substances of very high concern',
+  'Microplastics',
+  'Water',
+  'Marine resources',
+  'Direct impact drivers of biodiversity loss',
+  'Impacts on the state of species',
+  'Impacts on the extent and condition of ecosystems',
+  'Impacts and dependencies on ecosystem services',
+  'Resource inflows, including resource use',
+  'Resource outflows related to products and services',
+  'Waste',
+  'Working conditions (own workforce)',
+  'Equal treatment and opportunities for all (own workforce)',
+  'Other work-related rights (own workforce)',
+  'Working conditions (value-chain workers)',
+  'Equal treatment and opportunities for all (value-chain workers)',
+  'Other work-related rights (value-chain workers)',
+  'Communities’ economic, social and cultural rights',
+  'Communities’ civil and political rights',
+  'Rights of indigenous peoples',
+  'Information-related impacts for consumers and/or end-users',
+  'Personal safety of consumers and end-users',
+  'Social inclusion of consumers and end-users',
+  'Corporate culture',
+  'Protection of whistleblowers',
+  'Animal welfare',
+  'Political engagement and lobbying activities',
+  'Management of relationships with suppliers including payment practices',
+  'Corruption and bribery: prevention and detection including training',
+  'Corruption and bribery incidents',
+];
+
 test('study config uses the 38 ESRS Set 1 sustainability matters selected for the survey', () => {
   assert.equal(studyConfig.version, 'esrs-set1-subtopics-v2-38-verified');
   assert.equal(studyConfig.factors.length, expectedSubtopics.length);
   assert.deepEqual(studyConfig.factors.map((factor) => factor.esrs.key), expectedSubtopics);
+  assert.deepEqual(
+    studyConfig.factors.map((factor) => factor.name.en.replace(/^ESRS\s+[ESG][1-5]\s*·\s*/, '')),
+    expectedEnglishNames,
+  );
   assert.equal(new Set(studyConfig.factors.map((factor) => factor.id)).size, 38);
 
   for (const factor of studyConfig.factors) {
