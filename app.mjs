@@ -589,6 +589,15 @@ function toggleTopicNotes(button) {
   if (isOpen) notes.focus({ preventScroll: true });
 }
 
+function closeTopicNotes() {
+  const notes = document.querySelector('.topic-notes');
+  const button = document.querySelector('[data-action="toggle-topic-notes"]');
+  if (!notes || notes.hidden) return;
+  notes.hidden = true;
+  notes.classList.remove('is-open');
+  button?.setAttribute('aria-expanded', 'false');
+}
+
 function renderSurvey() {
   const source = factorFor(factors[state.currentIndex].id);
   const targets = factors
@@ -1177,6 +1186,14 @@ app.addEventListener('click', (event) => {
     default:
       break;
   }
+});
+
+document.addEventListener('click', (event) => {
+  if (state.screen !== 'survey') return;
+  const notes = document.querySelector('.topic-notes');
+  const toggle = event.target.closest?.('[data-action="toggle-topic-notes"]');
+  if (!notes || notes.hidden || toggle || notes.contains(event.target)) return;
+  closeTopicNotes();
 });
 
 render();

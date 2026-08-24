@@ -3335,14 +3335,14 @@ body[data-screen="welcome"] .save-status {
   body[data-screen="survey"] .topic-workspace {
     min-height: 0;
     grid-template-rows: auto minmax(0, 1fr);
-    gap: clamp(8px, 1.5vh, 16px);
+    gap: clamp(4px, .8vh, 9px);
     align-items: stretch;
-    margin-top: clamp(10px, 1.7vh, 18px);
+    margin-top: clamp(6px, 1vh, 10px);
   }
 
   body[data-screen="survey"] .source-topic {
     min-height: 0;
-    padding: clamp(8px, 1.2vh, 14px) 0;
+    padding: clamp(5px, .8vh, 10px) 0;
   }
 
   body[data-screen="survey"] .source-topic .topic-kicker,
@@ -3371,11 +3371,11 @@ body[data-screen="welcome"] .save-status {
     min-height: 0;
     grid-template-rows: auto minmax(0, 1fr);
     align-self: stretch;
-    padding-top: clamp(9px, 1.3vh, 15px);
+    padding-top: clamp(4px, .7vh, 8px);
   }
 
   body[data-screen="survey"] .choice-hint {
-    margin-top: clamp(3px, .55vh, 6px);
+    margin-top: clamp(2px, .4vh, 4px);
     font-size: clamp(12px, 1.1vw, 15px);
     line-height: 1.15;
   }
@@ -3383,7 +3383,7 @@ body[data-screen="welcome"] .save-status {
   body[data-screen="survey"] .target-fieldset {
     min-height: 0;
     height: 100%;
-    margin-top: clamp(7px, 1vh, 12px);
+    margin-top: clamp(4px, .7vh, 8px);
   }
 
   body[data-screen="survey"] .target-list {
@@ -3397,14 +3397,14 @@ body[data-screen="welcome"] .save-status {
   body[data-screen="survey"] .target-option {
     min-height: 0;
     height: 100%;
-    padding: clamp(4px, .65vh, 9px) clamp(5px, .6vw, 9px);
-    gap: clamp(3px, .5vh, 6px);
+    padding: clamp(2px, .45vh, 6px) clamp(4px, .5vw, 8px);
+    gap: clamp(2px, .35vh, 4px);
     overflow: visible;
   }
 
   body[data-screen="survey"] .target-option input {
-    width: clamp(16px, 1.35vw, 20px);
-    height: clamp(16px, 1.35vw, 20px);
+    width: clamp(15px, 1.2vw, 19px);
+    height: clamp(15px, 1.2vw, 19px);
   }
 
   body[data-screen="survey"] .target-code {
@@ -3414,14 +3414,14 @@ body[data-screen="welcome"] .save-status {
   body[data-screen="survey"] .target-copy strong {
     display: block;
     overflow: visible;
-    font-size: clamp(10px, min(1.15vw, 1.5vh), 15px);
-    line-height: 1.08;
+    font-size: clamp(11px, min(1.25vw, 1.7vh), 17px);
+    line-height: 1;
     overflow-wrap: anywhere;
   }
 
   body[data-screen="survey"] .topic-actions {
     min-height: 0;
-    margin-top: clamp(7px, 1vh, 12px);
+    margin-top: clamp(4px, .7vh, 8px);
   }
 
   body[data-screen="survey"] .topic-notes {
@@ -3445,7 +3445,7 @@ body[data-screen="welcome"] .save-status {
   }
 
   body[data-screen="survey"] .target-copy strong {
-    font-size: clamp(8px, min(1vw, 1.25vh), 12px);
+    font-size: clamp(9px, min(1vw, 1.35vh), 13px);
     line-height: 1;
   }
 }
@@ -3458,7 +3458,7 @@ body[data-screen="welcome"] .save-status {
 
 @media (min-width: 768px) and (max-width: 1040px) and (min-height: 681px) {
   body[data-screen="survey"] .target-copy strong {
-    font-size: clamp(10px, min(1.1vw, 1.45vh), 15px);
+    font-size: clamp(11px, min(1.2vw, 1.55vh), 16px);
   }
 }
 
@@ -3470,7 +3470,13 @@ body[data-screen="welcome"] .save-status {
 
 @media (min-width: 1200px) and (max-width: 1279px) {
   body[data-screen="survey"] .target-copy strong {
-    font-size: clamp(10px, min(1.05vw, 1.4vh), 14px);
+    font-size: clamp(12px, min(1.15vw, 1.55vh), 16px);
+  }
+}
+
+@media (min-width: 1280px) {
+  body[data-screen="survey"] .target-copy strong {
+    font-size: clamp(13px, min(1.25vw, 1.7vh), 17px);
   }
 }
 
@@ -3537,7 +3543,7 @@ body[data-screen="welcome"] .save-status {
 
 .source-topic-body {
   min-width: 0;
-  margin-top: clamp(7px, 1vh, 12px);
+  margin-top: clamp(4px, .6vh, 8px);
 }
 
 .topic-question-line h1 {
