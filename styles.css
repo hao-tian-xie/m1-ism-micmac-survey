@@ -3387,7 +3387,7 @@ body[data-screen="welcome"] .save-status {
   body[data-screen="survey"] .target-list {
     height: 100%;
     min-height: 0;
-    grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
     grid-auto-rows: minmax(0, 1fr);
     align-content: stretch;
   }
@@ -3410,12 +3410,11 @@ body[data-screen="welcome"] .save-status {
   }
 
   body[data-screen="survey"] .target-copy strong {
-    display: -webkit-box;
-    overflow: hidden;
-    font-size: clamp(11px, 1.15vw, 15px);
+    display: block;
+    overflow: visible;
+    font-size: clamp(9px, min(1.15vw, 1.5vh), 15px);
     line-height: 1.08;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    overflow-wrap: anywhere;
   }
 
   body[data-screen="survey"] .topic-actions {
@@ -3430,12 +3429,28 @@ body[data-screen="welcome"] .save-status {
 
 @media (min-width: 768px) and (max-height: 680px) {
   body[data-screen="survey"] .target-option {
-    overflow: hidden;
+    padding: 1px 3px;
+    gap: 1px;
+  }
+
+  body[data-screen="survey"] .target-option input {
+    width: 13px;
+    height: 13px;
+  }
+
+  body[data-screen="survey"] .target-code {
+    font-size: clamp(10px, .95vw, 12px);
   }
 
   body[data-screen="survey"] .target-copy strong {
-    line-height: 1.05;
-    -webkit-line-clamp: 1;
+    font-size: clamp(8px, min(1vw, 1.25vh), 12px);
+    line-height: 1;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 839px) and (max-height: 680px) {
+  body[data-screen="survey"] .target-list {
+    grid-template-columns: repeat(auto-fit, minmax(56px, 1fr));
   }
 }
 
