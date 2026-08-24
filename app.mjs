@@ -9,6 +9,7 @@ import {
 import { displayTopicName, localisedFactors, studyConfig } from './survey-config.mjs';
 import { copy, languageNames, locales } from './translations.mjs';
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
+import { resolveLocale } from './locale-state.mjs';
 import { guideStepsForScreen } from './guide-steps.mjs';
 import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs';
 import { attachTopicDefinitionHints } from './topic-definition-hints.mjs';
@@ -38,13 +39,11 @@ let storageAvailable = true;
 let detachTopicDefinitionHints = () => {};
 
 function preferredLocale() {
-  const queryLocale = new URLSearchParams(window.location.search).get('lang');
-  if (locales.includes(queryLocale)) return queryLocale;
-
-  const browserLocale = navigator.language || '';
-  if (/^zh-(HK|TW|MO)/i.test(browserLocale)) return 'zh-HK';
-  if (/^zh/i.test(browserLocale)) return 'zh-CN';
-  return 'en';
+  return resolveLocale({
+    queryLocale: new URLSearchParams(window.location.search).get('lang'),
+    browserLocale: navigator.language || '',
+    locales,
+  });
 }
 
 function emptySelections() {
@@ -96,16 +95,23 @@ function loadState() {
       ? factorIds.filter((id) => saved.noInfluenceFactors.includes(id))
       : reviewedFactors.filter((id) => factorSelections[id].length === 0);
     const submissionId = String(saved.submissionId || '');
+    const locale = resolveLocale({
+      queryLocale: new URLSearchParams(window.location.search).get('lang'),
+      savedLocale: saved.locale,
+      browserLocale: navigator.language || '',
+      locales,
+    });
 
     return {
-      ...blankState(locales.includes(saved.locale) ? saved.locale : preferredLocale()),
+      ...blankState(locale),
       ...saved,
+      locale,
       screen: 'welcome',
       answers,
       factorSelections,
       noInfluenceFactors,
       reviewedFactors,
-      participant: { ...blankState().participant, ...(saved.participant || {}) },
+      participant: { ...blankState(locale).participant, ...(saved.participant || {}) },
       currentIndex: Math.min(Math.max(Number(saved.currentIndex) || 0, 0), factors.length - 1),
       editingFromReview: false,
       submitState: 'idle',
@@ -266,6 +272,14 @@ function renderLanguages() {
       ${languageNames[locale]}
     </button>
   `).join('');
+}
+
+function renderHomeLink() {
+  const homeLink = document.querySelector('.brand');
+  if (!homeLink) return;
+  const url = new URL('./', window.location.href);
+  url.searchParams.set('lang', state.locale);
+  homeLink.href = `${url.pathname}${url.search}${url.hash}`;
 }
 
 function renderGuide() {
@@ -785,6 +799,7 @@ function render() {
   document.title = `${localeText(studyConfig.title)} | M1 Survey`;
   document.querySelector('meta[name="description"]').content = t('heroTitle');
   document.querySelector('#brand-subtitle').textContent = t('brand').replace('BEXtools', '').trim();
+  renderHomeLink();
   renderLanguages();
 
   detachTopicDefinitionHints();
