@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 const styles = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
 const app = await readFile(new URL('../app.mjs', import.meta.url), 'utf8');
+const index = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 
 test('desktop and tablet survey layout places IF above THEN', () => {
   const marker = 'M1 survey layout: desktop/tablet read IF then THEN top-to-bottom';
@@ -41,6 +42,8 @@ test('IF and THEN labels share the same readable type treatment', () => {
   const labels = styles.slice(labelStart, labelStart + 420);
   assert.match(labels, /font-family:\s*var\(--font\)/);
   assert.match(labels, /font-weight:\s*600/);
+  assert.match(styles, /\.topic-question-line\s*\{[\s\S]*?color:\s*var\(--accent\)/);
+  assert.match(styles, /\.topic-question-line h1\s*\{[\s\S]*?color:\s*inherit/);
 });
 
 test('THEN and its question are presented as one decision label', () => {
@@ -48,4 +51,17 @@ test('THEN and its question are presented as one decision label', () => {
     app,
     /<div class="topic-question-line">[\s\S]*?class="question-kicker"[\s\S]*?<h1[\s\S]*?topicQuestion/,
   );
+});
+
+test('survey keeps progress with IF, centers topic notes, and exposes the ESRS PDF', () => {
+  assert.match(app, /class="source-topic-head"[\s\S]*?class="topic-kicker"[\s\S]*?class="source-progress"/);
+  assert.doesNotMatch(app, /<div class="topic-progress">/);
+  assert.match(app, /data-action="toggle-topic-notes"[\s\S]*?aria-expanded="false"/);
+  assert.match(app, /<section class="topic-notes"[^>]*hidden/);
+  assert.match(styles, /\.topic-actions\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto\s+minmax\(0,\s*1fr\)/);
+  assert.match(styles, /\.topic-notes\.is-open\s*\{[\s\S]*?display:\s*block/);
+  assert.match(styles, /\.topic-actions\s*\{[\s\S]*?margin-inline:\s*1px/);
+  assert.match(styles, /\.target-copy strong\s*\{[\s\S]*?font-size:\s*clamp\(10px/);
+  assert.match(index, /id="esrs-pdf-link"[^>]+href="https:\/\/eur-lex\.europa\.eu\/legal-content\/EN\/TXT\/PDF\/\?uri=OJ:L_202302772"/);
+  assert.match(index, /id="esrs-pdf-link-label"/);
 });

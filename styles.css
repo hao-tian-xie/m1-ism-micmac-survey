@@ -3288,6 +3288,7 @@ body[data-screen="welcome"] .save-status {
   gap: 10px;
   align-items: baseline;
   flex-wrap: wrap;
+  color: var(--accent);
 }
 
 .topic-question-line .question-kicker {
@@ -3299,6 +3300,7 @@ body[data-screen="welcome"] .save-status {
   min-width: 0;
   margin: 0;
   font-family: var(--font);
+  color: inherit;
   font-size: clamp(17px, 1.6vw, 21px);
   font-weight: 600;
   letter-spacing: .02em;
@@ -3412,7 +3414,7 @@ body[data-screen="welcome"] .save-status {
   body[data-screen="survey"] .target-copy strong {
     display: block;
     overflow: visible;
-    font-size: clamp(9px, min(1.15vw, 1.5vh), 15px);
+    font-size: clamp(10px, min(1.15vw, 1.5vh), 15px);
     line-height: 1.08;
     overflow-wrap: anywhere;
   }
@@ -3454,6 +3456,24 @@ body[data-screen="welcome"] .save-status {
   }
 }
 
+@media (min-width: 768px) and (max-width: 1040px) and (min-height: 681px) {
+  body[data-screen="survey"] .target-copy strong {
+    font-size: clamp(10px, min(1.1vw, 1.45vh), 15px);
+  }
+}
+
+@media (min-width: 1200px) {
+  body[data-screen="survey"] .target-list {
+    grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  }
+}
+
+@media (min-width: 1200px) and (max-width: 1279px) {
+  body[data-screen="survey"] .target-copy strong {
+    font-size: clamp(10px, min(1.05vw, 1.4vh), 14px);
+  }
+}
+
 @media (max-width: 767px) {
   .topic-question-line {
     gap: 8px;
@@ -3461,5 +3481,179 @@ body[data-screen="welcome"] .save-status {
 
   .topic-question-line + .choice-hint {
     margin-top: 6px;
+  }
+}
+
+/* M1 survey refinements: keep progress with IF and make the notes a focused panel. */
+.survey-topline {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.source-topic {
+  display: block;
+}
+
+.source-topic-head {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.source-topic-head .topic-kicker {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.source-progress {
+  display: grid;
+  width: min(360px, 52%);
+  min-width: 220px;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.source-progress-copy {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 14px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.source-progress-copy .pair-position {
+  color: var(--ink-strong);
+  font-size: 16px;
+}
+
+.source-progress progress {
+  width: 100%;
+}
+
+.source-topic-body {
+  min-width: 0;
+  margin-top: clamp(7px, 1vh, 12px);
+}
+
+.topic-question-line h1 {
+  color: inherit;
+}
+
+.topic-actions {
+  width: calc(100% - 2px);
+  margin-inline: 1px;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: clamp(10px, 2vw, 22px);
+}
+
+.topic-actions > button:first-child {
+  justify-self: start;
+}
+
+.topic-actions .topic-notes-toggle {
+  justify-self: center;
+}
+
+.topic-actions .primary-button {
+  justify-self: end;
+}
+
+.topic-notes[hidden] {
+  display: none !important;
+}
+
+.topic-survey {
+  position: relative;
+}
+
+.topic-notes {
+  position: absolute;
+  z-index: 18;
+  inset-inline: 1px;
+  bottom: clamp(76px, 10vh, 94px);
+  display: none;
+  max-height: min(54vh, 440px);
+  margin: 0;
+  overflow: auto;
+  padding: 18px;
+  border: 1px solid var(--line-strong);
+  background: var(--paper);
+}
+
+.topic-notes.is-open {
+  display: block;
+}
+
+body[data-screen="survey"] .topic-notes.is-open {
+  display: block;
+}
+
+.topic-notes:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -3px;
+}
+
+.topic-notes h2 {
+  margin-bottom: 14px;
+}
+
+@media (max-width: 767px) {
+  .source-topic-head {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px;
+    align-items: start;
+  }
+
+  .source-progress {
+    width: auto;
+    min-width: 0;
+  }
+
+  .source-progress-copy {
+    gap: 8px;
+    font-size: 12px;
+  }
+
+  .source-progress-copy .pair-position {
+    font-size: 14px;
+  }
+
+  .source-topic-body {
+    margin-top: 8px;
+  }
+
+  .topic-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .topic-actions .text-button,
+  .topic-actions .primary-button {
+    min-width: 0;
+    padding-inline: 7px;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  .topic-actions .topic-notes-toggle {
+    justify-self: stretch;
+  }
+
+  .topic-notes {
+    position: fixed;
+    z-index: 70;
+    inset: 68px 12px calc(72px + env(safe-area-inset-bottom));
+    max-height: none;
+    padding: 14px;
+  }
+
+  .topic-notes ul {
+    grid-template-columns: 1fr;
   }
 }

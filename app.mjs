@@ -23,6 +23,8 @@ const app = document.querySelector('#app');
 const languageSwitch = document.querySelector('#language-switch');
 const guideButton = document.querySelector('#guide-button');
 const guideButtonLabel = document.querySelector('#guide-button-label');
+const esrsPdfLink = document.querySelector('#esrs-pdf-link');
+const esrsPdfLinkLabel = document.querySelector('#esrs-pdf-link-label');
 const guideOverlay = document.querySelector('#guide-overlay');
 const guideSpotlight = document.querySelector('#guide-spotlight');
 const guideCallout = document.querySelector('#guide-callout');
@@ -286,6 +288,8 @@ function renderGuide() {
   if (!guideOverlay) return;
   guideButtonLabel.textContent = t('guideButton');
   guideButton.title = t('guideTitle');
+  if (esrsPdfLinkLabel) esrsPdfLinkLabel.textContent = t('esrsPdfLabel');
+  if (esrsPdfLink) esrsPdfLink.title = t('esrsPdfTitle');
   guideOverlay.hidden = !guideIsOpen;
   if (!guideIsOpen) return;
 
@@ -575,6 +579,16 @@ function targetOption(source, target) {
   `;
 }
 
+function toggleTopicNotes(button) {
+  const notes = document.querySelector('.topic-notes');
+  if (!notes) return;
+  const isOpen = notes.hidden;
+  notes.hidden = !isOpen;
+  notes.classList.toggle('is-open', isOpen);
+  button.setAttribute('aria-expanded', String(isOpen));
+  if (isOpen) notes.focus({ preventScroll: true });
+}
+
 function renderSurvey() {
   const source = factorFor(factors[state.currentIndex].id);
   const targets = factors
@@ -590,20 +604,22 @@ function renderSurvey() {
   return renderShell(`
     <div class="survey-page topic-survey">
       <header class="survey-topline">
-        <div>
-          <p class="eyebrow">${escapeHtml(t('surveyEyebrow'))}</p>
-          <p class="pair-position">${escapeHtml(t('topicPosition', { i: state.currentIndex + 1, total: factors.length }))}</p>
-        </div>
-        <div class="topic-progress">
-          <span>${escapeHtml(t('confirmedProgress', { n: reviewedCount(), total: factors.length }))}</span>
-          <progress max="${factors.length}" value="${reviewedCount()}" aria-label="${escapeHtml(t('progressLabel'))}"></progress>
-        </div>
+        <p class="eyebrow">${escapeHtml(t('surveyEyebrow'))}</p>
       </header>
 
       <div class="topic-workspace">
         <section class="source-topic" aria-labelledby="source-topic-name">
-          <span class="topic-kicker">${escapeHtml(t('ifLabel'))}</span>
-          <div>
+          <div class="source-topic-head">
+            <span class="topic-kicker">${escapeHtml(t('ifLabel'))}</span>
+            <div class="source-progress">
+              <div class="source-progress-copy">
+                <span class="pair-position">${escapeHtml(t('topicPosition', { i: state.currentIndex + 1, total: factors.length }))}</span>
+                <span data-progress-count>${escapeHtml(t('confirmedProgress', { n: reviewedCount(), total: factors.length }))}</span>
+              </div>
+              <progress max="${factors.length}" value="${reviewedCount()}" aria-label="${escapeHtml(t('progressLabel'))}"></progress>
+            </div>
+          </div>
+          <div class="source-topic-body">
             <span class="source-code">${source.id}</span>
             <h2 id="source-topic-name">${escapeHtml(source.label)}</h2>
             <p>${escapeHtml(source.description)}</p>
@@ -639,11 +655,14 @@ function renderSurvey() {
         <button class="text-button" type="button" data-action="previous-topic" ${state.currentIndex === 0 ? 'disabled' : ''}>
           <span aria-hidden="true">←</span>${escapeHtml(t('previousTopic'))}
         </button>
+        <button class="text-button topic-notes-toggle" type="button" data-action="toggle-topic-notes" aria-expanded="false">
+          <span aria-hidden="true">i</span>${escapeHtml(t('topicNotesButton'))}
+        </button>
         <button class="primary-button" type="button" data-action="confirm-topic" ${hasChoice ? '' : 'disabled'}>
           ${escapeHtml(state.editingFromReview ? t('confirmAndReview') : isLast ? t('confirmAndReview') : t('confirmAndNext'))}<span aria-hidden="true">→</span>
         </button>
       </div>
-      <section class="topic-notes" aria-label="${escapeHtml(t('candidateNotes'))}">
+      <section class="topic-notes" aria-label="${escapeHtml(t('candidateNotes'))}" hidden tabindex="-1">
         <h2>${escapeHtml(t('candidateNotes'))}</h2>
         <ul>${topicNotes}</ul>
       </section>
@@ -874,8 +893,6 @@ function updateSurveySelectionUi(sourceId) {
   document.querySelectorAll('progress').forEach((node) => {
     node.value = reviewedCount();
   });
-  const topicProgress = document.querySelector('.topic-progress span');
-  if (topicProgress) topicProgress.textContent = t('confirmedProgress', { n: reviewedCount(), total: factors.length });
 }
 
 function confirmCurrentTopic() {
@@ -1115,6 +1132,9 @@ app.addEventListener('click', (event) => {
       render();
       pageTop();
       focusPageHeading();
+      break;
+    case 'toggle-topic-notes':
+      toggleTopicNotes(button);
       break;
     case 'confirm-topic':
       confirmCurrentTopic();
