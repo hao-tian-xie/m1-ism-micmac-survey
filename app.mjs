@@ -622,20 +622,22 @@ function renderSurvey() {
 
       <div class="topic-workspace">
         <section class="source-topic" aria-labelledby="source-topic-name">
-          <div class="source-topic-head">
-            <span class="topic-kicker">${escapeHtml(t('ifLabel'))}</span>
-            <div class="source-progress">
-              <div class="source-progress-copy">
-                <span class="pair-position">${escapeHtml(t('topicPosition', { i: state.currentIndex + 1, total: factors.length }))}</span>
-                <span data-progress-count>${escapeHtml(t('confirmedProgress', { n: reviewedCount(), total: factors.length }))}</span>
+          <span class="topic-kicker">${escapeHtml(t('ifLabel'))}</span>
+          <div class="source-topic-main">
+            <div class="source-topic-head">
+              <div class="source-topic-body">
+                <span class="source-code">${source.id}</span>
+                <h2 id="source-topic-name">${escapeHtml(source.label)}</h2>
+                <p>${escapeHtml(source.description)}</p>
               </div>
-              <progress max="${factors.length}" value="${reviewedCount()}" aria-label="${escapeHtml(t('progressLabel'))}"></progress>
+              <div class="source-progress">
+                <div class="source-progress-copy">
+                  <span class="pair-position">${escapeHtml(t('topicPosition', { i: state.currentIndex + 1, total: factors.length }))}</span>
+                  <span data-progress-count>${escapeHtml(t('confirmedProgress', { n: reviewedCount(), total: factors.length }))}</span>
+                </div>
+                <progress max="${factors.length}" value="${reviewedCount()}" aria-label="${escapeHtml(t('progressLabel'))}"></progress>
+              </div>
             </div>
-          </div>
-          <div class="source-topic-body">
-            <span class="source-code">${source.id}</span>
-            <h2 id="source-topic-name">${escapeHtml(source.label)}</h2>
-            <p>${escapeHtml(source.description)}</p>
           </div>
         </section>
 

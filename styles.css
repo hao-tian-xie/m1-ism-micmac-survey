@@ -3154,6 +3154,23 @@ body[data-screen="welcome"] .save-status {
   }
 }
 
+@media (min-width: 768px) and (max-width: 840px) {
+  .source-topic {
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .source-topic-head {
+    display: block;
+  }
+
+  .source-progress {
+    width: auto;
+    min-width: 0;
+    margin-bottom: 8px;
+  }
+}
+
 /* Tablet: keep the rail, but give the answer area room to breathe. */
 @media (min-width: 768px) and (max-width: 1040px) and (min-height: 501px) {
   .content-stage {
@@ -3429,7 +3446,7 @@ body[data-screen="welcome"] .save-status {
   body[data-screen="survey"] .target-copy strong {
     display: block;
     overflow: visible;
-    font-size: clamp(11px, min(1.25vw, 1.7vh), 17px);
+    font-size: clamp(14px, min(1.4vw, 1.9vh), 19px);
     line-height: 1;
     overflow-wrap: anywhere;
   }
@@ -3460,7 +3477,7 @@ body[data-screen="welcome"] .save-status {
   }
 
   body[data-screen="survey"] .target-copy strong {
-    font-size: clamp(9px, min(1vw, 1.35vh), 13px);
+    font-size: clamp(10px, min(1.1vw, 1.5vh), 14px);
     line-height: 1;
   }
 }
@@ -3469,11 +3486,15 @@ body[data-screen="welcome"] .save-status {
   body[data-screen="survey"] .target-list {
     grid-template-columns: repeat(auto-fit, minmax(56px, 1fr));
   }
+
+  body[data-screen="survey"] .target-copy strong {
+    font-size: clamp(9px, min(1vw, 1.35vh), 13px);
+  }
 }
 
 @media (min-width: 768px) and (max-width: 1040px) and (min-height: 681px) {
   body[data-screen="survey"] .target-copy strong {
-    font-size: clamp(11px, min(1.2vw, 1.55vh), 16px);
+    font-size: clamp(12px, min(1.35vw, 1.7vh), 17px);
   }
 }
 
@@ -3485,13 +3506,13 @@ body[data-screen="welcome"] .save-status {
 
 @media (min-width: 1200px) and (max-width: 1279px) {
   body[data-screen="survey"] .target-copy strong {
-    font-size: clamp(12px, min(1.15vw, 1.55vh), 16px);
+    font-size: clamp(13px, min(1.25vw, 1.7vh), 17px);
   }
 }
 
 @media (min-width: 1280px) {
   body[data-screen="survey"] .target-copy strong {
-    font-size: clamp(13px, min(1.25vw, 1.7vh), 17px);
+    font-size: clamp(14px, min(1.4vw, 1.9vh), 19px);
   }
 }
 
@@ -3512,20 +3533,22 @@ body[data-screen="welcome"] .save-status {
 }
 
 .source-topic {
-  display: block;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 16px 24px;
+  align-items: start;
+}
+
+.source-topic-main {
+  min-width: 0;
 }
 
 .source-topic-head {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 360px);
   min-width: 0;
-  align-items: center;
-  justify-content: space-between;
+  align-items: start;
   gap: 24px;
-}
-
-.source-topic-head .topic-kicker {
-  flex: 0 0 auto;
-  margin: 0;
 }
 
 .source-progress {
@@ -3558,7 +3581,7 @@ body[data-screen="welcome"] .save-status {
 
 .source-topic-body {
   min-width: 0;
-  margin-top: clamp(4px, .6vh, 8px);
+  margin-top: 0;
 }
 
 .topic-question-line h1 {
@@ -3625,15 +3648,13 @@ body[data-screen="survey"] .topic-notes.is-open {
 
 @media (max-width: 767px) {
   .source-topic-head {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 8px;
-    align-items: start;
+    display: block;
   }
 
   .source-progress {
     width: auto;
     min-width: 0;
+    margin-bottom: 8px;
   }
 
   .source-progress-copy {
@@ -3646,7 +3667,7 @@ body[data-screen="survey"] .topic-notes.is-open {
   }
 
   .source-topic-body {
-    margin-top: 8px;
+    margin-top: 0;
   }
 
   .topic-actions {
