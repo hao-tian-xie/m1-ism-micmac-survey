@@ -63,7 +63,12 @@ test('survey keeps progress with IF, centers topic notes, and exposes the ESRS P
   assert.match(styles, /\.topic-notes\.is-open\s*\{[\s\S]*?display:\s*block/);
   assert.match(styles, /body\[data-screen="survey"\]\s+\.topic-notes\.is-open\s*\{[\s\S]*?display:\s*block/);
   assert.match(styles, /\.topic-actions\s*\{[\s\S]*?margin-inline:\s*1px/);
-  assert.match(styles, /body\[data-screen="survey"\]\s+\.target-copy strong\s*\{[\s\S]*?font-size:\s*clamp\(14px,\s*min\(1\.4vw,\s*1\.9vh\),\s*19px\)/);
+  assert.match(styles, /body\[data-screen="survey"\]\s+\.target-copy strong\s*\{[\s\S]*?font-size:\s*clamp\(15px,\s*min\(1\.5vw,\s*2vh\),\s*20px\)/);
+  assert.match(styles, /body\[data-screen="survey"\]\s+\.target-option\s*\{[\s\S]*?align-items:\s*start/);
+  assert.match(styles, /body\[data-screen="survey"\]\s+\.target-copy\s*\{[\s\S]*?align-self:\s*start/);
+  assert.match(styles, /body\[data-screen="survey"\]\s+\.header-actions\s*\{[\s\S]*?gap:\s*6px/);
+  assert.match(styles, /body\[data-screen="survey"\]\s+\.topic-index-grid\s*\{[\s\S]*?grid-template-columns:\s*repeat\(10,/);
+  assert.match(styles, /body\[data-screen="survey"\]\s+\.topic-index-item\s*\{[\s\S]*?min-height:\s*26px/);
   assert.match(index, /id="esrs-pdf-link"[^>]+href="https:\/\/www\.efrag\.org\/sites\/default\/files\/sites\/webpublishing\/SiteAssets\/ESRS%201%20Delegated-act-2023-5303-annex-1_en\.pdf"/);
   assert.match(index, /id="esrs-pdf-link-label"/);
   assert.match(index, /id="guide-button"[\s\S]*?id="esrs-pdf-link"/);
