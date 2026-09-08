@@ -2,14 +2,14 @@ export const studyConfig = {
   id: 'M1-ESG-ISM-MICMAC',
   version: 'esrs-set1-subtopics-v2-38-verified',
   title: {
-    'zh-CN': 'ESG 主题研究',
-    'zh-HK': 'ESG 主題研究',
-    en: 'ESG Theme Study',
+    'zh-CN': 'M1 结构关系研究',
+    'zh-HK': 'M1 結構關係研究',
+    en: 'M1 Structural Relationship Study',
   },
   scope: {
-    'zh-CN': '当前供应链与物流企业的 ESG 主题重要性和驱动能力',
-    'zh-HK': '當前供應鏈與物流企業的 ESG 主題重要性和驅動能力',
-    en: 'The importance and driving capability of ESG themes in current supply-chain and logistics enterprises',
+    'zh-CN': '未来三年，供应链企业推进 ESG 实践的过程',
+    'zh-HK': '未來三年，供應鏈企業推進 ESG 實踐的過程',
+    en: 'ESG implementation in supply-chain enterprises over the next three years',
   },
   factors: [
     {

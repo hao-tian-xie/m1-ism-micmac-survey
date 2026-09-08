@@ -5,7 +5,7 @@ const welcomeSteps = [
   { screen: 'profile', target: '.profile-form .primary-button', title: 'guideStartTitle', text: 'guideStartText' },
   { screen: 'survey', target: '.source-topic', title: 'guideIfTitle', text: 'guideIfText' },
   { screen: 'survey', target: '.target-fieldset', title: 'guideThenTitle', text: 'guideThenText' },
-  { screen: 'survey', target: '[data-action="toggle-topic-notes"]', title: 'guideNotesTitle', text: 'guideNotesText' },
+  { screen: 'survey', target: '.topic-notes', title: 'guideNotesTitle', text: 'guideNotesText' },
   { screen: 'survey', target: '.topic-actions .primary-button', title: 'guideNextTitle', text: 'guideNextText' },
   { screen: 'review', target: '.review-actions .primary-button', title: 'guideSubmitTitle', text: 'guideSubmitText' },
 ];

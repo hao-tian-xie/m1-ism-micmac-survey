@@ -100,17 +100,3 @@ test('touch shows one definition at a time and then hides it', () => {
   timers.runLast();
   assert.equal(second.classList.contains('is-definition-visible'), false);
 });
-
-test('lifting a touch pointer does not immediately dismiss its definition', () => {
-  const root = fakeRoot();
-  const option = fakeOption();
-  const timers = timerHarness();
-  attachTopicDefinitionHints(root, timers);
-
-  root.dispatch('pointerup', { target: option, pointerType: 'touch' });
-  root.dispatch('pointerout', { target: option, pointerType: 'touch', relatedTarget: null });
-  assert.equal(option.classList.contains('is-definition-visible'), true);
-
-  timers.runLast();
-  assert.equal(option.classList.contains('is-definition-visible'), false);
-});

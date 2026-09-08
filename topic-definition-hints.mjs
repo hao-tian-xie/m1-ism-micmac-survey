@@ -81,7 +81,6 @@ export function attachTopicDefinitionHints(root, timers = globalThis) {
   }
 
   function pointerOut(event) {
-    if (event.pointerType && event.pointerType !== 'mouse') return;
     const option = optionFromEvent(event);
     if (!option || isInside(option, event.relatedTarget)) return;
     if (pendingOption === option) clearPending();

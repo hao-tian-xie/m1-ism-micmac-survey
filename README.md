@@ -1,6 +1,6 @@
-# ESG 主题研究问卷
+# M1 ISM–MICMAC Survey
 
-独立的 ESG 主题关系问卷平台，研究范围为当前供应链与物流企业的 ESG 主题重要性和驱动能力。
+独立的 M1 ESG 主题关系问卷平台。
 
 - 在线问卷：[hao-tian-xie.github.io/m1-ism-micmac-survey](https://hao-tian-xie.github.io/m1-ism-micmac-survey/)
 - 收集 API：[m1-ism-micmac-survey-api.bolly-express-website.workers.dev](https://m1-ism-micmac-survey-api.bolly-express-website.workers.dev/api/m1-submissions)
@@ -10,13 +10,3 @@
 - 收集服务：`npm run build` → `M1_ADMIN_USER=... M1_ADMIN_PASSWORD=... npm start`
 
 GitHub Pages 负责前端页面；线上提交接口由独立的 Cloudflare Worker 和 D1 数据库运行。
-
-## 本地预览与核验
-
-`npm ci` → `npm test` → `npm run build`。
-
-在项目目录运行 `HOST=127.0.0.1 PORT=4176 npm start`，打开 `http://127.0.0.1:4176/?lang=zh-CN`。
-
-本地主机只向同源收集接口提交，不使用页面中配置的线上收集地址。默认本地答卷保存在 `data/m1-submissions.ndjson`；可用 `M1_SUBMISSIONS_FILE` 指定测试文件。
-
-研究主题的编号、版本和关系编码保持不变。本地预览不会触发推送或部署。

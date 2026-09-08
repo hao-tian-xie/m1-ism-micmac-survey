@@ -13,7 +13,6 @@ import { resolveLocale } from './locale-state.mjs';
 import { guideStepsForScreen } from './guide-steps.mjs';
 import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs';
 import { attachTopicDefinitionHints } from './topic-definition-hints.mjs';
-import { requestSubmissionReceipt } from './submission-request.mjs';
 
 const STORAGE_KEY = `bextools:${studyConfig.id}:${studyConfig.version}`;
 const NONE_VALUE = '__none__';
@@ -132,8 +131,6 @@ let guideIndex = 0;
 let guideReturnScreen = state.screen;
 let guideIsOpen = false;
 let guideSessionSteps = guideStepsForScreen(state.screen);
-let guideBackgroundState = [];
-const compactLayout = window.matchMedia('(max-width: 767px), (max-width: 900px) and (max-height: 500px)');
 
 function t(key, values = {}) {
   const template = copy[state.locale][key] || copy.en[key] || key;
@@ -386,13 +383,8 @@ function showGuideStep(index) {
 }
 
 function openGuide() {
-  if (guideIsOpen) return;
   guideReturnScreen = state.screen;
   guideSessionSteps = guideStepsForScreen(state.screen);
-  guideBackgroundState = [document.querySelector('.site-header'), app]
-    .filter(Boolean)
-    .map((element) => ({ element, inert: element.inert }));
-  guideBackgroundState.forEach(({ element }) => { element.inert = true; });
   guideIsOpen = true;
   guideIndex = 0;
   showGuideStep(0);
@@ -401,8 +393,6 @@ function openGuide() {
 function closeGuide() {
   if (!guideIsOpen) return;
   guideIsOpen = false;
-  guideBackgroundState.forEach(({ element, inert }) => { element.inert = inert; });
-  guideBackgroundState = [];
   state.screen = guideReturnScreen;
   render();
   guideButton?.focus({ preventScroll: true });
@@ -435,9 +425,7 @@ function renderStepper() {
     `;
   }).join('');
   const topicDirectory = state.screen === 'survey' ? `
-    <details class="topic-directory-disclosure"${compactLayout.matches ? '' : ' open'}>
-      <summary>${escapeHtml(t('topicDirectoryLabel'))}</summary>
-      <nav class="topic-index" aria-label="${escapeHtml(t('topicDirectoryLabel'))}">
+    <nav class="topic-index" aria-label="${escapeHtml(t('topicDirectoryLabel'))}">
       <div class="topic-index-grid">
         ${factors.map((factor, index) => {
           const number = String(index + 1).padStart(2, '0');
@@ -457,13 +445,12 @@ function renderStepper() {
           `;
         }).join('')}
       </div>
-      </nav>
-    </details>
+    </nav>
   ` : '';
 
   return `
     <aside class="step-sidebar" aria-label="${escapeHtml(t('progressLabel'))}">
-      <div class="mini-brand">ESG</div>
+      <div class="mini-brand">M1 <span>·</span> ISM / MICMAC</div>
       <ol class="steps">
         ${stageItems}
       </ol>
@@ -473,6 +460,7 @@ function renderStepper() {
           <b data-progress-percent>${progressPercent()}%</b>
         </div>
         <progress class="native-progress" max="${factors.length}" value="${reviewedCount()}" aria-label="${escapeHtml(t('progressLabel'))}"></progress>
+        <small data-progress-count>${escapeHtml(t('confirmedProgress', { n: reviewedCount(), total: factors.length }))}</small>
       </div>
       ${topicDirectory}
     </aside>
@@ -522,7 +510,7 @@ function renderWelcome() {
 
       <section class="factor-section">
         <div class="section-heading">
-          <div><p class="eyebrow">ESG</p><h2>${escapeHtml(t('factorList'))}</h2></div>
+          <div><p class="eyebrow">M1</p><h2>${escapeHtml(t('factorList'))}</h2></div>
         </div>
         <div class="factor-preview-grid">${factorCards}</div>
       </section>
@@ -605,14 +593,13 @@ function toggleTopicNotes(button) {
   if (isOpen) notes.focus({ preventScroll: true });
 }
 
-function closeTopicNotes({ restoreFocus = false } = {}) {
+function closeTopicNotes() {
   const notes = document.querySelector('.topic-notes');
   const button = document.querySelector('[data-action="toggle-topic-notes"]');
   if (!notes || notes.hidden) return;
   notes.hidden = true;
   notes.classList.remove('is-open');
   button?.setAttribute('aria-expanded', 'false');
-  if (restoreFocus) button?.focus({ preventScroll: true });
 }
 
 function renderSurvey() {
@@ -646,6 +633,7 @@ function renderSurvey() {
               <div class="source-progress">
                 <div class="source-progress-copy">
                   <span class="pair-position">${escapeHtml(t('topicPosition', { i: state.currentIndex + 1, total: factors.length }))}</span>
+                  <span data-progress-count>${escapeHtml(t('confirmedProgress', { n: reviewedCount(), total: factors.length }))}</span>
                 </div>
                 <progress max="${factors.length}" value="${reviewedCount()}" aria-label="${escapeHtml(t('progressLabel'))}"></progress>
               </div>
@@ -690,10 +678,7 @@ function renderSurvey() {
         </button>
       </div>
       <section class="topic-notes" aria-label="${escapeHtml(t('candidateNotes'))}" hidden tabindex="-1">
-        <div class="topic-notes-head">
-          <h2>${escapeHtml(t('candidateNotes'))}</h2>
-          <button class="text-button" type="button" data-action="close-topic-notes">${escapeHtml(t('guideClose'))}</button>
-        </div>
+        <h2>${escapeHtml(t('candidateNotes'))}</h2>
         <ul>${topicNotes}</ul>
       </section>
     </div>
@@ -793,7 +778,7 @@ function renderReview() {
         </button>
       </div>
       ${state.submitState === 'error' ? `
-        <div class="submit-error" role="alert" tabindex="-1">
+        <div class="submit-error" role="alert">
           <span>${escapeHtml(t('submitError'))}</span>
           <button type="button" data-action="submit-response">${escapeHtml(t('retrySubmit'))}</button>
         </div>
@@ -806,20 +791,20 @@ function renderReview() {
         <div class="topic-review-list">${topicRows}</div>
       </section>
 
-      <details class="review-panel pair-check-panel" data-review-details="pairs">
+      <details class="review-panel pair-check-panel">
         <summary class="matrix-summary">
           <span><b>${escapeHtml(t('pairListTitle'))}</b></span>
           <i aria-hidden="true">+</i>
         </summary>
-        <div class="pair-review-list" data-review-content></div>
+        <div class="pair-review-list">${renderPairReview(isSubmitting)}</div>
       </details>
 
-      <details class="review-panel matrix-panel" data-review-details="matrix">
+      <details class="review-panel matrix-panel">
         <summary class="matrix-summary">
           <span><b id="matrix-title">${escapeHtml(t('matrixTitle'))}</b></span>
           <i aria-hidden="true">+</i>
         </summary>
-        <div data-review-content></div>
+        ${renderMatrix()}
       </details>
     </div>
   `, 'review-shell');
@@ -847,7 +832,7 @@ function renderComplete() {
 function render() {
   document.documentElement.lang = state.locale;
   document.body.dataset.screen = state.screen;
-  document.title = `${localeText(studyConfig.title)} | ESG Study`;
+  document.title = `${localeText(studyConfig.title)} | M1 Survey`;
   document.querySelector('meta[name="description"]').content = t('heroTitle');
   document.querySelector('#brand-subtitle').textContent = t('brand').replace('BEXtools', '').trim();
   renderHomeLink();
@@ -916,6 +901,9 @@ function updateSurveySelectionUi(sourceId) {
 
   document.querySelectorAll('[data-progress-percent]').forEach((node) => {
     node.textContent = `${progressPercent()}%`;
+  });
+  document.querySelectorAll('[data-progress-count]').forEach((node) => {
+    node.textContent = t('confirmedProgress', { n: reviewedCount(), total: factors.length });
   });
   document.querySelectorAll('progress').forEach((node) => {
     node.value = reviewedCount();
@@ -1008,7 +996,14 @@ async function submitResponse() {
       state.clientSubmissionId = clientSubmissionId;
       persist();
     }
-    const receipt = await requestSubmissionReceipt(resolveSubmissionEndpoint(), buildCurrentSubmission());
+    const response = await fetch(resolveSubmissionEndpoint(), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(buildCurrentSubmission()),
+    });
+    if (!response.ok) throw new Error('submit failed');
+    const receipt = await response.json();
+    if (!receipt.submissionId) throw new Error('missing receipt');
     if (state.clientSubmissionId !== clientSubmissionId) return;
 
     state.submissionId = receipt.submissionId;
@@ -1053,43 +1048,13 @@ guideOverlay?.addEventListener('click', (event) => {
   if (event.target === guideOverlay) closeGuide();
 });
 guideOverlay?.addEventListener('keydown', (event) => {
-  if (!guideIsOpen) return;
   if (event.key === 'Escape') {
     event.preventDefault();
     closeGuide();
-    return;
-  }
-  if (event.key !== 'Tab') return;
-  const controls = [...guideCallout.querySelectorAll('button:not([disabled])')];
-  const first = controls[0];
-  const last = controls.at(-1);
-  const active = document.activeElement;
-  if (event.shiftKey && (active === first || !guideCallout.contains(active))) {
-    event.preventDefault();
-    last?.focus();
-  } else if (!event.shiftKey && (active === last || !guideCallout.contains(active))) {
-    event.preventDefault();
-    first?.focus();
   }
 });
 window.addEventListener('resize', positionGuide);
 window.addEventListener('scroll', positionGuide, { passive: true });
-compactLayout.addEventListener('change', (event) => {
-  const directory = app.querySelector('.topic-directory-disclosure');
-  if (directory) directory.open = !event.matches;
-});
-
-app.addEventListener('toggle', (event) => {
-  const panel = event.target;
-  if (state.screen !== 'review' || !panel.matches?.('details[data-review-details]')
-      || !panel.open || panel.dataset.loaded) return;
-  const content = panel.querySelector('[data-review-content]');
-  if (!content) return;
-  content.innerHTML = panel.dataset.reviewDetails === 'pairs'
-    ? renderPairReview(state.submitState === 'submitting')
-    : renderMatrix();
-  panel.dataset.loaded = 'true';
-}, true);
 
 app.addEventListener('submit', (event) => {
   if (event.target.id !== 'profile-form') return;
@@ -1186,9 +1151,6 @@ app.addEventListener('click', (event) => {
     case 'toggle-topic-notes':
       toggleTopicNotes(button);
       break;
-    case 'close-topic-notes':
-      closeTopicNotes({ restoreFocus: true });
-      break;
     case 'confirm-topic':
       confirmCurrentTopic();
       break;
@@ -1238,14 +1200,6 @@ document.addEventListener('click', (event) => {
   const toggle = event.target.closest?.('[data-action="toggle-topic-notes"]');
   if (!notes || notes.hidden || toggle || notes.contains(event.target)) return;
   closeTopicNotes();
-});
-
-document.addEventListener('keydown', (event) => {
-  if (event.key !== 'Escape' || guideIsOpen || state.screen !== 'survey') return;
-  const notes = document.querySelector('.topic-notes');
-  if (!notes || notes.hidden) return;
-  event.preventDefault();
-  closeTopicNotes({ restoreFocus: true });
 });
 
 render();
