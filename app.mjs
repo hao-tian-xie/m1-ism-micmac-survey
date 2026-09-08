@@ -6,7 +6,7 @@ import {
   selectedTargetsForSource,
   tryWriteStorage,
 } from './survey-core.mjs';
-import { displayTopicName, localisedFactors, studyConfig } from './survey-config.mjs?v=esg-topic-set-v4-34';
+import { displayTopicName, localisedFactors, studyConfig } from './survey-config.mjs?v=esg-topic-set-v4-35';
 import { copy, languageNames, locales } from './translations.mjs';
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
 import { resolveLocale } from './locale-state.mjs';
