@@ -1,6 +1,6 @@
 const STUDY_ID = 'M1-ESG-ISM-MICMAC';
-const FACTOR_VERSION = 'esg-topic-set-v4-33';
-const FACTOR_IDS = Array.from({ length: 33 }, (_, index) => `F${index + 1}`);
+const FACTOR_VERSION = 'esrs-set1-subtopics-v2-38-verified';
+const FACTOR_IDS = Array.from({ length: 38 }, (_, index) => `F${index + 1}`);
 const FACTOR_COUNT = FACTOR_IDS.length;
 const PAIRS = FACTOR_IDS.flatMap((leftId, leftIndex) => (
   FACTOR_IDS.slice(leftIndex + 1).map((rightId) => ({

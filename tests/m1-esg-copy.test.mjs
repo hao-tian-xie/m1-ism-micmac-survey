@@ -17,8 +17,8 @@ test('ESG copy, grouped welcome topics, and survey candidate grid match the inte
     assert.match(copy[locale].eyebrow, /ESG/i);
     assert.doesNotMatch(copy[locale].brand, /M1|ISM|MICMAC/i);
     assert.equal(copy[locale].confirmedProgress, undefined);
-    assert.match(copy[locale].minutesUnit, /33/);
-    assert.match(copy[locale].pairListTitle, /528/);
+    assert.match(copy[locale].minutesUnit, /38/);
+    assert.match(copy[locale].pairListTitle, /703/);
     assert.ok(copy[locale].categoryEnvironment);
     assert.ok(copy[locale].categorySocial);
     assert.ok(copy[locale].categoryGovernance);
@@ -41,6 +41,6 @@ test('ESG copy, grouped welcome topics, and survey candidate grid match the inte
   const fitStart = stylesSource.indexOf('M1 survey fit mode: keep desktop/tablet topic choices in the viewport');
   assert.notEqual(fitStart, -1);
   const surveyFit = stylesSource.slice(fitStart);
-  assert.match(surveyFit, /body\[data-screen="survey"\]\s+\.target-list\s*\{[\s\S]*?grid-template-columns:\s*repeat\(9,\s*minmax\(0,\s*1fr\)\)/);
+  assert.match(surveyFit, /body\[data-screen="survey"\]\s+\.target-list\s*\{[\s\S]*?grid-template-columns:\s*repeat\(10,\s*minmax\(0,\s*1fr\)\)/);
   assert.match(surveyFit, /body\[data-screen="survey"\]\s+\.target-list\s*\{[\s\S]*?grid-template-rows:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
 });

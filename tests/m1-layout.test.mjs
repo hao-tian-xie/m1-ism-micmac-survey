@@ -32,7 +32,7 @@ test('desktop and tablet survey fit the complete topic choice page to the viewpo
   assert.match(fit, /body\[data-screen="survey"\]\s+\.topic-survey\s*\{[\s\S]*?display:\s*grid/);
   assert.match(fit, /body\[data-screen="survey"\]\s+\.target-list\s*\{[\s\S]*?grid-template-rows:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
   assert.match(fit, /body\[data-screen="survey"\]\s+\.topic-notes\s*\{[\s\S]*?display:\s*none/);
-  assert.match(fit, /body\[data-screen="survey"\]\s+\.target-list\s*\{[\s\S]*?grid-template-columns:\s*repeat\(9,\s*minmax\(0,\s*1fr\)\)/);
+  assert.match(fit, /body\[data-screen="survey"\]\s+\.target-list\s*\{[\s\S]*?grid-template-columns:\s*repeat\(10,\s*minmax\(0,\s*1fr\)\)/);
   assert.doesNotMatch(fit, /body\[data-screen="survey"\]\s+\.target-list\s*\{\s*grid-template-columns:\s*repeat\(auto-fit/);
   assert.match(fit, /body\[data-screen="survey"\]\s+\.target-copy\s+strong\s*\{[\s\S]*?overflow-wrap:\s*anywhere/);
   assert.doesNotMatch(fit, /body\[data-screen="survey"\]\s+\.target-copy\s+strong\s*\{[\s\S]*?-webkit-line-clamp/);

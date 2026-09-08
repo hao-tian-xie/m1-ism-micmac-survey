@@ -8,8 +8,8 @@ const API_PATH = '/api/m1-submissions';
 const HEALTH_PATH = `${API_PATH}/health`;
 const EXPORT_PATH = `${API_PATH}/export`;
 const DEFAULT_MAX_BODY_BYTES = 256 * 1024;
-const FACTOR_VERSION = 'esg-topic-set-v4-33';
-const FACTOR_IDS = Array.from({ length: 33 }, (_, index) => `F${index + 1}`);
+const FACTOR_VERSION = 'esrs-set1-subtopics-v2-38-verified';
+const FACTOR_IDS = Array.from({ length: 38 }, (_, index) => `F${index + 1}`);
 const PAIRS = FACTOR_IDS.flatMap((leftId, leftIndex) => (
   FACTOR_IDS.slice(leftIndex + 1).map((rightId) => ({
     pairId: `${leftId}__${rightId}`,

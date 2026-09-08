@@ -3440,7 +3440,7 @@ body[data-screen="welcome"] .save-status {
   body[data-screen="survey"] .target-list {
     height: 100%;
     min-height: 0;
-    grid-template-columns: repeat(9, minmax(0, 1fr));
+    grid-template-columns: repeat(10, minmax(0, 1fr));
     grid-template-rows: repeat(4, minmax(0, 1fr));
     align-content: stretch;
   }
@@ -3503,7 +3503,7 @@ body[data-screen="welcome"] .save-status {
 
 @media (min-width: 768px) and (max-width: 839px) and (max-height: 680px) {
   body[data-screen="survey"] .target-list {
-    grid-template-columns: repeat(9, minmax(0, 1fr));
+    grid-template-columns: repeat(10, minmax(0, 1fr));
   }
 
   body[data-screen="survey"] .target-copy strong {
@@ -3519,7 +3519,7 @@ body[data-screen="welcome"] .save-status {
 
 @media (min-width: 1200px) {
   body[data-screen="survey"] .target-list {
-    grid-template-columns: repeat(9, minmax(0, 1fr));
+    grid-template-columns: repeat(10, minmax(0, 1fr));
   }
 }
 

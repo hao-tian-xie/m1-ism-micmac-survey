@@ -35,7 +35,7 @@ function closeServer(t, server) {
 }
 
 function completeSubmission(overrides = {}) {
-  const factorIds = Array.from({ length: 33 }, (_, index) => `F${index + 1}`);
+  const factorIds = Array.from({ length: 38 }, (_, index) => `F${index + 1}`);
   const responses = [];
   factorIds.forEach((leftId, leftIndex) => {
     factorIds.slice(leftIndex + 1).forEach((rightId) => {
@@ -61,13 +61,13 @@ function completeSubmission(overrides = {}) {
     status: 'complete',
     locale: 'zh-CN',
     submittedAt: '2026-08-09T10:00:00.000Z',
-    study: { factorVersion: 'esg-topic-set-v4-33' },
+    study: { factorVersion: 'esrs-set1-subtopics-v2-38-verified' },
     participant: {
       code: '专家-07',
       roleCode: 'roleResearcher',
       experienceCode: '',
     },
-    progress: { answered: 528, total: 528, complete: true },
+    progress: { answered: 703, total: 703, complete: true },
     factors: factorIds.map((id) => ({ id, label: id, description: `${id} description` })),
     responses,
     initialReachabilityMatrix,
@@ -89,7 +89,7 @@ test('POST /api/m1-submissions rejects a stale factor version', async (t) => {
   const response = await fetch(`${origin}/api/m1-submissions`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(completeSubmission({ study: { factorVersion: 'esrs-set1-subtopics-v2-38-verified' } })),
+    body: JSON.stringify(completeSubmission({ study: { factorVersion: 'esg-topic-set-v4-33' } })),
   });
 
   assert.equal(response.status, 422);

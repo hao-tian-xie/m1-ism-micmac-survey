@@ -1,6 +1,6 @@
 export const studyConfig = {
   id: 'M1-ESG-ISM-MICMAC',
-  version: 'esg-topic-set-v4-33',
+  version: 'esrs-set1-subtopics-v2-38-verified',
   title: {
     'zh-CN': 'ESG 主题研究',
     'zh-HK': 'ESG 主題研究',
@@ -109,6 +109,22 @@ export const studyConfig = {
       },
     },
     {
+      id: 'F7',
+      esrs: {
+        key: 'E2:pollution-of-living-organisms-and-food-resources',
+        standard: 'E2',
+        topic: { 'zh-CN': '污染', 'zh-HK': '污染', en: 'Pollution' },
+        subtopic: { 'zh-CN': '生物和食物资源污染', 'zh-HK': '生物和食物資源污染', en: 'Pollution of living organisms and food resources' },
+        level: 'subtopic',
+      },
+      name: { 'zh-CN': 'ESRS E2 · 生物和食物资源污染', 'zh-HK': 'ESRS E2 · 生物和食物資源污染', en: 'ESRS E2 · Pollution of living organisms and food resources' },
+      description: {
+        'zh-CN': '污染物在生物体和食物资源中的影响。',
+        'zh-HK': '污染物在生物體和食物資源中的影響。',
+        en: 'Pollution affecting living organisms and food resources.',
+      },
+    },
+    {
       id: 'F8',
       esrs: {
         key: 'E2:substances-of-concern',
@@ -163,6 +179,11 @@ export const studyConfig = {
         standard: 'E3',
         topic: { 'zh-CN': '水和海洋资源', 'zh-HK': '水和海洋資源', en: 'Water and marine resources' },
         subtopic: { 'zh-CN': '水', 'zh-HK': '水', en: 'Water' },
+        subSubtopics: {
+          'zh-CN': ['耗水', '取水', '排水', '向海洋排水'],
+          'zh-HK': ['耗水', '取水', '排水', '向海洋排水'],
+          en: ['Water consumption', 'Water withdrawals', 'Water discharges', 'Water discharges in the oceans'],
+        },
         level: 'subtopic',
       },
       name: { 'zh-CN': 'ESRS E3 · 水', 'zh-HK': 'ESRS E3 · 水', en: 'ESRS E3 · Water' },
@@ -173,12 +194,38 @@ export const studyConfig = {
       },
     },
     {
+      id: 'F12',
+      esrs: {
+        key: 'E3:marine-resources',
+        standard: 'E3',
+        topic: { 'zh-CN': '水和海洋资源', 'zh-HK': '水和海洋資源', en: 'Water and marine resources' },
+        subtopic: { 'zh-CN': '海洋资源', 'zh-HK': '海洋資源', en: 'Marine resources' },
+        subSubtopics: {
+          'zh-CN': ['海洋资源的开采和使用'],
+          'zh-HK': ['海洋資源的開採和使用'],
+          en: ['Extraction and use of marine resources'],
+        },
+        level: 'subtopic',
+      },
+      name: { 'zh-CN': 'ESRS E3 · 海洋资源', 'zh-HK': 'ESRS E3 · 海洋資源', en: 'ESRS E3 · Marine resources' },
+      description: {
+        'zh-CN': '海洋资源的开采、使用以及相关影响。',
+        'zh-HK': '海洋資源的開採、使用以及相關影響。',
+        en: 'The extraction and use of marine resources and related effects.',
+      },
+    },
+    {
       id: 'F13',
       esrs: {
         key: 'E4:direct-impact-drivers-of-biodiversity-loss',
         standard: 'E4',
         topic: { 'zh-CN': '生物多样性与生态系统', 'zh-HK': '生物多樣性與生態系統', en: 'Biodiversity and ecosystems' },
         subtopic: { 'zh-CN': '生物多样性丧失的直接影响驱动因素', 'zh-HK': '生物多樣性喪失的直接影響驅動因素', en: 'Direct impact drivers of biodiversity loss' },
+        subSubtopics: {
+          'zh-CN': ['气候变化', '土地利用变化、淡水利用变化和海洋利用变化', '直接开发', '外来入侵物种', '污染', '其他'],
+          'zh-HK': ['氣候變化', '土地利用變化、淡水利用變化和海洋利用變化', '直接開發', '外來入侵物種', '污染', '其他'],
+          en: ['Climate Change', 'Land-use change, fresh water-use change and sea-use change', 'Direct exploitation', 'Invasive alien species', 'Pollution', 'Others'],
+        },
         level: 'subtopic',
       },
       name: { 'zh-CN': 'ESRS E4 · 生物多样性丧失的直接影响驱动因素', 'zh-HK': 'ESRS E4 · 生物多樣性喪失的直接影響驅動因素', en: 'ESRS E4 · Direct impact drivers of biodiversity loss' },
@@ -195,6 +242,11 @@ export const studyConfig = {
         standard: 'E4',
         topic: { 'zh-CN': '生物多样性与生态系统', 'zh-HK': '生物多樣性與生態系統', en: 'Biodiversity and ecosystems' },
         subtopic: { 'zh-CN': '对物种状态的影响', 'zh-HK': '對物種狀態的影響', en: 'Impacts on the state of species' },
+        subSubtopics: {
+          'zh-CN': ['物种种群规模', '物种全球灭绝风险'],
+          'zh-HK': ['物種種群規模', '物種全球滅絕風險'],
+          en: ['Species population size', 'Species global extinction risk'],
+        },
         level: 'subtopic',
       },
       name: { 'zh-CN': 'ESRS E4 · 对物种状态的影响', 'zh-HK': 'ESRS E4 · 對物種狀態的影響', en: 'ESRS E4 · Impacts on the state of species' },
@@ -211,6 +263,11 @@ export const studyConfig = {
         standard: 'E4',
         topic: { 'zh-CN': '生物多样性与生态系统', 'zh-HK': '生物多樣性與生態系統', en: 'Biodiversity and ecosystems' },
         subtopic: { 'zh-CN': '对生态系统范围和状况的影响', 'zh-HK': '對生態系統範圍和狀況的影響', en: 'Impacts on the extent and condition of ecosystems' },
+        subSubtopics: {
+          'zh-CN': ['土地退化', '荒漠化', '土壤封闭'],
+          'zh-HK': ['土地退化', '荒漠化', '土壤封閉'],
+          en: ['Land degradation', 'Desertification', 'Soil sealing'],
+        },
         level: 'subtopic',
       },
       name: { 'zh-CN': 'ESRS E4 · 对生态系统范围和状况的影响', 'zh-HK': 'ESRS E4 · 對生態系統範圍和狀況的影響', en: 'ESRS E4 · Impacts on the extent and condition of ecosystems' },
@@ -291,6 +348,11 @@ export const studyConfig = {
         standard: 'S1',
         topic: { 'zh-CN': '自有劳动力', 'zh-HK': '自有勞動力', en: 'Own workforce' },
         subtopic: { 'zh-CN': '工作条件', 'zh-HK': '工作條件', en: 'Working conditions' },
+        subSubtopics: {
+          'zh-CN': ['安全就业', '工作时间', '适当工资', '社会对话', '结社自由、工会/员工委员会及工人的信息、协商和参与权', '集体谈判，包括集体协议覆盖的工人比例', '工作与生活平衡', '健康和安全'],
+          'zh-HK': ['安全就業', '工作時間', '適當工資', '社會對話', '結社自由、工會/員工委員會及工人的資訊、協商和參與權', '集體談判，包括集體協議涵蓋的工人比例', '工作與生活平衡', '健康和安全'],
+          en: ['Secure employment', 'Working time', 'Adequate wages', 'Social dialogue', 'Freedom of association, the existence of works councils and the information, consultation and participation rights of workers', 'Collective bargaining, including rate of workers covered by collective agreements', 'Work-life balance', 'Health and safety'],
+        },
         level: 'subtopic',
       },
       name: { 'zh-CN': 'ESRS S1 · 自有劳动力的工作条件', 'zh-HK': 'ESRS S1 · 自有勞動力的工作條件', en: 'ESRS S1 · Working conditions (own workforce)' },
@@ -307,6 +369,11 @@ export const studyConfig = {
         standard: 'S1',
         topic: { 'zh-CN': '自有劳动力', 'zh-HK': '自有勞動力', en: 'Own workforce' },
         subtopic: { 'zh-CN': '公平待遇与机会', 'zh-HK': '公平待遇與機會', en: 'Equal treatment and opportunities for all' },
+        subSubtopics: {
+          'zh-CN': ['性别平等和同工同酬', '培训和技能发展', '残疾人就业和融入', '工作场所防止暴力和骚扰的措施', '多元化'],
+          'zh-HK': ['性別平等和同工同酬', '培訓和技能發展', '殘疾人士就業和融入', '工作場所防止暴力和騷擾的措施', '多元化'],
+          en: ['Gender equality and equal pay for work of equal value', 'Training and skills development', 'Employment and inclusion of persons with disabilities', 'Measures against violence and harassment in the workplace', 'Diversity'],
+        },
         level: 'subtopic',
       },
       name: { 'zh-CN': 'ESRS S1 · 自有劳动力的公平待遇与机会', 'zh-HK': 'ESRS S1 · 自有勞動力的公平待遇與機會', en: 'ESRS S1 · Equal treatment and opportunities for all (own workforce)' },
@@ -323,6 +390,11 @@ export const studyConfig = {
         standard: 'S1',
         topic: { 'zh-CN': '自有劳动力', 'zh-HK': '自有勞動力', en: 'Own workforce' },
         subtopic: { 'zh-CN': '其他工作相关权利', 'zh-HK': '其他工作相關權利', en: 'Other work-related rights' },
+        subSubtopics: {
+          'zh-CN': ['童工', '强迫劳动', '适当住房', '隐私'],
+          'zh-HK': ['童工', '強迫勞動', '適當住房', '私隱'],
+          en: ['Child labour', 'Forced labour', 'Adequate housing', 'Privacy'],
+        },
         level: 'subtopic',
       },
       name: { 'zh-CN': 'ESRS S1 · 自有劳动力的其他工作相关权利', 'zh-HK': 'ESRS S1 · 自有勞動力的其他工作相關權利', en: 'ESRS S1 · Other work-related rights (own workforce)' },
@@ -339,6 +411,11 @@ export const studyConfig = {
         standard: 'S2',
         topic: { 'zh-CN': '价值链中的工人', 'zh-HK': '價值鏈中的工人', en: 'Workers in the value chain' },
         subtopic: { 'zh-CN': '工作条件', 'zh-HK': '工作條件', en: 'Working conditions' },
+        subSubtopics: {
+          'zh-CN': ['安全就业', '工作时间', '适当工资', '社会对话', '结社自由，包括工会/员工委员会', '集体谈判', '工作与生活平衡', '健康和安全'],
+          'zh-HK': ['安全就業', '工作時間', '適當工資', '社會對話', '結社自由，包括工會/員工委員會', '集體談判', '工作與生活平衡', '健康和安全'],
+          en: ['Secure employment', 'Working time', 'Adequate wages', 'Social dialogue', 'Freedom of association including the existence of work councils', 'Collective bargaining', 'Work-life balance', 'Health and safety'],
+        },
         level: 'subtopic',
       },
       name: { 'zh-CN': 'ESRS S2 · 价值链中工人的工作条件', 'zh-HK': 'ESRS S2 · 價值鏈中工人的工作條件', en: 'ESRS S2 · Working conditions (value-chain workers)' },
@@ -355,6 +432,11 @@ export const studyConfig = {
         standard: 'S2',
         topic: { 'zh-CN': '价值链中的工人', 'zh-HK': '價值鏈中的工人', en: 'Workers in the value chain' },
         subtopic: { 'zh-CN': '公平待遇与机会', 'zh-HK': '公平待遇與機會', en: 'Equal treatment and opportunities for all' },
+        subSubtopics: {
+          'zh-CN': ['性别平等和同工同酬', '培训和技能发展', '残疾人就业和融入', '工作场所防止暴力和骚扰的措施', '多元化'],
+          'zh-HK': ['性別平等和同工同酬', '培訓和技能發展', '殘疾人士就業和融入', '工作場所防止暴力和騷擾的措施', '多元化'],
+          en: ['Gender equality and equal pay for work of equal value', 'Training and skills development', 'The employment and inclusion of persons with disabilities', 'Measures against violence and harassment in the workplace', 'Diversity'],
+        },
         level: 'subtopic',
       },
       name: { 'zh-CN': 'ESRS S2 · 价值链中工人的公平待遇与机会', 'zh-HK': 'ESRS S2 · 價值鏈中工人的公平待遇與機會', en: 'ESRS S2 · Equal treatment and opportunities for all (value-chain workers)' },
@@ -371,6 +453,11 @@ export const studyConfig = {
         standard: 'S2',
         topic: { 'zh-CN': '价值链中的工人', 'zh-HK': '價值鏈中的工人', en: 'Workers in the value chain' },
         subtopic: { 'zh-CN': '其他工作相关权利', 'zh-HK': '其他工作相關權利', en: 'Other work-related rights' },
+        subSubtopics: {
+          'zh-CN': ['童工', '强迫劳动', '适当住房', '水和卫生', '隐私'],
+          'zh-HK': ['童工', '強迫勞動', '適當住房', '水和衛生', '私隱'],
+          en: ['Child labour', 'Forced labour', 'Adequate housing', 'Water and sanitation', 'Privacy'],
+        },
         level: 'subtopic',
       },
       name: { 'zh-CN': 'ESRS S2 · 价值链中工人的其他工作相关权利', 'zh-HK': 'ESRS S2 · 價值鏈中工人的其他工作相關權利', en: 'ESRS S2 · Other work-related rights (value-chain workers)' },
@@ -387,6 +474,11 @@ export const studyConfig = {
         standard: 'S3',
         topic: { 'zh-CN': '受影响的社区', 'zh-HK': '受影響的社區', en: 'Affected communities' },
         subtopic: { 'zh-CN': '社区的经济、社会和文化权利', 'zh-HK': '社區的經濟、社會和文化權利', en: 'Communities’ economic, social and cultural rights' },
+        subSubtopics: {
+          'zh-CN': ['适当住房', '适当食物', '水和卫生', '与土地有关的影响', '与安全有关的影响'],
+          'zh-HK': ['適當住房', '適當食物', '水和衛生', '與土地有關的影響', '與安全有關的影響'],
+          en: ['Adequate housing', 'Adequate food', 'Water and sanitation', 'Land-related impacts', 'Security-related impacts'],
+        },
         level: 'subtopic',
       },
       name: { 'zh-CN': 'ESRS S3 · 社区的经济、社会和文化权利', 'zh-HK': 'ESRS S3 · 社區的經濟、社會和文化權利', en: 'ESRS S3 · Communities’ economic, social and cultural rights' },
@@ -403,6 +495,11 @@ export const studyConfig = {
         standard: 'S3',
         topic: { 'zh-CN': '受影响的社区', 'zh-HK': '受影響的社區', en: 'Affected communities' },
         subtopic: { 'zh-CN': '社区的公民和政治权利', 'zh-HK': '社區的公民和政治權利', en: 'Communities’ civil and political rights' },
+        subSubtopics: {
+          'zh-CN': ['表达自由', '集会自由', '对人权捍卫者的影响'],
+          'zh-HK': ['表達自由', '集會自由', '對人權捍衛者的影響'],
+          en: ['Freedom of expression', 'Freedom of assembly', 'Impacts on human rights defenders'],
+        },
         level: 'subtopic',
       },
       name: { 'zh-CN': 'ESRS S3 · 社区的公民和政治权利', 'zh-HK': 'ESRS S3 · 社區的公民和政治權利', en: 'ESRS S3 · Communities’ civil and political rights' },
@@ -419,6 +516,11 @@ export const studyConfig = {
         standard: 'S3',
         topic: { 'zh-CN': '受影响的社区', 'zh-HK': '受影響的社區', en: 'Affected communities' },
         subtopic: { 'zh-CN': '土著人民权利', 'zh-HK': '原住民族權利', en: 'Rights of indigenous peoples' },
+        subSubtopics: {
+          'zh-CN': ['自由、事先和知情同意', '自决', '文化权利'],
+          'zh-HK': ['自由、事先和知情同意', '自決', '文化權利'],
+          en: ['Free, prior and informed consent', 'Self-determination', 'Cultural rights'],
+        },
         level: 'subtopic',
       },
       name: { 'zh-CN': 'ESRS S3 · 土著人民权利', 'zh-HK': 'ESRS S3 · 原住民族權利', en: 'ESRS S3 · Rights of indigenous peoples' },
@@ -435,6 +537,11 @@ export const studyConfig = {
         standard: 'S4',
         topic: { 'zh-CN': '消费者和最终用户', 'zh-HK': '消費者和最終用戶', en: 'Consumers and end-users' },
         subtopic: { 'zh-CN': '消费者和最终用户的信息相关影响', 'zh-HK': '消費者和最終用戶的資訊相關影響', en: 'Information-related impacts for consumers and/or end-users' },
+        subSubtopics: {
+          'zh-CN': ['隐私', '表达自由', '获取（高质量）信息'],
+          'zh-HK': ['私隱', '表達自由', '獲取（高質量）資訊'],
+          en: ['Privacy', 'Freedom of expression', 'Access to (quality) information'],
+        },
         level: 'subtopic',
       },
       name: { 'zh-CN': 'ESRS S4 · 消费者和最终用户的信息相关影响', 'zh-HK': 'ESRS S4 · 消費者和最終用戶的資訊相關影響', en: 'ESRS S4 · Information-related impacts for consumers and/or end-users' },
@@ -451,6 +558,11 @@ export const studyConfig = {
         standard: 'S4',
         topic: { 'zh-CN': '消费者和最终用户', 'zh-HK': '消費者和最終用戶', en: 'Consumers and end-users' },
         subtopic: { 'zh-CN': '消费者和最终用户的人身安全', 'zh-HK': '消費者和最終用戶的人身安全', en: 'Personal safety of consumers and end-users' },
+        subSubtopics: {
+          'zh-CN': ['健康和安全', '人身安全', '儿童保护'],
+          'zh-HK': ['健康和安全', '人身安全', '兒童保障'],
+          en: ['Health and safety', 'Security of a person', 'Protection of children'],
+        },
         level: 'subtopic',
       },
       name: { 'zh-CN': 'ESRS S4 · 消费者和最终用户的人身安全', 'zh-HK': 'ESRS S4 · 消費者和最終用戶的人身安全', en: 'ESRS S4 · Personal safety of consumers and end-users' },
@@ -467,6 +579,11 @@ export const studyConfig = {
         standard: 'S4',
         topic: { 'zh-CN': '消费者和最终用户', 'zh-HK': '消費者和最終用戶', en: 'Consumers and end-users' },
         subtopic: { 'zh-CN': '消费者和最终用户的社会包容', 'zh-HK': '消費者和最終用戶的社會包容', en: 'Social inclusion of consumers and end-users' },
+        subSubtopics: {
+          'zh-CN': ['非歧视', '获取产品和服务', '负责任的营销做法'],
+          'zh-HK': ['不歧視', '獲取產品和服務', '負責任的營銷做法'],
+          en: ['Non-discrimination', 'Access to products and services', 'Responsible marketing practices'],
+        },
         level: 'subtopic',
       },
       name: { 'zh-CN': 'ESRS S4 · 消费者和最终用户的社会包容', 'zh-HK': 'ESRS S4 · 消費者和最終用戶的社會包容', en: 'ESRS S4 · Social inclusion of consumers and end-users' },
@@ -506,6 +623,22 @@ export const studyConfig = {
         'zh-CN': '让员工和合作方能够安全举报问题并免受报复。',
         'zh-HK': '讓員工和合作夥伴能夠安全舉報問題並免受報復。',
         en: 'Safe reporting channels and protection from retaliation.',
+      },
+    },
+    {
+      id: 'F34',
+      esrs: {
+        key: 'G1:animal-welfare',
+        standard: 'G1',
+        topic: { 'zh-CN': '商业行为', 'zh-HK': '商業行為', en: 'Business conduct' },
+        subtopic: { 'zh-CN': '动物福利', 'zh-HK': '動物福利', en: 'Animal welfare' },
+        level: 'subtopic',
+      },
+      name: { 'zh-CN': 'ESRS G1 · 动物福利', 'zh-HK': 'ESRS G1 · 動物福利', en: 'ESRS G1 · Animal welfare' },
+      description: {
+        'zh-CN': '企业活动和供应链对动物待遇与福利的影响。',
+        'zh-HK': '企業活動和供應鏈對動物待遇與福利的影響。',
+        en: 'How business activities and the value chain affect animal treatment and welfare.',
       },
     },
     {
@@ -577,81 +710,29 @@ export const studyConfig = {
   ],
 };
 
-const groupedTopicDefinitions = [
-  { id: 'F1', sourceIds: ['F1'], category: 'environment', names: { 'zh-CN': '气候适应', 'zh-HK': '氣候適應', en: 'Climate adaptation' } },
-  { id: 'F2', sourceIds: ['F2'], category: 'environment', names: { 'zh-CN': '气候减缓', 'zh-HK': '氣候減緩', en: 'Climate mitigation' } },
-  { id: 'F3', sourceIds: ['F3'], category: 'environment', names: { 'zh-CN': '能源管理', 'zh-HK': '能源管理', en: 'Energy management' } },
-  { id: 'F4', sourceIds: ['F4'], category: 'environment', names: { 'zh-CN': '空气污染', 'zh-HK': '空氣污染', en: 'Air pollution' } },
-  { id: 'F5', sourceIds: ['F5'], category: 'environment', names: { 'zh-CN': '水体污染', 'zh-HK': '水體污染', en: 'Water pollution' } },
-  { id: 'F6', sourceIds: ['F6'], category: 'environment', names: { 'zh-CN': '土壤污染', 'zh-HK': '土壤污染', en: 'Soil pollution' } },
-  {
-    id: 'F7', sourceIds: ['F8', 'F9'], category: 'environment',
-    names: { 'zh-CN': '重点关注物质', 'zh-HK': '重點關注物質', en: 'Substances of concern' },
-    description: {
-      'zh-CN': '需要重点关注的物质，包括高度关注物质的生产、使用和排放。',
-      'zh-HK': '需要重點關注的物質，包括高度關注物質的生產、使用和排放。',
-      en: 'Substances requiring attention, including the production, use and release of substances of very high concern.',
-    },
-  },
-  { id: 'F8', sourceIds: ['F10'], category: 'environment', names: { 'zh-CN': '微塑料管控', 'zh-HK': '微塑料管控', en: 'Microplastic management' } },
-  { id: 'F9', sourceIds: ['F11'], category: 'environment', names: { 'zh-CN': '水资源管理', 'zh-HK': '水資源管理', en: 'Water resource management' } },
-  { id: 'F10', sourceIds: ['F13'], category: 'environment', names: { 'zh-CN': '生物多样性压力', 'zh-HK': '生物多樣性壓力', en: 'Biodiversity pressures' } },
-  { id: 'F11', sourceIds: ['F14'], category: 'environment', names: { 'zh-CN': '物种状况', 'zh-HK': '物種狀況', en: 'Species status' } },
-  { id: 'F12', sourceIds: ['F15'], category: 'environment', names: { 'zh-CN': '生态系统状况', 'zh-HK': '生態系統狀況', en: 'Ecosystem extent and condition' } },
-  { id: 'F13', sourceIds: ['F16'], category: 'environment', names: { 'zh-CN': '生态服务关系', 'zh-HK': '生態服務關係', en: 'Ecosystem service impacts and dependencies' } },
-  { id: 'F14', sourceIds: ['F17'], category: 'environment', names: { 'zh-CN': '资源投入', 'zh-HK': '資源投入', en: 'Resource inflows' } },
-  { id: 'F15', sourceIds: ['F18'], category: 'environment', names: { 'zh-CN': '产品服务循环', 'zh-HK': '產品服務循環', en: 'Product and service circularity' } },
-  { id: 'F16', sourceIds: ['F19'], category: 'environment', names: { 'zh-CN': '废弃物管理', 'zh-HK': '廢棄物管理', en: 'Waste management' } },
-  { id: 'F17', sourceIds: ['F20'], category: 'social', names: { 'zh-CN': '本企业工作条件', 'zh-HK': '本企業工作條件', en: 'Own-workforce working conditions' } },
-  { id: 'F18', sourceIds: ['F21'], category: 'social', names: { 'zh-CN': '本企业平等待遇', 'zh-HK': '本企業平等待遇', en: 'Own-workforce equal treatment' } },
-  { id: 'F19', sourceIds: ['F22'], category: 'social', names: { 'zh-CN': '本企业其他劳动权利', 'zh-HK': '本企業其他勞動權利', en: 'Other own-workforce labour rights' } },
-  { id: 'F20', sourceIds: ['F23'], category: 'social', names: { 'zh-CN': '供应商工作条件', 'zh-HK': '供應商工作條件', en: 'Value-chain working conditions' } },
-  { id: 'F21', sourceIds: ['F24'], category: 'social', names: { 'zh-CN': '供应商平等待遇', 'zh-HK': '供應商平等待遇', en: 'Value-chain equal treatment' } },
-  { id: 'F22', sourceIds: ['F25'], category: 'social', names: { 'zh-CN': '供应商其他劳动权利', 'zh-HK': '供應商其他勞動權利', en: 'Other value-chain labour rights' } },
-  { id: 'F23', sourceIds: ['F26'], category: 'social', names: { 'zh-CN': '社区生活权益', 'zh-HK': '社區生活權益', en: 'Community socioeconomic and cultural rights' } },
-  { id: 'F24', sourceIds: ['F27'], category: 'social', names: { 'zh-CN': '社区公民权益', 'zh-HK': '社區公民權益', en: 'Community civil and political rights' } },
-  { id: 'F25', sourceIds: ['F28'], category: 'social', names: { 'zh-CN': '原住民权利', 'zh-HK': '原住民權利', en: 'Indigenous peoples’ rights' } },
-  { id: 'F26', sourceIds: ['F29'], category: 'social', names: { 'zh-CN': '消费者信息权益', 'zh-HK': '消費者資訊權益', en: 'User information rights' } },
-  { id: 'F27', sourceIds: ['F30'], category: 'social', names: { 'zh-CN': '消费者人身安全', 'zh-HK': '消費者人身安全', en: 'User personal safety' } },
-  { id: 'F28', sourceIds: ['F31'], category: 'social', names: { 'zh-CN': '消费者社会包容', 'zh-HK': '消費者社會包容', en: 'User social inclusion' } },
-  { id: 'F29', sourceIds: ['F32'], category: 'governance', names: { 'zh-CN': '企业文化', 'zh-HK': '企業文化', en: 'Corporate culture' } },
-  { id: 'F30', sourceIds: ['F33'], category: 'governance', names: { 'zh-CN': '举报人保护', 'zh-HK': '舉報人保護', en: 'Whistleblower protection' } },
-  { id: 'F31', sourceIds: ['F35'], category: 'governance', names: { 'zh-CN': '政治参与', 'zh-HK': '政治參與', en: 'Political engagement' } },
-  { id: 'F32', sourceIds: ['F36'], category: 'governance', names: { 'zh-CN': '供应商关系', 'zh-HK': '供應商關係', en: 'Supplier relations' } },
-  {
-    id: 'F33', sourceIds: ['F37', 'F38'], category: 'governance',
-    names: { 'zh-CN': '腐败贿赂防治', 'zh-HK': '腐敗賄賂防治', en: 'Anti-corruption and anti-bribery' },
-    description: {
-      'zh-CN': '腐败和贿赂的预防、发现、培训，以及已确认事件的处理。',
-      'zh-HK': '腐敗和賄賂的預防、發現、培訓，以及已確認事件的處理。',
-      en: 'Preventing, detecting and training against corruption and bribery, together with handling confirmed incidents.',
-    },
-  },
-];
+function descriptionWithSubSubtopics(description, subSubtopics) {
+  if (!subSubtopics) return { ...description };
+  return Object.fromEntries(['zh-CN', 'zh-HK', 'en'].map((locale) => {
+    const labels = subSubtopics[locale] || subSubtopics.en;
+    const lead = locale === 'en' ? 'Sub-sub-topics' : locale === 'zh-HK' ? '子子主題' : '子子主题';
+    const separator = locale === 'en' ? '; ' : '；';
+    return [locale, `${description[locale] || description.en} ${lead}: ${labels.join(separator)}。`];
+  }));
+}
 
-const legacyFactorsById = new Map(studyConfig.factors.map((factor) => [factor.id, factor]));
-
-studyConfig.factors = groupedTopicDefinitions.map((definition) => {
-  const sourceFactors = definition.sourceIds.map((sourceId) => legacyFactorsById.get(sourceId));
-  if (sourceFactors.some((factor) => !factor)) throw new Error(`Unknown source factor for ${definition.id}`);
-  const sourceKeys = sourceFactors.map((factor) => factor.esrs.key);
-  const baseFactor = sourceFactors[0];
-  return {
-    ...baseFactor,
-    id: definition.id,
-    category: definition.category,
-    sourceIds: [...definition.sourceIds],
-    name: { ...definition.names },
-    description: definition.description || { ...baseFactor.description },
-    esrs: {
-      ...baseFactor.esrs,
-      key: sourceKeys.join('+'),
-      sourceKeys,
-      sourceIds: [...definition.sourceIds],
-      subtopic: { ...definition.names },
-    },
-  };
-});
+studyConfig.factors = studyConfig.factors.map((factor) => ({
+  ...factor,
+  category: factor.esrs.standard.startsWith('E') ? 'environment'
+    : factor.esrs.standard.startsWith('S') ? 'social'
+      : 'governance',
+  sourceIds: [factor.id],
+  description: descriptionWithSubSubtopics(factor.description, factor.esrs.subSubtopics),
+  esrs: {
+    ...factor.esrs,
+    sourceKeys: [factor.esrs.key],
+    sourceIds: [factor.id],
+  },
+}));
 
 export function localisedFactors(locale) {
   return studyConfig.factors.map((factor) => ({
