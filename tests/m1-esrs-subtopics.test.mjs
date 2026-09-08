@@ -95,26 +95,27 @@ test('candidate definitions put subtopics on semicolon-terminated lines after th
 
   assert.equal(byId.F11.description['zh-CN'], [
     '取水、耗水、排水和水资源管理。',
-    '子主题：· 耗水;',
+    '包含：· 耗水;',
     '· 取水;',
     '· 排水;',
     '· 向海洋排水;',
   ].join('\n'));
   assert.equal(byId.F11.description['zh-HK'], [
     '取水、耗水、排水和水資源管理。',
-    '子主題：· 耗水;',
+    '包含：· 耗水;',
     '· 取水;',
     '· 排水;',
     '· 向海洋排水;',
   ].join('\n'));
   assert.equal(byId.F11.description.en, [
     'Water withdrawals, consumption, discharges and management.',
-    'Sub-topics: · Water consumption;',
+    'Contains: · Water consumption;',
     '· Water withdrawals;',
     '· Water discharges;',
     '· Water discharges in the oceans;',
   ].join('\n'));
   assert.equal(byId.F1.description['zh-CN'], '为应对高温、洪水等气候影响而采取的调整措施。');
+  assert.doesNotMatch(byId.F11.description['zh-CN'], /子主题：/);
   assert.doesNotMatch(byId.F11.description['zh-CN'], /子子主题/);
 });
 

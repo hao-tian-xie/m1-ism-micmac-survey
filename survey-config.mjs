@@ -714,7 +714,7 @@ function descriptionWithSubSubtopics(description, subSubtopics) {
   if (!subSubtopics) return { ...description };
   return Object.fromEntries(['zh-CN', 'zh-HK', 'en'].map((locale) => {
     const labels = subSubtopics[locale] || subSubtopics.en;
-    const lead = locale === 'en' ? 'Sub-topics' : locale === 'zh-HK' ? '子主題' : '子主题';
+    const lead = locale === 'en' ? 'Contains' : '包含';
     const leadSeparator = locale === 'en' ? ': ' : '：';
     const topicLines = labels.map((label, index) => `${index === 0 ? `${lead}${leadSeparator}` : ''}· ${label};`);
     return [locale, `${description[locale] || description.en}\n${topicLines.join('\n')}`];
