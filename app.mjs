@@ -450,7 +450,7 @@ function renderStepper() {
 
   return `
     <aside class="step-sidebar" aria-label="${escapeHtml(t('progressLabel'))}">
-      <div class="mini-brand">M1 <span>·</span> ISM / MICMAC</div>
+      <div class="mini-brand">ESG</div>
       <ol class="steps">
         ${stageItems}
       </ol>
@@ -460,7 +460,6 @@ function renderStepper() {
           <b data-progress-percent>${progressPercent()}%</b>
         </div>
         <progress class="native-progress" max="${factors.length}" value="${reviewedCount()}" aria-label="${escapeHtml(t('progressLabel'))}"></progress>
-        <small data-progress-count>${escapeHtml(t('confirmedProgress', { n: reviewedCount(), total: factors.length }))}</small>
       </div>
       ${topicDirectory}
     </aside>
@@ -510,7 +509,7 @@ function renderWelcome() {
 
       <section class="factor-section">
         <div class="section-heading">
-          <div><p class="eyebrow">M1</p><h2>${escapeHtml(t('factorList'))}</h2></div>
+          <div><p class="eyebrow">ESG</p><h2>${escapeHtml(t('factorList'))}</h2></div>
         </div>
         <div class="factor-preview-grid">${factorCards}</div>
       </section>
@@ -633,7 +632,6 @@ function renderSurvey() {
               <div class="source-progress">
                 <div class="source-progress-copy">
                   <span class="pair-position">${escapeHtml(t('topicPosition', { i: state.currentIndex + 1, total: factors.length }))}</span>
-                  <span data-progress-count>${escapeHtml(t('confirmedProgress', { n: reviewedCount(), total: factors.length }))}</span>
                 </div>
                 <progress max="${factors.length}" value="${reviewedCount()}" aria-label="${escapeHtml(t('progressLabel'))}"></progress>
               </div>
@@ -832,7 +830,7 @@ function renderComplete() {
 function render() {
   document.documentElement.lang = state.locale;
   document.body.dataset.screen = state.screen;
-  document.title = `${localeText(studyConfig.title)} | M1 Survey`;
+  document.title = `${localeText(studyConfig.title)} | ESG Study`;
   document.querySelector('meta[name="description"]').content = t('heroTitle');
   document.querySelector('#brand-subtitle').textContent = t('brand').replace('BEXtools', '').trim();
   renderHomeLink();
@@ -901,9 +899,6 @@ function updateSurveySelectionUi(sourceId) {
 
   document.querySelectorAll('[data-progress-percent]').forEach((node) => {
     node.textContent = `${progressPercent()}%`;
-  });
-  document.querySelectorAll('[data-progress-count]').forEach((node) => {
-    node.textContent = t('confirmedProgress', { n: reviewedCount(), total: factors.length });
   });
   document.querySelectorAll('progress').forEach((node) => {
     node.value = reviewedCount();
