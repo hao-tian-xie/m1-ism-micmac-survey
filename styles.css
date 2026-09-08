@@ -3133,6 +3133,8 @@ body[data-screen="welcome"] .save-status {
 .topic-notes ul {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(13, minmax(0, auto));
+  grid-auto-flow: column;
   gap: 8px 24px;
   margin: 0;
   padding: 0;
@@ -3155,6 +3157,13 @@ body[data-screen="welcome"] .save-status {
   color: var(--muted, #666);
 }
 
+.factor-preview p,
+.source-topic p,
+.target-definition,
+.topic-notes li span {
+  white-space: pre-line;
+}
+
 @media (max-width: 767px) {
   .topic-notes {
     margin-top: 12px;
@@ -3163,6 +3172,8 @@ body[data-screen="welcome"] .save-status {
 
   .topic-notes ul {
     grid-template-columns: 1fr;
+    grid-template-rows: none;
+    grid-auto-flow: row;
     gap: 5px;
   }
 
@@ -3716,6 +3727,8 @@ body[data-screen="survey"] .topic-notes.is-open {
 
   .topic-notes ul {
     grid-template-columns: 1fr;
+    grid-template-rows: none;
+    grid-auto-flow: row;
   }
 }
 

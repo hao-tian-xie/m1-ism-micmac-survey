@@ -90,6 +90,34 @@ test('candidate definitions append PDF sub-subtopics only where the ESRS table l
   assert.doesNotMatch(byId.F1.description.en, /Sub-sub-topics:/);
 });
 
+test('candidate definitions put subtopics on semicolon-terminated lines after the meaning', () => {
+  const byId = Object.fromEntries(studyConfig.factors.map((factor) => [factor.id, factor]));
+
+  assert.equal(byId.F11.description['zh-CN'], [
+    '取水、耗水、排水和水资源管理。',
+    '子主题：· 耗水;',
+    '· 取水;',
+    '· 排水;',
+    '· 向海洋排水;',
+  ].join('\n'));
+  assert.equal(byId.F11.description['zh-HK'], [
+    '取水、耗水、排水和水資源管理。',
+    '子主題：· 耗水;',
+    '· 取水;',
+    '· 排水;',
+    '· 向海洋排水;',
+  ].join('\n'));
+  assert.equal(byId.F11.description.en, [
+    'Water withdrawals, consumption, discharges and management.',
+    'Sub-topics: · Water consumption;',
+    '· Water withdrawals;',
+    '· Water discharges;',
+    '· Water discharges in the oceans;',
+  ].join('\n'));
+  assert.equal(byId.F1.description['zh-CN'], '为应对高温、洪水等气候影响而采取的调整措施。');
+  assert.doesNotMatch(byId.F11.description['zh-CN'], /子子主题/);
+});
+
 test('all localised factor labels use the 38 ESRS names without prefixes', () => {
   for (const locale of ['zh-CN', 'zh-HK', 'en']) {
     const factors = localisedFactors(locale);

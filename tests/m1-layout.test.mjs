@@ -85,6 +85,21 @@ test('survey keeps progress with IF, centers topic notes, and exposes the ESRS P
   assert.match(app, /document\.addEventListener\('click'[\s\S]*?notes\.contains\(event\.target\)/);
 });
 
+test('topic notes preserve definition line breaks and fill columns top-to-bottom', () => {
+  const notesGridStart = styles.indexOf('.topic-notes ul');
+  assert.notEqual(notesGridStart, -1, 'the topic notes grid should be present');
+  const notesGrid = styles.slice(notesGridStart, notesGridStart + 420);
+  assert.match(notesGrid, /grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+  assert.match(notesGrid, /grid-template-rows:\s*repeat\(13,\s*minmax\(0,\s*auto\)\)/);
+  assert.match(notesGrid, /grid-auto-flow:\s*column/);
+
+  assert.match(styles, /\.factor-preview p,\s*\.source-topic p,\s*\.target-definition,\s*\.topic-notes li span\s*\{[\s\S]*?white-space:\s*pre-line/);
+  assert.match(
+    styles,
+    /@media\s*\(max-width:\s*767px\)[\s\S]*?\.topic-notes ul\s*\{[\s\S]*?grid-template-columns:\s*1fr[\s\S]*?grid-template-rows:\s*none[\s\S]*?grid-auto-flow:\s*row/,
+  );
+});
+
 test('IF label and current topic share one horizontal source row on desktop', () => {
   assert.match(styles, /@media\s*\(min-width:\s*768px\)[\s\S]*?\.source-topic\s*\{[\s\S]*?grid-template-columns:\s*auto\s+minmax\(0,\s*1fr\)/);
   assert.match(styles, /\.source-topic-main\s*\{[\s\S]*?min-width:\s*0/);
