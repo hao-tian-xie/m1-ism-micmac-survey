@@ -180,6 +180,8 @@ export function buildSubmission({
     },
     factors: factors.map((factor) => ({
       id: factorId(factor),
+      ...(Array.isArray(factor.sourceIds) ? { sourceIds: [...factor.sourceIds] } : {}),
+      ...(factor.category ? { category: factor.category } : {}),
       label: factorLabel(factor),
       description: factorDescription(factor),
     })),

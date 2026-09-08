@@ -29,11 +29,9 @@ test('ESG copy, desktop topic grid and survey progress match the intended releas
   assert.doesNotMatch(appSource, /<div class="mini-brand">M1/);
   assert.doesNotMatch(appSource, /data-progress-count/);
   assert.match(appSource, /<progress class="native-progress"/);
-  assert.match(appSource, /data-category="\$\{category\}"/);
-  assert.match(appSource, /\['environment', 'categoryEnvironment'\]/);
-  assert.match(appSource, /\['social', 'categorySocial'\]/);
-  assert.match(appSource, /\['governance', 'categoryGovernance'\]/);
+  assert.match(appSource, /factor-preview-grid/);
+  assert.doesNotMatch(appSource, /class="topic-category"/);
 
   const factorGrid = stylesSource.match(/\.factor-preview-grid\s*\{([\s\S]*?)\n\}/)?.[1] || '';
-  assert.match(factorGrid, /grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+  assert.match(factorGrid, /grid-template-columns:\s*repeat\(9,\s*minmax\(0,\s*1fr\)\)/);
 });

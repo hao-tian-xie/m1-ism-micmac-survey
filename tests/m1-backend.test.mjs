@@ -35,11 +35,7 @@ function closeServer(t, server) {
 }
 
 function completeSubmission(overrides = {}) {
-  const factorIds = [
-    'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F8+F9', 'F10', 'F11', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19',
-    'F20', 'F21', 'F22', 'F23', 'F24', 'F25', 'F26', 'F27', 'F28', 'F29', 'F30', 'F31',
-    'F32', 'F33', 'F35', 'F36', 'F37+F38',
-  ];
+  const factorIds = Array.from({ length: 33 }, (_, index) => `F${index + 1}`);
   const responses = [];
   factorIds.forEach((leftId, leftIndex) => {
     factorIds.slice(leftIndex + 1).forEach((rightId) => {
@@ -65,7 +61,7 @@ function completeSubmission(overrides = {}) {
     status: 'complete',
     locale: 'zh-CN',
     submittedAt: '2026-08-09T10:00:00.000Z',
-    study: { factorVersion: 'esg-topic-set-v3-33' },
+    study: { factorVersion: 'esg-topic-set-v4-33' },
     participant: {
       code: '专家-07',
       roleCode: 'roleResearcher',

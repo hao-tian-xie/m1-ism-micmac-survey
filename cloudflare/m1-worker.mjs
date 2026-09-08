@@ -1,10 +1,6 @@
 const STUDY_ID = 'M1-ESG-ISM-MICMAC';
-const FACTOR_VERSION = 'esg-topic-set-v3-33';
-const FACTOR_IDS = [
-  'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F8+F9', 'F10', 'F11', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19',
-  'F20', 'F21', 'F22', 'F23', 'F24', 'F25', 'F26', 'F27', 'F28', 'F29', 'F30', 'F31',
-  'F32', 'F33', 'F35', 'F36', 'F37+F38',
-];
+const FACTOR_VERSION = 'esg-topic-set-v4-33';
+const FACTOR_IDS = Array.from({ length: 33 }, (_, index) => `F${index + 1}`);
 const FACTOR_COUNT = FACTOR_IDS.length;
 const PAIRS = FACTOR_IDS.flatMap((leftId, leftIndex) => (
   FACTOR_IDS.slice(leftIndex + 1).map((rightId) => ({
