@@ -1,142 +1,82 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
+import { createPairs } from '../survey-core.mjs';
 import { localisedFactors, studyConfig } from '../survey-config.mjs';
 
-const expectedSubtopics = [
-  'E1:climate-change-adaptation',
-  'E1:climate-change-mitigation',
-  'E1:energy',
-  'E2:pollution-of-air',
-  'E2:pollution-of-water',
-  'E2:pollution-of-soil',
-  'E2:pollution-of-living-organisms-and-food-resources',
-  'E2:substances-of-concern',
-  'E2:substances-of-very-high-concern',
-  'E2:microplastics',
-  'E3:water',
-  'E3:marine-resources',
-  'E4:direct-impact-drivers-of-biodiversity-loss',
-  'E4:impacts-on-the-state-of-species',
-  'E4:impacts-on-the-extent-and-condition-of-ecosystems',
-  'E4:impacts-and-dependencies-on-ecosystem-services',
-  'E5:resources-inflows-including-resource-use',
-  'E5:resource-outflows-related-to-products-and-services',
-  'E5:waste',
-  'S1:working-conditions',
-  'S1:equal-treatment-and-opportunities-for-all',
-  'S1:other-work-related-rights',
-  'S2:working-conditions',
-  'S2:equal-treatment-and-opportunities-for-all',
-  'S2:other-work-related-rights',
-  'S3:communities-economic-social-and-cultural-rights',
-  'S3:communities-civil-and-political-rights',
-  'S3:rights-of-indigenous-peoples',
-  'S4:information-related-impacts-for-consumers-and-end-users',
-  'S4:personal-safety-of-consumers-and-end-users',
-  'S4:social-inclusion-of-consumers-and-end-users',
-  'G1:corporate-culture',
-  'G1:protection-of-whistleblowers',
-  'G1:animal-welfare',
-  'G1:political-engagement',
-  'G1:management-of-relationships-with-suppliers-including-payment-practices',
-  'G1:corruption-and-bribery-prevention-and-detection',
-  'G1:corruption-and-bribery-incidents',
+const expectedTopics = [
+  ['F1', 'environment', '气候适应', 'Climate adaptation'],
+  ['F2', 'environment', '气候减缓', 'Climate mitigation'],
+  ['F3', 'environment', '能源管理', 'Energy management'],
+  ['F4', 'environment', '空气污染', 'Air pollution'],
+  ['F5', 'environment', '水体污染', 'Water pollution'],
+  ['F6', 'environment', '土壤污染', 'Soil pollution'],
+  ['F8+F9', 'environment', '关注物质', 'Substances of concern'],
+  ['F10', 'environment', '微塑料管控', 'Microplastic management'],
+  ['F11', 'environment', '水资源管理', 'Water resource management'],
+  ['F13', 'environment', '生物多样性压力', 'Biodiversity pressures'],
+  ['F14', 'environment', '物种状况', 'Species status'],
+  ['F15', 'environment', '生态系统状况', 'Ecosystem extent and condition'],
+  ['F16', 'environment', '生态服务关系', 'Ecosystem service impacts and dependencies'],
+  ['F17', 'environment', '资源投入', 'Resource inflows'],
+  ['F18', 'environment', '产品服务循环', 'Product and service circularity'],
+  ['F19', 'environment', '废弃物管理', 'Waste management'],
+  ['F20', 'social', '本企工作条件', 'Own-workforce working conditions'],
+  ['F21', 'social', '本企平等待遇', 'Own-workforce equal treatment'],
+  ['F22', 'social', '本企其他劳权', 'Other own-workforce labour rights'],
+  ['F23', 'social', '价值链工作条件', 'Value-chain working conditions'],
+  ['F24', 'social', '价值链平等待遇', 'Value-chain equal treatment'],
+  ['F25', 'social', '价值链其他劳权', 'Other value-chain labour rights'],
+  ['F26', 'social', '社区生活权益', 'Community socioeconomic and cultural rights'],
+  ['F27', 'social', '社区公民权益', 'Community civil and political rights'],
+  ['F28', 'social', '原住民权利', 'Indigenous peoples’ rights'],
+  ['F29', 'social', '用户信息权益', 'User information rights'],
+  ['F30', 'social', '用户人身安全', 'User personal safety'],
+  ['F31', 'social', '用户社会包容', 'User social inclusion'],
+  ['F32', 'governance', '企业文化', 'Corporate culture'],
+  ['F33', 'governance', '举报人保护', 'Whistleblower protection'],
+  ['F35', 'governance', '政治参与', 'Political engagement'],
+  ['F36', 'governance', '供应商关系', 'Supplier relations'],
+  ['F37+F38', 'governance', '腐败贿赂防治', 'Anti-corruption and anti-bribery'],
 ];
 
-const expectedEnglishNames = [
-  'Climate change adaptation',
-  'Climate change mitigation',
-  'Energy',
-  'Pollution of air',
-  'Pollution of water',
-  'Pollution of soil',
-  'Pollution of living organisms and food resources',
-  'Substances of concern',
-  'Substances of very high concern',
-  'Microplastics',
-  'Water',
-  'Marine resources',
-  'Direct impact drivers of biodiversity loss',
-  'Impacts on the state of species',
-  'Impacts on the extent and condition of ecosystems',
-  'Impacts and dependencies on ecosystem services',
-  'Resource inflows, including resource use',
-  'Resource outflows related to products and services',
-  'Waste',
-  'Working conditions (own workforce)',
-  'Equal treatment and opportunities for all (own workforce)',
-  'Other work-related rights (own workforce)',
-  'Working conditions (value-chain workers)',
-  'Equal treatment and opportunities for all (value-chain workers)',
-  'Other work-related rights (value-chain workers)',
-  'Communities’ economic, social and cultural rights',
-  'Communities’ civil and political rights',
-  'Rights of indigenous peoples',
-  'Information-related impacts for consumers and/or end-users',
-  'Personal safety of consumers and end-users',
-  'Social inclusion of consumers and end-users',
-  'Corporate culture',
-  'Protection of whistleblowers',
-  'Animal welfare',
-  'Political engagement and lobbying activities',
-  'Management of relationships with suppliers including payment practices',
-  'Corruption and bribery: prevention and detection including training',
-  'Corruption and bribery incidents',
-];
-
-test('study config uses the 38 ESRS Set 1 sustainability matters selected for the survey', () => {
-  assert.equal(studyConfig.version, 'esrs-set1-subtopics-v2-38-verified');
-  assert.equal(studyConfig.factors.length, expectedSubtopics.length);
-  assert.deepEqual(studyConfig.factors.map((factor) => factor.esrs.key), expectedSubtopics);
+test('study config exposes the 33 grouped ESG topics in the requested order', () => {
+  assert.equal(studyConfig.version, 'esg-topic-set-v3-33');
+  assert.equal(studyConfig.factors.length, expectedTopics.length);
   assert.deepEqual(
-    studyConfig.factors.map((factor) => factor.name.en.replace(/^ESRS\s+[ESG][1-5]\s*·\s*/, '')),
-    expectedEnglishNames,
+    studyConfig.factors.map((factor) => [factor.id, factor.category, factor.name['zh-CN'], factor.name.en]),
+    expectedTopics,
   );
-  assert.equal(new Set(studyConfig.factors.map((factor) => factor.id)).size, 38);
-
-  for (const factor of studyConfig.factors) {
-    for (const locale of ['zh-CN', 'zh-HK', 'en']) {
-      assert.equal(typeof factor.name[locale], 'string');
-      assert.ok(factor.name[locale].trim());
-      assert.equal(typeof factor.description[locale], 'string');
-      assert.ok(factor.description[locale].trim());
-    }
-    assert.match(factor.esrs.standard, /^(E[1-5]|S[1-4]|G1)$/);
-    assert.ok(factor.esrs.topic.en.trim());
-    assert.ok(factor.esrs.subtopic.en.trim());
-  }
-
-  for (const locale of ['zh-CN', 'zh-HK', 'en']) {
-    for (const factor of localisedFactors(locale)) {
-      assert.doesNotMatch(factor.label, /^ESRS\s+[ESG][1-5]?\s*·/);
-    }
-  }
+  assert.deepEqual(studyConfig.factors.map((factor) => factor.id), [
+    'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F8+F9', 'F10', 'F11', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19',
+    'F20', 'F21', 'F22', 'F23', 'F24', 'F25', 'F26', 'F27', 'F28', 'F29', 'F30', 'F31',
+    'F32', 'F33', 'F35', 'F36', 'F37+F38',
+  ]);
+  assert.equal(new Set(studyConfig.factors.map((factor) => factor.id)).size, 33);
+  assert.equal(createPairs(studyConfig.factors).length, 528);
 });
 
-test('topic labels and definitions follow the verified ESRS terminology', () => {
+test('grouped topics retain the original ESRS factor numbers', () => {
   const byId = Object.fromEntries(studyConfig.factors.map((factor) => [factor.id, factor]));
+  assert.deepEqual(byId['F8+F9'].sourceIds, ['F8', 'F9']);
+  assert.deepEqual(byId['F37+F38'].sourceIds, ['F37', 'F38']);
+  assert.equal(byId['F8+F9'].esrs.sourceKeys.length, 2);
+  assert.equal(byId['F37+F38'].esrs.sourceKeys.length, 2);
+  assert.equal(byId['F8+F9'].esrs.standard, 'E2');
+  assert.equal(byId['F37+F38'].esrs.standard, 'G1');
+  assert.equal(byId.F1.sourceIds[0], 'F1');
+  assert.equal(byId.F1.esrs.sourceKeys.length, 1);
+  assert.equal(byId.F1.name['zh-HK'], '氣候適應');
+});
 
-  assert.equal(byId.F1.name['zh-CN'], 'ESRS E1 · 适应气候变化');
-  assert.equal(byId.F2.name['zh-CN'], 'ESRS E1 · 减缓气候变化');
-  assert.equal(byId.F11.name['zh-CN'], 'ESRS E3 · 水');
-  assert.equal(byId.F13.esrs.topic['zh-CN'], '生物多样性与生态系统');
-  assert.equal(byId.F13.name['zh-CN'], 'ESRS E4 · 生物多样性丧失的直接影响驱动因素');
-  assert.equal(byId.F14.name['zh-CN'], 'ESRS E4 · 对物种状态的影响');
-  assert.equal(byId.F16.name['zh-CN'], 'ESRS E4 · 对生态系统服务的影响和依赖性');
-  assert.equal(byId.F17.name['zh-CN'], 'ESRS E5 · 资源流入（包括资源使用）');
-  assert.equal(byId.F18.name['zh-CN'], 'ESRS E5 · 与产品和服务相关的资源流出');
-  assert.equal(byId.F17.esrs.topic['zh-CN'], '资源利用与循环经济');
-  assert.equal(byId.F20.esrs.topic['zh-CN'], '自有劳动力');
-  assert.equal(byId.F20.name['zh-CN'], 'ESRS S1 · 自有劳动力的工作条件');
-  assert.equal(byId.F23.esrs.topic['zh-CN'], '价值链中的工人');
-  assert.equal(byId.F23.name['zh-CN'], 'ESRS S2 · 价值链中工人的工作条件');
-  assert.equal(byId.F28.name['zh-CN'], 'ESRS S3 · 土著人民权利');
-  assert.equal(byId.F29.name['zh-CN'], 'ESRS S4 · 消费者和最终用户的信息相关影响');
-  assert.equal(byId.F35.name['zh-CN'], 'ESRS G1 · 政治参与和游说活动');
-  assert.equal(byId.F36.name['zh-CN'], 'ESRS G1 · 供应商关系管理（包括付款做法）');
-  assert.match(byId.F2.description['zh-CN'], /碳汇/);
-  assert.match(byId.F22.description['zh-CN'], /水和卫生/);
-  assert.match(byId.F13.description['zh-CN'], /气候变化/);
-  assert.match(byId.F37.name.en, /training/i);
+test('all localised factor labels are visible names without ESRS prefixes', () => {
+  for (const locale of ['zh-CN', 'zh-HK', 'en']) {
+    const factors = localisedFactors(locale);
+    assert.equal(factors.length, 33);
+    for (const factor of factors) {
+      assert.ok(factor.label.trim());
+      assert.doesNotMatch(factor.label, /^ESRS\s+[ESG][1-5]?\s*·/);
+      assert.ok(factor.description.trim());
+    }
+  }
 });

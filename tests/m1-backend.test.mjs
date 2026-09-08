@@ -35,7 +35,11 @@ function closeServer(t, server) {
 }
 
 function completeSubmission(overrides = {}) {
-  const factorIds = Array.from({ length: 38 }, (_, index) => `F${index + 1}`);
+  const factorIds = [
+    'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F8+F9', 'F10', 'F11', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19',
+    'F20', 'F21', 'F22', 'F23', 'F24', 'F25', 'F26', 'F27', 'F28', 'F29', 'F30', 'F31',
+    'F32', 'F33', 'F35', 'F36', 'F37+F38',
+  ];
   const responses = [];
   factorIds.forEach((leftId, leftIndex) => {
     factorIds.slice(leftIndex + 1).forEach((rightId) => {
@@ -61,12 +65,13 @@ function completeSubmission(overrides = {}) {
     status: 'complete',
     locale: 'zh-CN',
     submittedAt: '2026-08-09T10:00:00.000Z',
+    study: { factorVersion: 'esg-topic-set-v3-33' },
     participant: {
       code: '专家-07',
       roleCode: 'roleResearcher',
       experienceCode: '',
     },
-    progress: { answered: 703, total: 703, complete: true },
+    progress: { answered: 528, total: 528, complete: true },
     factors: factorIds.map((id) => ({ id, label: id, description: `${id} description` })),
     responses,
     initialReachabilityMatrix,
@@ -74,6 +79,26 @@ function completeSubmission(overrides = {}) {
     ...overrides,
   };
 }
+
+test('POST /api/m1-submissions rejects a stale factor version', async (t) => {
+  const directory = await temporaryDirectory(t);
+  const dataFile = join(directory, 'submissions.ndjson');
+  const handler = createM1SubmissionHandler({ dataFile });
+  const server = createServer((request, response) => {
+    handler(request, response, () => response.writeHead(404).end());
+  });
+  closeServer(t, server);
+  const origin = await listen(server);
+
+  const response = await fetch(`${origin}/api/m1-submissions`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(completeSubmission({ study: { factorVersion: 'esrs-set1-subtopics-v2-38-verified' } })),
+  });
+
+  assert.equal(response.status, 422);
+  assert.deepEqual(await response.json(), { error: 'Invalid M1 submission' });
+});
 
 test('POST /api/m1-submissions accepts a complete answer without optional experience', async (t) => {
   const directory = await temporaryDirectory(t);

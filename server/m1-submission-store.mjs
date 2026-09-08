@@ -8,7 +8,12 @@ const API_PATH = '/api/m1-submissions';
 const HEALTH_PATH = `${API_PATH}/health`;
 const EXPORT_PATH = `${API_PATH}/export`;
 const DEFAULT_MAX_BODY_BYTES = 256 * 1024;
-const FACTOR_IDS = Array.from({ length: 38 }, (_, index) => `F${index + 1}`);
+const FACTOR_VERSION = 'esg-topic-set-v3-33';
+const FACTOR_IDS = [
+  'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F8+F9', 'F10', 'F11', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19',
+  'F20', 'F21', 'F22', 'F23', 'F24', 'F25', 'F26', 'F27', 'F28', 'F29', 'F30', 'F31',
+  'F32', 'F33', 'F35', 'F36', 'F37+F38',
+];
 const PAIRS = FACTOR_IDS.flatMap((leftId, leftIndex) => (
   FACTOR_IDS.slice(leftIndex + 1).map((rightId) => ({
     pairId: `${leftId}__${rightId}`,
@@ -101,7 +106,9 @@ function matrixMatches(actual, expected) {
 
 function isCompleteM1Submission(submission) {
   if (!submission || typeof submission !== 'object' || Array.isArray(submission)) return false;
-  if (submission.schemaVersion !== 1 || submission.studyId !== 'M1-ESG-ISM-MICMAC') return false;
+  if (submission.schemaVersion !== 1
+    || submission.studyId !== 'M1-ESG-ISM-MICMAC'
+    || submission.study?.factorVersion !== FACTOR_VERSION) return false;
   if (submission.status !== 'complete') return false;
   if (!['zh-CN', 'zh-HK', 'en'].includes(submission.locale)) return false;
   if (typeof submission.clientSubmissionId !== 'string' || !submission.clientSubmissionId.trim()) return false;

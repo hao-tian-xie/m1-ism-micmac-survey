@@ -1,6 +1,6 @@
 export const studyConfig = {
   id: 'M1-ESG-ISM-MICMAC',
-  version: 'esrs-set1-subtopics-v2-38-verified',
+  version: 'esg-topic-set-v3-33',
   title: {
     'zh-CN': 'ESG 主题研究',
     'zh-HK': 'ESG 主題研究',
@@ -109,22 +109,6 @@ export const studyConfig = {
       },
     },
     {
-      id: 'F7',
-      esrs: {
-        key: 'E2:pollution-of-living-organisms-and-food-resources',
-        standard: 'E2',
-        topic: { 'zh-CN': '污染', 'zh-HK': '污染', en: 'Pollution' },
-        subtopic: { 'zh-CN': '生物和食物资源污染', 'zh-HK': '生物和食物資源污染', en: 'Pollution of living organisms and food resources' },
-        level: 'subtopic',
-      },
-      name: { 'zh-CN': 'ESRS E2 · 生物和食物资源污染', 'zh-HK': 'ESRS E2 · 生物和食物資源污染', en: 'ESRS E2 · Pollution of living organisms and food resources' },
-      description: {
-        'zh-CN': '污染物在生物体和食物资源中的影响。',
-        'zh-HK': '污染物在生物體和食物資源中的影響。',
-        en: 'Pollution affecting living organisms and food resources.',
-      },
-    },
-    {
       id: 'F8',
       esrs: {
         key: 'E2:substances-of-concern',
@@ -186,22 +170,6 @@ export const studyConfig = {
         'zh-CN': '取水、耗水、排水和水资源管理。',
         'zh-HK': '取水、耗水、排水和水資源管理。',
         en: 'Water withdrawals, consumption, discharges and management.',
-      },
-    },
-    {
-      id: 'F12',
-      esrs: {
-        key: 'E3:marine-resources',
-        standard: 'E3',
-        topic: { 'zh-CN': '水和海洋资源', 'zh-HK': '水和海洋資源', en: 'Water and marine resources' },
-        subtopic: { 'zh-CN': '海洋资源', 'zh-HK': '海洋資源', en: 'Marine resources' },
-        level: 'subtopic',
-      },
-      name: { 'zh-CN': 'ESRS E3 · 海洋资源', 'zh-HK': 'ESRS E3 · 海洋資源', en: 'ESRS E3 · Marine resources' },
-      description: {
-        'zh-CN': '海洋资源的开采、使用以及相关影响。',
-        'zh-HK': '海洋資源的開採、使用以及相關影響。',
-        en: 'The extraction and use of marine resources and related effects.',
       },
     },
     {
@@ -541,22 +509,6 @@ export const studyConfig = {
       },
     },
     {
-      id: 'F34',
-      esrs: {
-        key: 'G1:animal-welfare',
-        standard: 'G1',
-        topic: { 'zh-CN': '商业行为', 'zh-HK': '商業行為', en: 'Business conduct' },
-        subtopic: { 'zh-CN': '动物福利', 'zh-HK': '動物福利', en: 'Animal welfare' },
-        level: 'subtopic',
-      },
-      name: { 'zh-CN': 'ESRS G1 · 动物福利', 'zh-HK': 'ESRS G1 · 動物福利', en: 'ESRS G1 · Animal welfare' },
-      description: {
-        'zh-CN': '企业活动和供应链对动物待遇与福利的影响。',
-        'zh-HK': '企業活動和供應鏈對動物待遇與福利的影響。',
-        en: 'How business activities and the value chain affect animal treatment and welfare.',
-      },
-    },
-    {
       id: 'F35',
       esrs: {
         key: 'G1:political-engagement',
@@ -624,6 +576,82 @@ export const studyConfig = {
     },
   ],
 };
+
+const groupedTopicDefinitions = [
+  { id: 'F1', sourceIds: ['F1'], category: 'environment', names: { 'zh-CN': '气候适应', 'zh-HK': '氣候適應', en: 'Climate adaptation' } },
+  { id: 'F2', sourceIds: ['F2'], category: 'environment', names: { 'zh-CN': '气候减缓', 'zh-HK': '氣候減緩', en: 'Climate mitigation' } },
+  { id: 'F3', sourceIds: ['F3'], category: 'environment', names: { 'zh-CN': '能源管理', 'zh-HK': '能源管理', en: 'Energy management' } },
+  { id: 'F4', sourceIds: ['F4'], category: 'environment', names: { 'zh-CN': '空气污染', 'zh-HK': '空氣污染', en: 'Air pollution' } },
+  { id: 'F5', sourceIds: ['F5'], category: 'environment', names: { 'zh-CN': '水体污染', 'zh-HK': '水體污染', en: 'Water pollution' } },
+  { id: 'F6', sourceIds: ['F6'], category: 'environment', names: { 'zh-CN': '土壤污染', 'zh-HK': '土壤污染', en: 'Soil pollution' } },
+  {
+    id: 'F8+F9', sourceIds: ['F8', 'F9'], category: 'environment',
+    names: { 'zh-CN': '关注物质', 'zh-HK': '關注物質', en: 'Substances of concern' },
+    description: {
+      'zh-CN': '需要重点关注的物质，包括高度关注物质的生产、使用和排放。',
+      'zh-HK': '需要重點關注的物質，包括高度關注物質的生產、使用和排放。',
+      en: 'Substances requiring attention, including the production, use and release of substances of very high concern.',
+    },
+  },
+  { id: 'F10', sourceIds: ['F10'], category: 'environment', names: { 'zh-CN': '微塑料管控', 'zh-HK': '微塑料管控', en: 'Microplastic management' } },
+  { id: 'F11', sourceIds: ['F11'], category: 'environment', names: { 'zh-CN': '水资源管理', 'zh-HK': '水資源管理', en: 'Water resource management' } },
+  { id: 'F13', sourceIds: ['F13'], category: 'environment', names: { 'zh-CN': '生物多样性压力', 'zh-HK': '生物多樣性壓力', en: 'Biodiversity pressures' } },
+  { id: 'F14', sourceIds: ['F14'], category: 'environment', names: { 'zh-CN': '物种状况', 'zh-HK': '物種狀況', en: 'Species status' } },
+  { id: 'F15', sourceIds: ['F15'], category: 'environment', names: { 'zh-CN': '生态系统状况', 'zh-HK': '生態系統狀況', en: 'Ecosystem extent and condition' } },
+  { id: 'F16', sourceIds: ['F16'], category: 'environment', names: { 'zh-CN': '生态服务关系', 'zh-HK': '生態服務關係', en: 'Ecosystem service impacts and dependencies' } },
+  { id: 'F17', sourceIds: ['F17'], category: 'environment', names: { 'zh-CN': '资源投入', 'zh-HK': '資源投入', en: 'Resource inflows' } },
+  { id: 'F18', sourceIds: ['F18'], category: 'environment', names: { 'zh-CN': '产品服务循环', 'zh-HK': '產品服務循環', en: 'Product and service circularity' } },
+  { id: 'F19', sourceIds: ['F19'], category: 'environment', names: { 'zh-CN': '废弃物管理', 'zh-HK': '廢棄物管理', en: 'Waste management' } },
+  { id: 'F20', sourceIds: ['F20'], category: 'social', names: { 'zh-CN': '本企工作条件', 'zh-HK': '本企工作條件', en: 'Own-workforce working conditions' } },
+  { id: 'F21', sourceIds: ['F21'], category: 'social', names: { 'zh-CN': '本企平等待遇', 'zh-HK': '本企平等待遇', en: 'Own-workforce equal treatment' } },
+  { id: 'F22', sourceIds: ['F22'], category: 'social', names: { 'zh-CN': '本企其他劳权', 'zh-HK': '本企其他勞權', en: 'Other own-workforce labour rights' } },
+  { id: 'F23', sourceIds: ['F23'], category: 'social', names: { 'zh-CN': '价值链工作条件', 'zh-HK': '價值鏈工作條件', en: 'Value-chain working conditions' } },
+  { id: 'F24', sourceIds: ['F24'], category: 'social', names: { 'zh-CN': '价值链平等待遇', 'zh-HK': '價值鏈平等待遇', en: 'Value-chain equal treatment' } },
+  { id: 'F25', sourceIds: ['F25'], category: 'social', names: { 'zh-CN': '价值链其他劳权', 'zh-HK': '價值鏈其他勞權', en: 'Other value-chain labour rights' } },
+  { id: 'F26', sourceIds: ['F26'], category: 'social', names: { 'zh-CN': '社区生活权益', 'zh-HK': '社區生活權益', en: 'Community socioeconomic and cultural rights' } },
+  { id: 'F27', sourceIds: ['F27'], category: 'social', names: { 'zh-CN': '社区公民权益', 'zh-HK': '社區公民權益', en: 'Community civil and political rights' } },
+  { id: 'F28', sourceIds: ['F28'], category: 'social', names: { 'zh-CN': '原住民权利', 'zh-HK': '原住民權利', en: 'Indigenous peoples’ rights' } },
+  { id: 'F29', sourceIds: ['F29'], category: 'social', names: { 'zh-CN': '用户信息权益', 'zh-HK': '用戶資訊權益', en: 'User information rights' } },
+  { id: 'F30', sourceIds: ['F30'], category: 'social', names: { 'zh-CN': '用户人身安全', 'zh-HK': '用戶人身安全', en: 'User personal safety' } },
+  { id: 'F31', sourceIds: ['F31'], category: 'social', names: { 'zh-CN': '用户社会包容', 'zh-HK': '用戶社會包容', en: 'User social inclusion' } },
+  { id: 'F32', sourceIds: ['F32'], category: 'governance', names: { 'zh-CN': '企业文化', 'zh-HK': '企業文化', en: 'Corporate culture' } },
+  { id: 'F33', sourceIds: ['F33'], category: 'governance', names: { 'zh-CN': '举报人保护', 'zh-HK': '舉報人保護', en: 'Whistleblower protection' } },
+  { id: 'F35', sourceIds: ['F35'], category: 'governance', names: { 'zh-CN': '政治参与', 'zh-HK': '政治參與', en: 'Political engagement' } },
+  { id: 'F36', sourceIds: ['F36'], category: 'governance', names: { 'zh-CN': '供应商关系', 'zh-HK': '供應商關係', en: 'Supplier relations' } },
+  {
+    id: 'F37+F38', sourceIds: ['F37', 'F38'], category: 'governance',
+    names: { 'zh-CN': '腐败贿赂防治', 'zh-HK': '腐敗賄賂防治', en: 'Anti-corruption and anti-bribery' },
+    description: {
+      'zh-CN': '腐败和贿赂的预防、发现、培训，以及已确认事件的处理。',
+      'zh-HK': '腐敗和賄賂的預防、發現、培訓，以及已確認事件的處理。',
+      en: 'Preventing, detecting and training against corruption and bribery, together with handling confirmed incidents.',
+    },
+  },
+];
+
+const legacyFactorsById = new Map(studyConfig.factors.map((factor) => [factor.id, factor]));
+
+studyConfig.factors = groupedTopicDefinitions.map((definition) => {
+  const sourceFactors = definition.sourceIds.map((sourceId) => legacyFactorsById.get(sourceId));
+  if (sourceFactors.some((factor) => !factor)) throw new Error(`Unknown source factor for ${definition.id}`);
+  const sourceKeys = sourceFactors.map((factor) => factor.esrs.key);
+  const baseFactor = sourceFactors[0];
+  return {
+    ...baseFactor,
+    id: definition.id,
+    category: definition.category,
+    sourceIds: [...definition.sourceIds],
+    name: { ...definition.names },
+    description: definition.description || { ...baseFactor.description },
+    esrs: {
+      ...baseFactor.esrs,
+      key: sourceKeys.join('+'),
+      sourceKeys,
+      sourceIds: [...definition.sourceIds],
+      subtopic: { ...definition.names },
+    },
+  };
+});
 
 export function localisedFactors(locale) {
   return studyConfig.factors.map((factor) => ({

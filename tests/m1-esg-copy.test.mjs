@@ -17,6 +17,11 @@ test('ESG copy, desktop topic grid and survey progress match the intended releas
     assert.match(copy[locale].eyebrow, /ESG/i);
     assert.doesNotMatch(copy[locale].brand, /M1|ISM|MICMAC/i);
     assert.equal(copy[locale].confirmedProgress, undefined);
+    assert.match(copy[locale].minutesUnit, /33/);
+    assert.match(copy[locale].pairListTitle, /528/);
+    assert.ok(copy[locale].categoryEnvironment);
+    assert.ok(copy[locale].categorySocial);
+    assert.ok(copy[locale].categoryGovernance);
   }
 
   assert.match(indexSource, /<title>ESG 主题研究 \| ESG Study<\/title>/);
@@ -24,6 +29,10 @@ test('ESG copy, desktop topic grid and survey progress match the intended releas
   assert.doesNotMatch(appSource, /<div class="mini-brand">M1/);
   assert.doesNotMatch(appSource, /data-progress-count/);
   assert.match(appSource, /<progress class="native-progress"/);
+  assert.match(appSource, /data-category="\$\{category\}"/);
+  assert.match(appSource, /\['environment', 'categoryEnvironment'\]/);
+  assert.match(appSource, /\['social', 'categorySocial'\]/);
+  assert.match(appSource, /\['governance', 'categoryGovernance'\]/);
 
   const factorGrid = stylesSource.match(/\.factor-preview-grid\s*\{([\s\S]*?)\n\}/)?.[1] || '';
   assert.match(factorGrid, /grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);

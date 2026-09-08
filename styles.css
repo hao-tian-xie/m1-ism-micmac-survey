@@ -587,6 +587,19 @@ body[data-screen="welcome"] .save-status {
   border-top: 1px solid var(--line-strong);
 }
 
+.factor-category-list {
+  display: grid;
+  gap: 42px;
+}
+
+.topic-category-title {
+  margin: 28px 0 0;
+  color: var(--accent);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
 .section-heading {
   display: grid;
   grid-template-columns: 1fr;

@@ -1,7 +1,19 @@
 const STUDY_ID = 'M1-ESG-ISM-MICMAC';
-const FACTOR_VERSION = 'esrs-set1-subtopics-v1-38';
-const FACTOR_COUNT = 38;
-const PAIR_COUNT = FACTOR_COUNT * (FACTOR_COUNT - 1) / 2;
+const FACTOR_VERSION = 'esg-topic-set-v3-33';
+const FACTOR_IDS = [
+  'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F8+F9', 'F10', 'F11', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19',
+  'F20', 'F21', 'F22', 'F23', 'F24', 'F25', 'F26', 'F27', 'F28', 'F29', 'F30', 'F31',
+  'F32', 'F33', 'F35', 'F36', 'F37+F38',
+];
+const FACTOR_COUNT = FACTOR_IDS.length;
+const PAIRS = FACTOR_IDS.flatMap((leftId, leftIndex) => (
+  FACTOR_IDS.slice(leftIndex + 1).map((rightId) => ({
+    pairId: `${leftId}__${rightId}`,
+    leftId,
+    rightId,
+  }))
+));
+const PAIR_COUNT = PAIRS.length;
 const MAX_BODY_BYTES = 256 * 1024;
 const DEFAULT_ORIGINS = [
   'https://hao-tian-xie.github.io',
@@ -133,7 +145,9 @@ function validateSubmission(record) {
     || typeof record.participant.roleCode !== 'string'
     || typeof record.participant.experienceCode !== 'string') return 'invalid-participant';
 
-  if (!Array.isArray(record.factors) || record.factors.length !== FACTOR_COUNT) return 'invalid-factors';
+  if (!Array.isArray(record.factors)
+    || record.factors.length !== FACTOR_COUNT
+    || !record.factors.every((factor, index) => factor?.id === FACTOR_IDS[index])) return 'invalid-factors';
   if (!Array.isArray(record.responses) || record.responses.length !== PAIR_COUNT) return 'incomplete-responses';
   if (!isMatrix(record.initialReachabilityMatrix) || !isMatrix(record.directInfluenceMatrix)) return 'invalid-matrix';
   if (!isObject(record.progress)
@@ -148,13 +162,17 @@ function validateSubmission(record) {
   if (!Array.isArray(record.sourceSelections) || record.sourceSelections.length !== FACTOR_COUNT) return 'invalid-selections';
 
   const validRelations = new Set(['V', 'A', 'X', 'O']);
-  for (const response of record.responses) {
+  const responsesByPairId = new Map(record.responses.map((response) => [response?.pairId, response]));
+  if (responsesByPairId.size !== PAIR_COUNT) return 'invalid-response';
+  for (const pair of PAIRS) {
+    const response = responsesByPairId.get(pair.pairId);
     if (!isObject(response)
-      || typeof response.pairId !== 'string'
-      || typeof response.leftId !== 'string'
-      || typeof response.rightId !== 'string'
+      || response.leftId !== pair.leftId
+      || response.rightId !== pair.rightId
       || (response.relation !== null && !validRelations.has(response.relation))) return 'invalid-response';
   }
+  if (record.confirmedTopics.ids.some((id, index) => id !== FACTOR_IDS[index])) return 'invalid-topics';
+  if (record.sourceSelections.some((selection, index) => selection?.sourceId !== FACTOR_IDS[index])) return 'invalid-selections';
   return null;
 }
 
