@@ -587,6 +587,19 @@ body[data-screen="welcome"] .save-status {
   border-top: 1px solid var(--line-strong);
 }
 
+.factor-category-list {
+  display: grid;
+  gap: 42px;
+}
+
+.topic-category-title {
+  margin: 28px 0 0;
+  color: var(--accent);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
 .section-heading {
   display: grid;
   grid-template-columns: 1fr;
@@ -609,7 +622,7 @@ body[data-screen="welcome"] .save-status {
 
 .factor-preview-grid {
   display: grid;
-  grid-template-columns: repeat(9, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   margin-top: 30px;
   border-top: 1px solid var(--line);
 }
@@ -619,20 +632,18 @@ body[data-screen="welcome"] .save-status {
   border-bottom: 1px solid var(--line);
 }
 
-.factor-preview:nth-child(9n + 1) {
+.factor-preview:nth-child(3n + 1) {
   padding-right: 24px;
 }
 
-.factor-preview:not(:nth-child(9n + 1)) {
+.factor-preview:nth-child(3n + 2) {
+  padding-inline: 24px;
   border-left: 1px solid var(--line);
 }
 
-.factor-preview:not(:nth-child(9n + 1)):not(:nth-child(9n)) {
-  padding-inline: 24px;
-}
-
-.factor-preview:nth-child(9n) {
+.factor-preview:nth-child(3n) {
   padding-left: 24px;
+  border-left: 1px solid var(--line);
 }
 
 .factor-preview summary {
@@ -1824,7 +1835,9 @@ body[data-screen="welcome"] .save-status {
     grid-template-columns: 1fr;
   }
 
-  .factor-preview {
+  .factor-preview:nth-child(3n + 1),
+  .factor-preview:nth-child(3n + 2),
+  .factor-preview:nth-child(3n) {
     padding-inline: 0;
     border-left: 0;
   }
@@ -3427,8 +3440,8 @@ body[data-screen="welcome"] .save-status {
   body[data-screen="survey"] .target-list {
     height: 100%;
     min-height: 0;
-    grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
-    grid-auto-rows: minmax(0, 1fr);
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+    grid-template-rows: repeat(4, minmax(0, 1fr));
     align-content: stretch;
   }
 

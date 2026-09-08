@@ -9,7 +9,7 @@ const appSource = await readFile(new URL('../app.mjs', import.meta.url), 'utf8')
 const indexSource = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const stylesSource = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
 
-test('ESG copy, desktop topic grid and survey progress match the intended release', () => {
+test('ESG copy, grouped welcome topics, and survey candidate grid match the intended release', () => {
   for (const locale of locales) {
     assert.match(studyConfig.title[locale], /ESG/i);
     assert.doesNotMatch(studyConfig.title[locale], /M1|ISM|MICMAC/i);
@@ -30,8 +30,17 @@ test('ESG copy, desktop topic grid and survey progress match the intended releas
   assert.doesNotMatch(appSource, /data-progress-count/);
   assert.match(appSource, /<progress class="native-progress"/);
   assert.match(appSource, /factor-preview-grid/);
-  assert.doesNotMatch(appSource, /class="topic-category"/);
+  assert.match(appSource, /\['environment', 'categoryEnvironment'\]/);
+  assert.match(appSource, /\['social', 'categorySocial'\]/);
+  assert.match(appSource, /\['governance', 'categoryGovernance'\]/);
+  assert.match(appSource, /class="factor-category-list"/);
 
   const factorGrid = stylesSource.match(/\.factor-preview-grid\s*\{([\s\S]*?)\n\}/)?.[1] || '';
-  assert.match(factorGrid, /grid-template-columns:\s*repeat\(9,\s*minmax\(0,\s*1fr\)\)/);
+  assert.match(factorGrid, /grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+
+  const fitStart = stylesSource.indexOf('M1 survey fit mode: keep desktop/tablet topic choices in the viewport');
+  assert.notEqual(fitStart, -1);
+  const surveyFit = stylesSource.slice(fitStart);
+  assert.match(surveyFit, /body\[data-screen="survey"\]\s+\.target-list\s*\{[\s\S]*?grid-template-columns:\s*repeat\(9,\s*minmax\(0,\s*1fr\)\)/);
+  assert.match(surveyFit, /body\[data-screen="survey"\]\s+\.target-list\s*\{[\s\S]*?grid-template-rows:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
 });

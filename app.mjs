@@ -479,12 +479,25 @@ function renderWelcome() {
   const hasProgress = reviewedCount() > 0
     || factorIds.some((id) => selectedTargets(id).length || hasExplicitNone(id))
     || state.participant.code;
-  const factorCards = factors.map((factor) => `
-    <details class="factor-preview" data-category="${factor.category}">
-      <summary><span>${factor.id}</span><b>${escapeHtml(displayTopicName(factor.name, state.locale))}</b><i aria-hidden="true">+</i></summary>
-      <p>${escapeHtml(localeText(factor.description))}</p>
-    </details>
-  `).join('');
+  const factorCards = [
+    ['environment', 'categoryEnvironment'],
+    ['social', 'categorySocial'],
+    ['governance', 'categoryGovernance'],
+  ].map(([category, labelKey]) => {
+    const categoryFactors = factors.filter((factor) => factor.category === category);
+    const cards = categoryFactors.map((factor) => `
+      <details class="factor-preview">
+        <summary><span>${factor.id}</span><b>${escapeHtml(displayTopicName(factor.name, state.locale))}</b><i aria-hidden="true">+</i></summary>
+        <p>${escapeHtml(localeText(factor.description))}</p>
+      </details>
+    `).join('');
+    return `
+      <section class="topic-category" data-category="${category}">
+        <h3 class="topic-category-title">${escapeHtml(t(labelKey))}</h3>
+        <div class="factor-preview-grid">${cards}</div>
+      </section>
+    `;
+  }).join('');
 
   return `
     <main class="welcome-page">
@@ -511,7 +524,7 @@ function renderWelcome() {
         <div class="section-heading">
           <div><p class="eyebrow">ESG</p><h2>${escapeHtml(t('factorList'))}</h2></div>
         </div>
-        <div class="factor-preview-grid">${factorCards}</div>
+        <div class="factor-category-list">${factorCards}</div>
       </section>
     </main>
   `;
