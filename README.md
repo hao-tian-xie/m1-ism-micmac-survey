@@ -1,6 +1,6 @@
-# M1 ISM–MICMAC Survey
+# ESG 主题关系问卷
 
-独立的 M1 ESG 主题关系问卷平台。
+独立的 ESG 主题关系问卷平台。
 
 - 在线问卷：[hao-tian-xie.github.io/m1-ism-micmac-survey](https://hao-tian-xie.github.io/m1-ism-micmac-survey/)
 - 收集 API：[m1-ism-micmac-survey-api.bolly-express-website.workers.dev](https://m1-ism-micmac-survey-api.bolly-express-website.workers.dev/api/m1-submissions)
