@@ -1,7 +1,5 @@
 import {
   applySourceSelections,
-  buildDirectMatrix,
-  buildM1ResultCard,
   buildSubmission,
   createPairs,
   selectedTargetsForSource,
@@ -812,53 +810,8 @@ function renderQualitative() {
   `, 'form-shell qualitative-shell');
 }
 
-function renderResultTopicList(titleKey, topics = []) {
-  const rows = topics.map((topic) => `
-    <li>
-      <span class="result-topic-code">${escapeHtml(topic.id)}</span>
-      <span class="result-topic-label">${escapeHtml(topic.label)}</span>
-      <b>${escapeHtml(topic.count)}</b>
-    </li>
-  `).join('');
-  return `
-    <section class="result-topic-group">
-      <h3>${escapeHtml(t(titleKey))}</h3>
-      ${rows ? `<ol>${rows}</ol>` : `<p>${escapeHtml(t('noStructure'))}</p>`}
-    </section>
-  `;
-}
-
-function renderResultCard(result, { preview = false } = {}) {
-  if (!result) return '';
-  return `
-    <section class="result-card" aria-labelledby="result-card-title">
-      <header>
-        <p class="eyebrow">${escapeHtml(t('stepResult'))}</p>
-        <h2 id="result-card-title">${escapeHtml(t('resultCardTitle'))}</h2>
-        <p>${escapeHtml(t(preview ? 'resultCardPreview' : 'resultCardSaved'))}</p>
-      </header>
-      <div class="result-card-stats">
-        <article><span>${escapeHtml(t('resultCardTopics'))}</span><b>${escapeHtml(result.topicCount)}</b></article>
-        <article><span>${escapeHtml(t('resultCardDirectLinks'))}</span><b>${escapeHtml(result.directLinkCount)}</b></article>
-      </div>
-      <div class="result-card-groups">
-        ${renderResultTopicList('leadingTopics', result.leadingTopics)}
-        ${renderResultTopicList('receivingTopics', result.receivingTopics)}
-      </div>
-    </section>
-  `;
-}
-
 function renderComplete() {
   const submitted = Boolean(state.submissionId);
-  const preview = submitted ? null : buildM1ResultCard({
-    submissionId: 'preview',
-    frozenAt: '',
-    factors: localisedFactors(state.locale),
-    directInfluenceMatrix: buildDirectMatrix(localisedFactors(state.locale), state.answers)
-      .map((row, rowIndex) => row.map((value, columnIndex) => (rowIndex === columnIndex ? 0 : value))),
-  });
-  const result = state.resultCard || preview;
   const countId = 'qualitative-count-q7';
 
   return renderShell(`
@@ -872,7 +825,6 @@ function renderComplete() {
         <span>${escapeHtml(t('receiptLabel'))}</span>
         <strong>${escapeHtml(state.submissionId)}</strong>
       </div>` : ''}
-      ${renderResultCard(result, { preview: !submitted })}
       ${!submitted ? `
         <p class="qualitative-privacy complete-privacy">${escapeHtml(t('qualitativePrivacy'))}</p>
         <form class="final-answer-form final-submit-form" id="final-submit-form">

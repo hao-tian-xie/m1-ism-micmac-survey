@@ -48,6 +48,7 @@ test('Q1–Q6 render one question per page and Q7 is submitted with the final PO
   assert.match(app, /id="final-submit-form"/);
   assert.match(app, /qualitativeAnswers: Object\.fromEntries\(qualitativeAnswerIds/);
   assert.doesNotMatch(app, /renderReview/);
+  assert.doesNotMatch(app, /renderResultCard|class="result-card"/);
   assert.doesNotMatch(app, /feedbackToken|loadFrozenResult|submitFeedback/);
   assert.doesNotMatch(app, /data-action="verify-result"|data-action="save-feedback"/);
 });
