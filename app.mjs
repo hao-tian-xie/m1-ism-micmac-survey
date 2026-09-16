@@ -6,7 +6,7 @@ import {
   tryWriteStorage,
 } from './survey-core.mjs';
 import { displayTopicName, localisedFactors, studyConfig } from './survey-config.mjs?v=topic-definitions-contains-20260908';
-import { copy, languageNames, locales } from './translations.mjs?v=subjective-m1-final-v2';
+import { copy, languageNames, locales } from './translations.mjs?v=subjective-m1-final-v3';
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
 import { resolveLocale } from './locale-state.mjs';
 import { guideStepsForScreen } from './guide-steps.mjs';
