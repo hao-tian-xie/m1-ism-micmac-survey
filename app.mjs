@@ -7,7 +7,7 @@ import {
   tryWriteStorage,
 } from './survey-core.mjs';
 import { displayTopicName, localisedFactors, studyConfig } from './survey-config.mjs?v=topic-definitions-contains-20260908';
-import { copy, languageNames, locales } from './translations.mjs?v=topic-question-promote-20260909';
+import { copy, languageNames, locales } from './translations.mjs?v=subjective-m1-freeze-v1';
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
 import { resolveLocale } from './locale-state.mjs';
 import { guideStepsForScreen } from './guide-steps.mjs';
@@ -19,6 +19,8 @@ const NONE_VALUE = '__none__';
 const factors = studyConfig.factors;
 const factorIds = factors.map((factor) => factor.id);
 const pairs = createPairs(factors);
+const qualitativeQuestionIds = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6'];
+const maxQualitativeAnswerLength = 3000;
 const app = document.querySelector('#app');
 const languageSwitch = document.querySelector('#language-switch');
 const guideButton = document.querySelector('#guide-button');
@@ -52,6 +54,10 @@ function emptySelections() {
   return Object.fromEntries(factorIds.map((id) => [id, []]));
 }
 
+function blankQualitativeAnswers() {
+  return Object.fromEntries([...qualitativeQuestionIds, 'q7'].map((id) => [id, '']));
+}
+
 function blankState(locale = preferredLocale()) {
   return {
     locale,
@@ -67,6 +73,14 @@ function blankState(locale = preferredLocale()) {
     completedAt: '',
     submissionId: '',
     clientSubmissionId: '',
+    qualitativeAnswers: blankQualitativeAnswers(),
+    qualitativeSectionComplete: false,
+    feedbackToken: '',
+    frozenResultCard: null,
+    frozenResultVerified: false,
+    frozenResultState: 'idle',
+    feedbackSubmittedAt: '',
+    feedbackState: 'idle',
     submitState: 'idle',
     confirmNewResponse: false,
   };
@@ -114,6 +128,21 @@ function loadState() {
       noInfluenceFactors,
       reviewedFactors,
       participant: { ...blankState(locale).participant, ...(saved.participant || {}) },
+      qualitativeAnswers: Object.fromEntries([...qualitativeQuestionIds, 'q7'].map((id) => [
+        id,
+        typeof saved.qualitativeAnswers?.[id] === 'string'
+          ? saved.qualitativeAnswers[id].slice(0, maxQualitativeAnswerLength)
+          : '',
+      ])),
+      qualitativeSectionComplete: saved.qualitativeSectionComplete === true,
+      feedbackToken: String(saved.feedbackToken || ''),
+      frozenResultCard: saved.frozenResultCard && typeof saved.frozenResultCard === 'object'
+        ? saved.frozenResultCard
+        : null,
+      frozenResultVerified: false,
+      frozenResultState: 'idle',
+      feedbackSubmittedAt: String(saved.feedbackSubmittedAt || ''),
+      feedbackState: 'idle',
       currentIndex: Math.min(Math.max(Number(saved.currentIndex) || 0, 0), factors.length - 1),
       editingFromReview: false,
       submitState: 'idle',
@@ -196,6 +225,15 @@ function createClientSubmissionId() {
   return `m1-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 }
 
+function createFeedbackCapabilityToken() {
+  const bytes = new Uint8Array(32);
+  if (typeof window.crypto?.getRandomValues !== 'function') {
+    throw new Error('secure random token generation is unavailable');
+  }
+  window.crypto.getRandomValues(bytes);
+  return [...bytes].map((value) => value.toString(16).padStart(2, '0')).join('');
+}
+
 function hasExplicitNone(sourceId) {
   return state.noInfluenceFactors.includes(sourceId);
 }
@@ -248,6 +286,12 @@ function navigateToStage(targetStage) {
     state.currentIndex = fromReview ? 0 : Math.min(state.currentIndex, factors.length - 1);
     state.editingFromReview = fromReview;
     goTo('survey');
+    return;
+  }
+
+  if (targetStage === 'qualitative') {
+    state.editingFromReview = false;
+    goTo('qualitative');
   }
 }
 
@@ -402,11 +446,12 @@ function renderStepper() {
   const activeIndex = {
     profile: 0,
     survey: 1,
-    review: 2,
-    complete: 2,
+    qualitative: 2,
+    review: 3,
+    complete: 4,
   }[state.screen] ?? 0;
-  const steps = [t('stepProfile'), t('stepSurvey'), t('stepReview')];
-  const stageIds = ['profile', 'survey', 'review'];
+  const steps = [t('stepProfile'), t('stepSurvey'), t('stepQualitative'), t('stepReview'), t('stepResult')];
+  const stageIds = ['profile', 'survey', 'qualitative', 'review', 'complete'];
   const stageItems = steps.map((label, index) => {
     const stage = stageIds[index];
     const isActive = index === activeIndex;
@@ -685,7 +730,7 @@ function renderSurvey() {
           <span aria-hidden="true">i</span>${escapeHtml(t('topicNotesButton'))}
         </button>
         <button class="primary-button" type="button" data-action="confirm-topic" ${hasChoice ? '' : 'disabled'}>
-          ${escapeHtml(state.editingFromReview ? t('confirmAndReview') : isLast ? t('confirmAndReview') : t('confirmAndNext'))}<span aria-hidden="true">→</span>
+          ${escapeHtml(state.editingFromReview ? t('confirmAndReview') : isLast ? t('confirmAndQualitative') : t('confirmAndNext'))}<span aria-hidden="true">→</span>
         </button>
       </div>
       <section class="topic-notes" aria-label="${escapeHtml(t('candidateNotes'))}" hidden tabindex="-1">
@@ -694,6 +739,48 @@ function renderSurvey() {
       </section>
     </div>
   `, 'survey-shell');
+}
+
+function renderQualitative() {
+  const questions = qualitativeQuestionIds.map((id, index) => {
+    const question = t(`qualitativeQ${index + 1}`);
+    const countId = `qualitative-count-${id}`;
+    return `
+      <label class="field-group note-field qualitative-field" for="qualitative-${id}">
+        <span class="qualitative-question-label"><i>${String(index + 1).padStart(2, '0')}</i>${escapeHtml(question)}</span>
+        <textarea
+          id="qualitative-${id}"
+          name="qualitative-answer"
+          data-question-id="${id}"
+          maxlength="${maxQualitativeAnswerLength}"
+          rows="5"
+          aria-describedby="${countId}"
+          placeholder="${escapeHtml(t('qualitativePlaceholder'))}"
+        >${escapeHtml(state.qualitativeAnswers[id])}</textarea>
+        <small id="${countId}" data-char-count="${id}">${escapeHtml(t('qualitativeCharCount', { n: state.qualitativeAnswers[id].length }))}</small>
+      </label>
+    `;
+  }).join('');
+
+  return renderShell(`
+    <div class="form-page qualitative-page">
+      <header class="page-heading">
+        <p class="eyebrow">${escapeHtml(t('qualitativeEyebrow'))}</p>
+        <h1 data-page-title tabindex="-1">${escapeHtml(t('qualitativeTitle'))}</h1>
+        <p>${escapeHtml(t('qualitativeIntro'))}</p>
+      </header>
+
+      <p class="qualitative-privacy">${escapeHtml(t('qualitativePrivacy'))}</p>
+
+      <form class="qualitative-form" id="qualitative-form">
+        <div class="qualitative-fields">${questions}</div>
+        <div class="form-actions">
+          <button class="text-button" type="button" data-action="back-to-survey"><span aria-hidden="true">←</span>${escapeHtml(t('qualitativeBack'))}</button>
+          <button class="primary-button" type="submit">${escapeHtml(t('qualitativeContinue'))}<span aria-hidden="true">→</span></button>
+        </div>
+      </form>
+    </div>
+  `, 'form-shell qualitative-shell');
 }
 
 function renderMatrix() {
@@ -783,8 +870,8 @@ function renderReview() {
       </div>
 
       <div class="review-actions">
-        <button class="text-button" type="button" data-action="back-survey" ${isSubmitting ? 'disabled' : ''}><span aria-hidden="true">←</span>${escapeHtml(t('back'))}</button>
-        <button class="primary-button" type="button" data-action="submit-response" ${isSubmitting || !allTopicsReviewed() ? 'disabled' : ''}>
+        <button class="text-button" type="button" data-action="back-qualitative" ${isSubmitting ? 'disabled' : ''}><span aria-hidden="true">←</span>${escapeHtml(t('back'))}</button>
+        <button class="primary-button" type="button" data-action="submit-response" ${isSubmitting || !allTopicsReviewed() || !state.qualitativeSectionComplete ? 'disabled' : ''}>
           ${escapeHtml(isSubmitting ? t('submitting') : t('submitResponse'))}<span aria-hidden="true">→</span>
         </button>
       </div>
@@ -821,21 +908,94 @@ function renderReview() {
   `, 'review-shell');
 }
 
+function renderFrozenTopicList(titleKey, topics = []) {
+  const rows = topics.map((topic) => `
+    <li>
+      <span class="frozen-topic-code">${escapeHtml(topic.id)}</span>
+      <span class="frozen-topic-label">${escapeHtml(topic.label)}</span>
+      <b>${escapeHtml(topic.count)}</b>
+    </li>
+  `).join('');
+  return `
+    <section class="frozen-topic-group">
+      <h3>${escapeHtml(t(titleKey))}</h3>
+      ${rows ? `<ol>${rows}</ol>` : `<p>${escapeHtml(t('noStructure'))}</p>`}
+    </section>
+  `;
+}
+
+function renderFrozenResultCard() {
+  const result = state.frozenResultCard;
+  if (!result) return '';
+  return `
+    <section class="frozen-result-card" aria-labelledby="frozen-result-title">
+      <header>
+        <p class="eyebrow">${escapeHtml(t('stepResult'))}</p>
+        <h2 id="frozen-result-title">${escapeHtml(t('frozenResultTitle'))}</h2>
+        <p>${escapeHtml(t('frozenResultIntro'))}</p>
+      </header>
+      <div class="frozen-result-stats">
+        <article><span>${escapeHtml(t('frozenResultTopics'))}</span><b>${escapeHtml(result.topicCount)}</b></article>
+        <article><span>${escapeHtml(t('frozenResultDirectLinks'))}</span><b>${escapeHtml(result.directLinkCount)}</b></article>
+      </div>
+      <div class="frozen-result-groups">
+        ${renderFrozenTopicList('leadingTopics', result.leadingTopics)}
+        ${renderFrozenTopicList('receivingTopics', result.receivingTopics)}
+      </div>
+    </section>
+  `;
+}
+
 function renderComplete() {
+  const resultIsVerified = state.frozenResultVerified && state.frozenResultCard;
+  const isSavingFeedback = state.feedbackState === 'saving';
+  const countId = 'feedback-q7-count';
+  const verification = resultIsVerified
+    ? renderFrozenResultCard()
+    : state.frozenResultState === 'loading'
+      ? `<p class="result-verification-status" role="status">${escapeHtml(t('resultProofWait'))}</p>`
+      : `<div class="result-verification-error" role="alert"><p>${escapeHtml(t('resultProofError'))}</p><button class="secondary-button" type="button" data-action="verify-result">${escapeHtml(t('retryResult'))}</button></div>`;
+  const feedback = resultIsVerified && !state.feedbackSubmittedAt ? `
+    <form class="feedback-form" id="feedback-form">
+      <label class="field-group note-field" for="qualitative-q7">
+        <span>${escapeHtml(t('feedbackTitle'))}</span>
+        <textarea id="qualitative-q7" name="feedback-answer" maxlength="${maxQualitativeAnswerLength}" rows="6" aria-describedby="feedback-q7-help ${countId}" placeholder="${escapeHtml(t('feedbackPlaceholder'))}">${escapeHtml(state.qualitativeAnswers.q7)}</textarea>
+        <small id="feedback-q7-help">${escapeHtml(t('feedbackHelper'))}</small>
+        <small id="${countId}" data-char-count="q7">${escapeHtml(t('qualitativeCharCount', { n: state.qualitativeAnswers.q7.length }))}</small>
+      </label>
+      <div class="form-actions">
+        <button class="primary-button" type="submit" ${isSavingFeedback ? 'disabled' : ''}>
+          ${escapeHtml(isSavingFeedback ? t('savingFeedback') : t('saveFeedback'))}<span aria-hidden="true">→</span>
+        </button>
+      </div>
+      ${state.feedbackState === 'error' ? `<div class="submit-error" role="alert"><span>${escapeHtml(t('feedbackSubmitError'))}</span><button type="button" data-action="save-feedback">${escapeHtml(t('retryFeedback'))}</button></div>` : ''}
+    </form>
+  ` : '';
+  const savedFeedback = state.feedbackSubmittedAt ? `
+    <section class="feedback-saved" role="status">
+      <h2>${escapeHtml(t('feedbackCompleteTitle'))}</h2>
+      <p>${escapeHtml(t('feedbackCompleteText'))}</p>
+    </section>
+  ` : '';
+  const canStartAgain = Boolean(state.feedbackSubmittedAt) || state.frozenResultState === 'error';
+
   return renderShell(`
     <div class="complete-page">
-      <h1 data-page-title tabindex="-1">${escapeHtml(t('completeTitle'))}</h1>
-
+      <h1 data-page-title tabindex="-1">${escapeHtml(state.feedbackSubmittedAt ? t('feedbackCompleteTitle') : t('completeTitle'))}</h1>
       <div class="receipt-block">
         <span>${escapeHtml(t('receiptLabel'))}</span>
         <strong>${escapeHtml(state.submissionId)}</strong>
       </div>
-
-      <div class="complete-actions">
-        <button class="secondary-button ${state.confirmNewResponse ? 'confirm-reset' : ''}" type="button" data-action="new-response">
-          ${escapeHtml(state.confirmNewResponse ? t('confirmNewResponse') : t('newResponse'))}
-        </button>
-      </div>
+      ${verification}
+      ${feedback}
+      ${savedFeedback}
+      ${canStartAgain ? `
+        <div class="complete-actions">
+          <button class="secondary-button ${state.confirmNewResponse ? 'confirm-reset' : ''}" type="button" data-action="new-response">
+            ${escapeHtml(state.confirmNewResponse ? t('confirmNewResponse') : t('newResponse'))}
+          </button>
+        </div>
+      ` : ''}
     </div>
   `, 'complete-shell');
 }
@@ -854,6 +1014,7 @@ function render() {
     welcome: renderWelcome,
     profile: renderProfile,
     survey: renderSurvey,
+    qualitative: renderQualitative,
     review: renderReview,
     complete: renderComplete,
   }[state.screen]();
@@ -895,6 +1056,14 @@ function markCurrentTopicPending(sourceId) {
   state.completedAt = '';
   state.submissionId = '';
   state.clientSubmissionId = '';
+  state.qualitativeAnswers = blankQualitativeAnswers();
+  state.qualitativeSectionComplete = false;
+  state.feedbackToken = '';
+  state.frozenResultCard = null;
+  state.frozenResultVerified = false;
+  state.frozenResultState = 'idle';
+  state.feedbackSubmittedAt = '';
+  state.feedbackState = 'idle';
   state.submitState = 'idle';
 }
 
@@ -930,7 +1099,7 @@ function confirmCurrentTopic() {
   state.editingFromReview = false;
   persist();
 
-  if (returnToReview || state.currentIndex === factors.length - 1) {
+  if (returnToReview) {
     if (allTopicsReviewed()) {
       goTo('review');
     } else {
@@ -940,6 +1109,11 @@ function confirmCurrentTopic() {
       pageTop();
       focusPageHeading();
     }
+    return;
+  }
+
+  if (state.currentIndex === factors.length - 1 && allTopicsReviewed()) {
+    goTo('qualitative');
     return;
   }
 
@@ -971,7 +1145,12 @@ function buildCurrentSubmission() {
     ...submission,
     clientSubmissionId: state.clientSubmissionId,
     status: 'complete',
-    collectionMethod: 'source-topic-multi-select-v1',
+    collectionMethod: 'source-topic-multi-select-plus-qualitative-v1',
+    qualitativeSectionComplete: state.qualitativeSectionComplete,
+    qualitativeAnswers: Object.fromEntries(qualitativeQuestionIds.map((id) => [
+      id,
+      state.qualitativeAnswers[id].trim(),
+    ])),
     confirmedTopics: {
       ids: [...state.reviewedFactors],
       total: factors.length,
@@ -992,8 +1171,103 @@ function buildCurrentSubmission() {
   };
 }
 
+function submissionResourceUrl(...segments) {
+  const endpoint = new URL(resolveSubmissionEndpoint(), window.location.href);
+  endpoint.pathname = `${endpoint.pathname.replace(/\/+$/, '')}/${segments.map(encodeURIComponent).join('/')}`;
+  endpoint.search = '';
+  endpoint.hash = '';
+  return endpoint.toString();
+}
+
+function isFrozenResultCard(value, submissionId) {
+  return value && typeof value === 'object'
+    && value.version === 'm1-direct-structure-card-v1'
+    && value.submissionId === submissionId
+    && typeof value.frozenAt === 'string'
+    && Number.isFinite(Date.parse(value.frozenAt))
+    && value.topicCount === factors.length
+    && Number.isInteger(value.directLinkCount)
+    && Array.isArray(value.leadingTopics)
+    && Array.isArray(value.receivingTopics);
+}
+
+async function loadFrozenResult() {
+  if (!state.submissionId) return;
+  if (state.feedbackSubmittedAt && state.frozenResultCard) {
+    state.frozenResultVerified = true;
+    state.frozenResultState = 'verified';
+    state.feedbackState = 'success';
+    if (state.screen !== 'complete') goTo('complete');
+    else render();
+    return;
+  }
+  state.frozenResultState = 'loading';
+  state.frozenResultVerified = false;
+  state.feedbackState = 'idle';
+  if (state.screen !== 'complete') goTo('complete');
+  else render();
+
+  if (!state.feedbackToken) {
+    state.frozenResultState = 'error';
+    render();
+    return;
+  }
+
+  try {
+    const response = await fetch(submissionResourceUrl(state.submissionId, 'frozen-result'), {
+      headers: { authorization: `Bearer ${state.feedbackToken}` },
+    });
+    if (!response.ok) throw new Error('frozen result verification failed');
+    const payload = await response.json();
+    if (!isFrozenResultCard(payload.resultCard, state.submissionId)) {
+      throw new Error('frozen result is invalid');
+    }
+    state.frozenResultCard = payload.resultCard;
+    state.frozenResultVerified = true;
+    state.frozenResultState = 'verified';
+    state.feedbackSubmittedAt = String(payload.feedbackSubmittedAt || '');
+    persist();
+    render();
+  } catch {
+    state.frozenResultState = 'error';
+    state.frozenResultVerified = false;
+    render();
+  }
+}
+
+async function submitFeedback() {
+  if (!state.frozenResultVerified || !state.frozenResultCard || state.feedbackSubmittedAt
+    || state.feedbackState === 'saving') return;
+  state.feedbackState = 'saving';
+  render();
+  try {
+    const response = await fetch(submissionResourceUrl(state.submissionId, 'feedback'), {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${state.feedbackToken}`,
+      },
+      body: JSON.stringify({ answer: state.qualitativeAnswers.q7.trim() }),
+    });
+    if (!response.ok) throw new Error('feedback submit failed');
+    const receipt = await response.json();
+    if (!receipt.feedbackSubmittedAt) throw new Error('missing feedback receipt');
+    state.feedbackSubmittedAt = receipt.feedbackSubmittedAt;
+    state.qualitativeAnswers.q7 = '';
+    state.feedbackToken = '';
+    state.feedbackState = 'success';
+    persist();
+    render();
+    pageTop();
+    focusPageHeading();
+  } catch {
+    state.feedbackState = 'error';
+    render();
+  }
+}
+
 async function submitResponse() {
-  if (!allTopicsReviewed() || state.submitState === 'submitting') return;
+  if (!allTopicsReviewed() || !state.qualitativeSectionComplete || state.submitState === 'submitting') return;
   let clientSubmissionId = state.clientSubmissionId;
   state.submitState = 'submitting';
   render();
@@ -1004,18 +1278,35 @@ async function submitResponse() {
       state.clientSubmissionId = clientSubmissionId;
       persist();
     }
+    if (!state.feedbackToken) {
+      state.feedbackToken = createFeedbackCapabilityToken();
+      persist();
+    }
     const response = await fetch(resolveSubmissionEndpoint(), {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${state.feedbackToken}`,
+      },
       body: JSON.stringify(buildCurrentSubmission()),
     });
     if (!response.ok) throw new Error('submit failed');
     const receipt = await response.json();
-    if (!receipt.submissionId) throw new Error('missing receipt');
+    if (!receipt.submissionId || !isFrozenResultCard(receipt.resultCard, receipt.submissionId)) {
+      throw new Error('missing frozen result');
+    }
     if (state.clientSubmissionId !== clientSubmissionId) return;
 
     state.submissionId = receipt.submissionId;
     state.completedAt = receipt.receivedAt || new Date().toISOString();
+    state.frozenResultCard = receipt.resultCard;
+    state.frozenResultVerified = true;
+    state.frozenResultState = 'verified';
+    state.feedbackSubmittedAt = '';
+    state.qualitativeAnswers = {
+      ...state.qualitativeAnswers,
+      ...Object.fromEntries(qualitativeQuestionIds.map((id) => [id, ''])),
+    };
     state.submitState = 'success';
     persist();
     goTo('complete');
@@ -1065,6 +1356,18 @@ window.addEventListener('resize', positionGuide);
 window.addEventListener('scroll', positionGuide, { passive: true });
 
 app.addEventListener('submit', (event) => {
+  if (event.target.id === 'qualitative-form') {
+    event.preventDefault();
+    state.qualitativeSectionComplete = true;
+    persist();
+    goTo('review');
+    return;
+  }
+  if (event.target.id === 'feedback-form') {
+    event.preventDefault();
+    void submitFeedback();
+    return;
+  }
   if (event.target.id !== 'profile-form') return;
   event.preventDefault();
   state.showValidation = true;
@@ -1081,10 +1384,29 @@ app.addEventListener('submit', (event) => {
 });
 
 app.addEventListener('input', (event) => {
-  if (event.target.name !== 'code') return;
-  state.participant.code = event.target.value;
-  updateProfileValidation();
-  persist();
+  if (event.target.name === 'code') {
+    state.participant.code = event.target.value;
+    updateProfileValidation();
+    persist();
+    return;
+  }
+  if (event.target.name === 'qualitative-answer') {
+    const questionId = event.target.dataset.questionId;
+    if (!qualitativeQuestionIds.includes(questionId)) return;
+    state.qualitativeAnswers[questionId] = event.target.value.slice(0, maxQualitativeAnswerLength);
+    document.querySelector(`[data-char-count="${questionId}"]`)?.replaceChildren(
+      document.createTextNode(t('qualitativeCharCount', { n: state.qualitativeAnswers[questionId].length })),
+    );
+    persist();
+    return;
+  }
+  if (event.target.name === 'feedback-answer') {
+    state.qualitativeAnswers.q7 = event.target.value.slice(0, maxQualitativeAnswerLength);
+    document.querySelector('[data-char-count="q7"]')?.replaceChildren(
+      document.createTextNode(t('qualitativeCharCount', { n: state.qualitativeAnswers.q7.length })),
+    );
+    persist();
+  }
 });
 
 app.addEventListener('change', (event) => {
@@ -1135,9 +1457,9 @@ app.addEventListener('click', (event) => {
       break;
     case 'start':
       if (state.submissionId) {
-        goTo('complete');
+        void loadFrozenResult();
       } else if (profileIsReady() && allTopicsReviewed()) {
-        goTo('review');
+        goTo(state.qualitativeSectionComplete ? 'review' : 'qualitative');
       } else if (profileIsReady()) {
         state.currentIndex = firstUnreviewedIndex();
         goTo('survey');
@@ -1167,6 +1489,21 @@ app.addEventListener('click', (event) => {
       state.editingFromReview = true;
       persist();
       goTo('survey');
+      break;
+    case 'back-to-survey':
+      state.currentIndex = factors.length - 1;
+      state.editingFromReview = false;
+      persist();
+      goTo('survey');
+      break;
+    case 'back-qualitative':
+      goTo('qualitative');
+      break;
+    case 'verify-result':
+      void loadFrozenResult();
+      break;
+    case 'save-feedback':
+      void submitFeedback();
       break;
     case 'back-survey':
       state.currentIndex = factors.length - 1;

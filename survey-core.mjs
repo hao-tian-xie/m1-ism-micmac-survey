@@ -135,6 +135,43 @@ export function buildDirectMatrix(factors, answers = {}) {
   return matrix;
 }
 
+export function buildFrozenM1ResultCard({
+  submissionId,
+  frozenAt,
+  factors = [],
+  directInfluenceMatrix = [],
+}) {
+  const topics = factors.map((factor, index) => {
+    const outgoing = directInfluenceMatrix[index] || [];
+    const incoming = directInfluenceMatrix.map((row) => row?.[index] || 0);
+    return {
+      id: factorId(factor),
+      label: factorLabel(factor),
+      outgoing: outgoing.reduce((total, value, columnIndex) => (
+        total + Number(columnIndex !== index && value === 1)
+      ), 0),
+      incoming: incoming.reduce((total, value, rowIndex) => (
+        total + Number(rowIndex !== index && value === 1)
+      ), 0),
+    };
+  });
+  const ranked = (key) => topics
+    .filter((topic) => topic[key] > 0)
+    .sort((left, right) => right[key] - left[key] || left.id.localeCompare(right.id))
+    .slice(0, 5)
+    .map((topic) => ({ id: topic.id, label: topic.label, count: topic[key] }));
+
+  return {
+    version: 'm1-direct-structure-card-v1',
+    submissionId,
+    frozenAt,
+    topicCount: topics.length,
+    directLinkCount: topics.reduce((total, topic) => total + topic.outgoing, 0),
+    leadingTopics: ranked('outgoing'),
+    receivingTopics: ranked('incoming'),
+  };
+}
+
 export function buildSubmission({
   studyId,
   locale,

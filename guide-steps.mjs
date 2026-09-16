@@ -7,12 +7,13 @@ const welcomeSteps = [
   { screen: 'survey', target: '.target-fieldset', title: 'guideThenTitle', text: 'guideThenText' },
   { screen: 'survey', target: '.topic-notes', title: 'guideNotesTitle', text: 'guideNotesText' },
   { screen: 'survey', target: '.topic-actions .primary-button', title: 'guideNextTitle', text: 'guideNextText' },
+  { screen: 'qualitative', target: '.qualitative-fields', title: 'guideQualitativeTitle', text: 'guideQualitativeText' },
   { screen: 'review', target: '.review-actions .primary-button', title: 'guideSubmitTitle', text: 'guideSubmitText' },
 ];
 
 const completeStep = {
   screen: 'complete',
-  target: '.complete-actions',
+  target: '.frozen-result-card',
   title: 'guideCompleteTitle',
   text: 'guideCompleteText',
 };
@@ -20,6 +21,7 @@ const completeStep = {
 const localSteps = {
   profile: welcomeSteps.filter((step) => step.screen === 'profile'),
   survey: welcomeSteps.filter((step) => step.screen === 'survey'),
+  qualitative: welcomeSteps.filter((step) => step.screen === 'qualitative'),
   review: welcomeSteps.filter((step) => step.screen === 'review'),
   complete: [completeStep],
 };
