@@ -3812,6 +3812,393 @@ body[data-screen="survey"] .target-copy {
   }
 }
 
+/* Qualitative interview and the post-freeze M1 interpretation card. */
+.interview-page,
+.results-page {
+  max-width: 1040px;
+}
+
+.interview-heading,
+.results-heading {
+  max-width: 820px;
+}
+
+.interview-form {
+  margin-top: 18px;
+}
+
+.interview-privacy {
+  margin-top: 12px;
+  padding-left: 12px;
+  border-left: 2px solid var(--line);
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.interview-question-list {
+  border-top: 1px solid var(--line-strong);
+}
+
+.interview-question-card {
+  min-width: 0;
+  margin: 0;
+  padding: 23px 0 25px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.interview-question-card legend {
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  padding: 0;
+  align-items: flex-start;
+  gap: 15px;
+  color: var(--ink-strong);
+  font-size: 19px;
+  font-weight: 500;
+  line-height: 1.42;
+}
+
+.interview-question-number {
+  flex: 0 0 42px;
+  color: var(--accent);
+  font-family: "Space Mono", monospace;
+  font-size: 13px;
+  padding-top: 4px;
+}
+
+.interview-question-copy {
+  min-width: 0;
+}
+
+.interview-question-copy em {
+  margin-left: 4px;
+  color: var(--accent);
+  font-style: normal;
+}
+
+.interview-question-card textarea,
+.interpretation-form textarea {
+  display: block;
+  width: 100%;
+  min-height: 106px;
+  margin-top: 14px;
+  padding: 13px 14px;
+  border: 1px solid rgba(0, 0, 0, 0.38);
+  border-radius: 0;
+  background: var(--paper);
+  color: var(--ink-strong);
+  font-size: 16px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.interview-question-card textarea:focus,
+.interpretation-form textarea:focus {
+  border-color: var(--accent);
+  outline: 1px solid var(--accent);
+}
+
+.interview-question-card textarea[aria-invalid="true"],
+.interpretation-form textarea[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.interview-question-card textarea::placeholder,
+.interpretation-form textarea::placeholder {
+  color: var(--muted-soft);
+}
+
+.interview-field-error {
+  margin: 8px 0 0;
+}
+
+.interview-error {
+  margin: 16px 0 0;
+}
+
+.interview-actions {
+  margin-top: 28px;
+}
+
+.results-locked-message {
+  margin-top: 26px;
+  padding: 17px 18px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--ink-strong);
+}
+
+.result-card {
+  margin-top: 28px;
+  padding: 20px 0 0;
+  border-top: 1px solid var(--line-strong);
+}
+
+.result-card-topline {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.result-card-topline h2 {
+  margin: 0;
+  color: var(--accent);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.result-card-topline > span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.result-card-intro {
+  max-width: 820px;
+  margin: 11px 0 0;
+  color: var(--muted);
+  font-size: 16px;
+}
+
+.result-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 22px;
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line);
+}
+
+.result-summary article {
+  display: flex;
+  min-width: 0;
+  padding: 14px 18px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.result-summary article:first-child {
+  padding-left: 0;
+}
+
+.result-summary article + article {
+  border-left: 1px solid var(--line);
+}
+
+.result-summary span {
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.result-summary b {
+  color: var(--ink-strong);
+  font-size: 27px;
+  font-weight: 500;
+}
+
+.result-highlights {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px;
+  margin-top: 27px;
+}
+
+.result-highlights section {
+  min-width: 0;
+}
+
+.result-highlights h3,
+.result-metrics-section h3 {
+  margin: 0 0 12px;
+  color: var(--ink-strong);
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.result-highlights ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.result-highlights li {
+  display: flex;
+  min-height: 42px;
+  padding: 8px 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.result-rank-topic {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 9px;
+}
+
+.result-rank-topic b {
+  flex: 0 0 auto;
+  color: var(--accent);
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+}
+
+.result-highlights li > strong {
+  flex: 0 0 auto;
+  color: var(--ink-strong);
+}
+
+.result-metrics-section {
+  margin-top: 34px;
+}
+
+.result-metrics-scroll {
+  max-height: 520px;
+  overflow: auto;
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line);
+  -webkit-overflow-scrolling: touch;
+}
+
+.result-metrics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.result-metrics-table th,
+.result-metrics-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+}
+
+.result-metrics-table thead th {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  background: var(--paper);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.result-metrics-table tr:last-child th,
+.result-metrics-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.result-metrics-table th:first-child {
+  width: 60%;
+  text-align: left;
+}
+
+.result-metrics-table tbody th {
+  font-weight: 400;
+}
+
+.result-metrics-table tbody th span {
+  display: inline-block;
+  min-width: 38px;
+  margin-right: 8px;
+  color: var(--accent);
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+}
+
+.result-metrics-table tbody th b {
+  font-weight: 500;
+}
+
+.interpretation-section {
+  margin-top: 52px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line-strong);
+}
+
+.interpretation-section header {
+  max-width: 840px;
+}
+
+.interpretation-section header .eyebrow {
+  margin: 0 0 8px;
+  color: var(--accent);
+  font-size: 14px;
+}
+
+.interpretation-section header h2 {
+  margin: 0;
+  color: var(--ink-strong);
+  font-size: clamp(23px, 2.4vw, 30px);
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.interpretation-form {
+  margin-top: 18px;
+}
+
+.interpretation-form textarea {
+  min-height: 150px;
+  margin-top: 0;
+}
+
+.result-actions {
+  margin-top: 22px;
+}
+
+@media (max-width: 767px) {
+  .interview-question-card {
+    padding-block: 19px 21px;
+  }
+
+  .interview-question-card legend {
+    gap: 10px;
+    font-size: 18px;
+  }
+
+  .interview-question-number {
+    flex-basis: 34px;
+  }
+
+  .result-card-topline {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .result-highlights {
+    grid-template-columns: 1fr;
+    gap: 21px;
+  }
+
+  .result-summary article,
+  .result-summary article:first-child {
+    padding: 12px 9px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .result-metrics-table {
+    min-width: 520px;
+  }
+
+  .result-metrics-table th:first-child {
+    width: auto;
+  }
+
+  .result-actions > span {
+    display: none;
+  }
+}
+
 /* Short desktop/tablet windows need a compact rail so its directory stays above the actions. */
 @media (min-width: 768px) and (max-height: 640px) {
   body[data-screen="survey"] .step-sidebar {

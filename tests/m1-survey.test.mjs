@@ -4,8 +4,11 @@ import assert from 'node:assert/strict';
 import {
   applySourceSelections,
   buildDirectMatrix,
+  buildM1ResultSnapshot,
   buildSubmission,
   createPairs,
+  m1ResultSnapshotMatches,
+  qualitativeAnswersAreComplete,
   safeFilenamePart,
   selectedTargetsForSource,
   submissionToCsv,
@@ -47,6 +50,62 @@ test('buildDirectMatrix converts V A X O into directional binary values', () => 
     [0, 1, 0],
     [1, 0, 1],
   ]);
+});
+
+test('frozen M1 result snapshot records per-topic driving power and dependence', () => {
+  const factors = [
+    { id: 'f1', label: 'Governance' },
+    { id: 'f2', label: 'Data quality' },
+    { id: 'f3', label: 'Training' },
+  ];
+  const directInfluenceMatrix = [
+    [0, 1, 1],
+    [0, 0, 1],
+    [0, 0, 0],
+  ];
+  const snapshot = buildM1ResultSnapshot({
+    factorVersion: 'factors-v1',
+    frozenAt: '2026-09-16T10:00:00.000Z',
+    factors,
+    directInfluenceMatrix,
+  });
+
+  assert.deepEqual(snapshot, {
+    version: 'm1-direct-score-card-v1',
+    factorVersion: 'factors-v1',
+    frozenAt: '2026-09-16T10:00:00.000Z',
+    directLinkCount: 3,
+    metrics: [
+      { id: 'f1', drivingPower: 2, dependence: 0 },
+      { id: 'f2', drivingPower: 1, dependence: 1 },
+      { id: 'f3', drivingPower: 0, dependence: 2 },
+    ],
+  });
+  assert.equal(m1ResultSnapshotMatches({
+    snapshot,
+    factorVersion: 'factors-v1',
+    factors,
+    directInfluenceMatrix,
+  }), true);
+  assert.equal(m1ResultSnapshotMatches({
+    snapshot: { ...snapshot, metrics: snapshot.metrics.map((metric, index) => (
+      index === 0 ? { ...metric, dependence: 1 } : metric
+    )) },
+    factorVersion: 'factors-v1',
+    factors,
+    directInfluenceMatrix,
+  }), false);
+});
+
+test('qualitative pre-M1 answers must be complete, non-empty, and within the response limit', () => {
+  const answers = Object.fromEntries(Array.from({ length: 6 }, (_, index) => [
+    `q${index + 1}`,
+    `回答 ${index + 1}`,
+  ]));
+  assert.equal(qualitativeAnswersAreComplete(answers), true);
+  assert.equal(qualitativeAnswersAreComplete({ ...answers, q3: '  ' }), false);
+  assert.equal(qualitativeAnswersAreComplete({ ...answers, q7: 'unexpected' }), false);
+  assert.equal(qualitativeAnswersAreComplete({ ...answers, q1: 'x'.repeat(4001) }), false);
 });
 
 test('applySourceSelections combines two topic rows into V A X O relations', () => {
