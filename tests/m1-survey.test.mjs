@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   applySourceSelections,
   buildDirectMatrix,
+  buildFrozenM1ResultCard,
   buildSubmission,
   createPairs,
   safeFilenamePart,
@@ -47,6 +48,39 @@ test('buildDirectMatrix converts V A X O into directional binary values', () => 
     [0, 1, 0],
     [1, 0, 1],
   ]);
+});
+
+test('frozen M1 result card summarizes the saved direct matrix with stable ties', () => {
+  const card = buildFrozenM1ResultCard({
+    submissionId: 'M1-frozen-01',
+    frozenAt: '2026-09-16T10:00:00.000Z',
+    factors: [
+      { id: 'f1', label: 'Governance' },
+      { id: 'f2', label: 'Data quality' },
+      { id: 'f3', label: 'Training' },
+    ],
+    directInfluenceMatrix: [
+      [0, 1, 1],
+      [0, 0, 1],
+      [0, 0, 0],
+    ],
+  });
+
+  assert.deepEqual(card, {
+    version: 'm1-direct-structure-card-v1',
+    submissionId: 'M1-frozen-01',
+    frozenAt: '2026-09-16T10:00:00.000Z',
+    topicCount: 3,
+    directLinkCount: 3,
+    leadingTopics: [
+      { id: 'f1', label: 'Governance', count: 2 },
+      { id: 'f2', label: 'Data quality', count: 1 },
+    ],
+    receivingTopics: [
+      { id: 'f3', label: 'Training', count: 2 },
+      { id: 'f2', label: 'Data quality', count: 1 },
+    ],
+  });
 });
 
 test('applySourceSelections combines two topic rows into V A X O relations', () => {

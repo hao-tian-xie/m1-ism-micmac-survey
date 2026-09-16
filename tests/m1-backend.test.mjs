@@ -124,7 +124,126 @@ test('POST /api/m1-submissions accepts a complete answer without optional experi
   assert.equal(records.length, 1);
   assert.equal(records[0].submissionId, receipt.submissionId);
   assert.equal(records[0].receivedAt, receipt.receivedAt);
-  assert.deepEqual(records[0].submission, submission);
+  const { m1FrozenResult, ...storedSubmission } = records[0].submission;
+  assert.deepEqual(storedSubmission, submission);
+  assert.equal(m1FrozenResult.submissionId, receipt.submissionId);
+});
+
+test('frozen M1 submissions store Q1–Q6 and gate Q7 behind a one-time capability token', async (t) => {
+  const directory = await temporaryDirectory(t);
+  const dataFile = join(directory, 'submissions.ndjson');
+  const handler = createM1SubmissionHandler({ dataFile });
+  const server = createServer((request, response) => {
+    handler(request, response, () => response.writeHead(404).end());
+  });
+  closeServer(t, server);
+  const origin = await listen(server);
+  const editToken = 'participant-capability-token-000000000000000000000001';
+  const submission = completeSubmission({
+    qualitativeSectionComplete: true,
+    qualitativeAnswers: { q1: '外部要求改变了日常决策。', q2: '', q3: '', q4: '', q5: '', q6: '' },
+  });
+
+  const response = await fetch(`${origin}/api/m1-submissions`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      authorization: `Bearer ${editToken}`,
+    },
+    body: JSON.stringify(submission),
+  });
+  const receipt = await response.json();
+  const records = (await readFile(dataFile, 'utf8')).trim().split('\n').map(JSON.parse);
+
+  assert.equal(response.status, 201);
+  assert.equal(receipt.resultCard.submissionId, receipt.submissionId);
+  assert.equal(receipt.resultCard.directLinkCount, 0);
+  assert.equal(receipt.resultCard.topicCount, 38);
+  assert.equal(records[0].submission.qualitativeAnswers.q1, '外部要求改变了日常决策。');
+  assert.equal(records[0].submission.m1FrozenResult.version, 'm1-direct-structure-card-v1');
+  assert.notEqual(records[0].feedbackTokenHash, editToken);
+
+  const authorized = await fetch(`${origin}/api/m1-submissions/${receipt.submissionId}/frozen-result`, {
+    headers: { authorization: `Bearer ${editToken}` },
+  });
+  assert.equal(authorized.status, 200);
+  assert.deepEqual((await authorized.json()).resultCard, receipt.resultCard);
+
+  const unauthorized = await fetch(`${origin}/api/m1-submissions/${receipt.submissionId}/frozen-result`);
+  assert.equal(unauthorized.status, 404);
+
+  const feedbackUrl = `${origin}/api/m1-submissions/${receipt.submissionId}/feedback`;
+  const saveFeedback = (answer) => fetch(feedbackUrl, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      authorization: `Bearer ${editToken}`,
+    },
+    body: JSON.stringify({ answer }),
+  });
+  const firstSave = await saveFeedback('这张结构卡与一线经验部分吻合。');
+  const firstReceipt = await firstSave.json();
+  const secondSave = await saveFeedback('不同的后续文字不可覆盖已冻结回答。');
+  const secondReceipt = await secondSave.json();
+  assert.equal(firstSave.status, 200);
+  assert.equal(secondSave.status, 200);
+  assert.equal(secondReceipt.feedbackSubmittedAt, firstReceipt.feedbackSubmittedAt);
+
+  const finalRecords = (await readFile(dataFile, 'utf8')).trim().split('\n').map(JSON.parse);
+  assert.equal(finalRecords.length, 1);
+  assert.equal(finalRecords[0].submission.qualitativeAnswers.q7, '这张结构卡与一线经验部分吻合。');
+  assert.equal(finalRecords[0].submission.qualitativeSubmittedAt, firstReceipt.feedbackSubmittedAt);
+});
+
+test('POST /api/m1-submissions rejects Q7 and server-owned fields in the initial payload', async (t) => {
+  const directory = await temporaryDirectory(t);
+  const dataFile = join(directory, 'submissions.ndjson');
+  const handler = createM1SubmissionHandler({ dataFile });
+  const server = createServer((request, response) => {
+    handler(request, response, () => response.writeHead(404).end());
+  });
+  closeServer(t, server);
+  const origin = await listen(server);
+  const qualitativeAnswers = { q1: '', q2: '', q3: '', q4: '', q5: '', q6: '' };
+  const adversarialPayloads = [
+    completeSubmission({
+      clientSubmissionId: 'client-with-q7',
+      qualitativeSectionComplete: true,
+      qualitativeAnswers: { ...qualitativeAnswers, q7: 'pre-seeded feedback' },
+    }),
+    completeSubmission({ clientSubmissionId: 'client-with-frozen-result', m1FrozenResult: {} }),
+    completeSubmission({
+      clientSubmissionId: 'client-with-feedback-time',
+      qualitativeSubmittedAt: '2026-08-09T11:00:00.000Z',
+    }),
+    completeSubmission({ clientSubmissionId: 'client-with-token-hash', feedbackTokenHash: 'attacker-value' }),
+    completeSubmission({ clientSubmissionId: 'client-with-result-card', resultCard: {} }),
+    completeSubmission({
+      clientSubmissionId: 'client-with-feedback-receipt',
+      feedbackSubmittedAt: '2026-08-09T11:00:00.000Z',
+    }),
+    completeSubmission({ clientSubmissionId: 'client-with-server-id', submissionId: 'attacker-value' }),
+    completeSubmission({
+      clientSubmissionId: 'client-with-received-time',
+      receivedAt: '2026-08-09T11:00:00.000Z',
+    }),
+    completeSubmission({ clientSubmissionId: 'client-with-body-token', editToken: 'plaintext-secret' }),
+  ];
+
+  for (const payload of adversarialPayloads) {
+    const response = await fetch(`${origin}/api/m1-submissions`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: 'Bearer participant-capability-token-000000000000000000000001',
+      },
+      body: JSON.stringify(payload),
+    });
+    assert.equal(response.status, 422, payload.clientSubmissionId);
+    assert.deepEqual(await response.json(), { error: 'Invalid M1 submission' });
+  }
+
+  await assert.rejects(readFile(dataFile, 'utf8'), { code: 'ENOENT' });
 });
 
 test('POST /api/m1-submissions requires a JSON content type', async (t) => {
@@ -335,6 +454,65 @@ test('a repeated clientSubmissionId returns the original receipt without another
   assert.deepEqual(retryReceipt, firstReceipt);
   const records = (await readFile(dataFile, 'utf8')).trim().split('\n').map(JSON.parse);
   assert.equal(records.length, 1);
+});
+
+test('a retry upgrades a legacy record with a frozen result and token hash in place', async (t) => {
+  const directory = await temporaryDirectory(t);
+  const dataFile = join(directory, 'submissions.ndjson');
+  const editToken = 'participant-capability-token-000000000000000000000001';
+  const submission = completeSubmission({
+    clientSubmissionId: 'legacy-client-response-01',
+    qualitativeSectionComplete: true,
+    qualitativeAnswers: { q1: 'legacy answer', q2: '', q3: '', q4: '', q5: '', q6: '' },
+  });
+  const legacyRecord = {
+    submissionId: 'legacy-server-response-01',
+    receivedAt: '2026-08-09T10:00:00.000Z',
+    submission,
+  };
+  await writeFile(dataFile, `${JSON.stringify(legacyRecord)}\n`);
+
+  const handler = createM1SubmissionHandler({ dataFile });
+  const server = createServer((request, response) => {
+    handler(request, response, () => response.writeHead(404).end());
+  });
+  closeServer(t, server);
+  const origin = await listen(server);
+  const retry = () => fetch(`${origin}/api/m1-submissions`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      authorization: `Bearer ${editToken}`,
+    },
+    body: JSON.stringify(submission),
+  });
+
+  const firstResponse = await retry();
+  const firstReceipt = await firstResponse.json();
+  const secondResponse = await retry();
+  const secondReceipt = await secondResponse.json();
+
+  assert.equal(firstResponse.status, 201);
+  assert.equal(secondResponse.status, 201);
+  assert.deepEqual(secondReceipt, firstReceipt);
+  assert.equal(firstReceipt.submissionId, legacyRecord.submissionId);
+  assert.equal(firstReceipt.receivedAt, legacyRecord.receivedAt);
+  assert.equal(firstReceipt.resultCard.submissionId, legacyRecord.submissionId);
+  assert.equal(firstReceipt.resultCard.frozenAt, legacyRecord.receivedAt);
+
+  const records = (await readFile(dataFile, 'utf8')).trim().split('\n').map(JSON.parse);
+  assert.equal(records.length, 1);
+  assert.equal(records[0].submissionId, legacyRecord.submissionId);
+  assert.equal(records[0].submission.m1FrozenResult.submissionId, legacyRecord.submissionId);
+  assert.match(records[0].feedbackTokenHash, /^[0-9a-f]{64}$/);
+  assert.notEqual(records[0].feedbackTokenHash, editToken);
+
+  const frozenResponse = await fetch(
+    `${origin}/api/m1-submissions/${legacyRecord.submissionId}/frozen-result`,
+    { headers: { authorization: `Bearer ${editToken}` } },
+  );
+  assert.equal(frozenResponse.status, 200);
+  assert.deepEqual((await frozenResponse.json()).resultCard, firstReceipt.resultCard);
 });
 
 test('a truncated final NDJSON row is discarded before the next submission', async (t) => {

@@ -1,4 +1,4 @@
-const stageOrder = ['profile', 'survey', 'review'];
+const stageOrder = ['profile', 'survey', 'qualitative', 'review', 'complete'];
 
 export function stageIndex(screen) {
   return stageOrder.indexOf(screen);

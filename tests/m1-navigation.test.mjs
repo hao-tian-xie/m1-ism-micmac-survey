@@ -9,12 +9,17 @@ import {
 test('stage order only permits backward navigation', () => {
   assert.equal(stageIndex('profile'), 0);
   assert.equal(stageIndex('survey'), 1);
-  assert.equal(stageIndex('review'), 2);
+  assert.equal(stageIndex('qualitative'), 2);
+  assert.equal(stageIndex('review'), 3);
+  assert.equal(stageIndex('complete'), 4);
   assert.equal(canNavigateToStage('profile', 'survey'), false);
   assert.equal(canNavigateToStage('survey', 'profile'), true);
-  assert.equal(canNavigateToStage('review', 'profile'), true);
+  assert.equal(canNavigateToStage('qualitative', 'survey'), true);
+  assert.equal(canNavigateToStage('review', 'qualitative'), true);
   assert.equal(canNavigateToStage('review', 'survey'), true);
+  assert.equal(canNavigateToStage('review', 'profile'), true);
   assert.equal(canNavigateToStage('complete', 'survey'), false);
+  assert.equal(canNavigateToStage('qualitative', 'review'), false);
 });
 
 test('topic directory exposes current and reviewed topics only', () => {
