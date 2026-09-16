@@ -135,12 +135,82 @@ export function buildDirectMatrix(factors, answers = {}) {
   return matrix;
 }
 
+const QUALITATIVE_QUESTION_IDS = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6'];
+export const MAX_QUALITATIVE_ANSWER_LENGTH = 4000;
+export const M1_RESULT_SNAPSHOT_VERSION = 'm1-direct-score-card-v1';
+
+export function buildM1ResultSnapshot({
+  factorVersion,
+  frozenAt,
+  factors = [],
+  directInfluenceMatrix = [],
+}) {
+  const metrics = factors.map((factor, index) => ({
+    id: factorId(factor),
+    drivingPower: (directInfluenceMatrix[index] || []).reduce((total, value, columnIndex) => (
+      total + Number(columnIndex !== index && value === 1)
+    ), 0),
+    dependence: directInfluenceMatrix.reduce((total, row, rowIndex) => (
+      total + Number(rowIndex !== index && row?.[index] === 1)
+    ), 0),
+  }));
+
+  return {
+    version: M1_RESULT_SNAPSHOT_VERSION,
+    factorVersion,
+    frozenAt,
+    directLinkCount: metrics.reduce((total, topic) => total + topic.drivingPower, 0),
+    metrics,
+  };
+}
+
+export function m1ResultSnapshotMatches({
+  snapshot,
+  factorVersion,
+  factors = [],
+  directInfluenceMatrix = [],
+}) {
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) return false;
+  if (typeof snapshot.frozenAt !== 'string' || !Number.isFinite(Date.parse(snapshot.frozenAt))) return false;
+
+  const expected = buildM1ResultSnapshot({
+    factorVersion,
+    frozenAt: snapshot.frozenAt,
+    factors,
+    directInfluenceMatrix,
+  });
+  return snapshot.version === expected.version
+    && snapshot.factorVersion === expected.factorVersion
+    && snapshot.frozenAt === expected.frozenAt
+    && snapshot.directLinkCount === expected.directLinkCount
+    && Array.isArray(snapshot.metrics)
+    && snapshot.metrics.length === expected.metrics.length
+    && snapshot.metrics.every((metric, index) => (
+      metric?.id === expected.metrics[index].id
+      && metric.drivingPower === expected.metrics[index].drivingPower
+      && metric.dependence === expected.metrics[index].dependence
+    ));
+}
+
+export function qualitativeAnswersAreComplete(value, maxLength = MAX_QUALITATIVE_ANSWER_LENGTH) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const keys = Object.keys(value).sort();
+  if (keys.length !== QUALITATIVE_QUESTION_IDS.length
+    || keys.some((key, index) => key !== QUALITATIVE_QUESTION_IDS[index])) return false;
+  return QUALITATIVE_QUESTION_IDS.every((key) => (
+    typeof value[key] === 'string'
+    && value[key].trim().length > 0
+    && value[key].length <= maxLength
+  ));
+}
+
 export function buildSubmission({
   studyId,
   locale,
   participant,
   factors,
   answers = {},
+  schemaVersion = 1,
   submittedAt = new Date().toISOString(),
 }) {
   const factorsById = new Map(factors.map((factor) => [factorId(factor), factor]));
@@ -168,7 +238,7 @@ export function buildSubmission({
   ));
 
   return {
-    schemaVersion: 1,
+    schemaVersion,
     studyId,
     locale,
     submittedAt,
