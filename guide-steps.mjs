@@ -3,17 +3,16 @@ const welcomeSteps = [
   { screen: 'profile', target: '.profile-form [name="code"]', title: 'guideCodeTitle', text: 'guideCodeText' },
   { screen: 'profile', target: '.profile-form [name="role"]', title: 'guideRoleTitle', text: 'guideRoleText' },
   { screen: 'profile', target: '.profile-form .primary-button', title: 'guideStartTitle', text: 'guideStartText' },
+  { screen: 'qualitative', target: '.qualitative-fields', title: 'guideQualitativeTitle', text: 'guideQualitativeText' },
   { screen: 'survey', target: '.source-topic', title: 'guideIfTitle', text: 'guideIfText' },
   { screen: 'survey', target: '.target-fieldset', title: 'guideThenTitle', text: 'guideThenText' },
   { screen: 'survey', target: '.topic-notes', title: 'guideNotesTitle', text: 'guideNotesText' },
   { screen: 'survey', target: '.topic-actions .primary-button', title: 'guideNextTitle', text: 'guideNextText' },
-  { screen: 'qualitative', target: '.qualitative-fields', title: 'guideQualitativeTitle', text: 'guideQualitativeText' },
-  { screen: 'review', target: '.review-actions .primary-button', title: 'guideSubmitTitle', text: 'guideSubmitText' },
 ];
 
 const completeStep = {
   screen: 'complete',
-  target: '.frozen-result-card',
+  target: '.complete-page',
   title: 'guideCompleteTitle',
   text: 'guideCompleteText',
 };
@@ -22,7 +21,6 @@ const localSteps = {
   profile: welcomeSteps.filter((step) => step.screen === 'profile'),
   survey: welcomeSteps.filter((step) => step.screen === 'survey'),
   qualitative: welcomeSteps.filter((step) => step.screen === 'qualitative'),
-  review: welcomeSteps.filter((step) => step.screen === 'review'),
   complete: [completeStep],
 };
 

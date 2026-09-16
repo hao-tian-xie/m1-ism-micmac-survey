@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+
 import { copy, locales } from '../translations.mjs';
 
 const app = await readFile(new URL('../app.mjs', import.meta.url), 'utf8');
@@ -20,30 +21,42 @@ test('the six Chinese experience questions preserve the requested wording', () =
   );
 });
 
-test('all locales include the subjective section and frozen-result feedback copy', () => {
+test('all locales include the one-page written-question flow and final-submit copy', () => {
   for (const locale of locales) {
     for (const key of [
-      'stepQualitative', 'stepResult', 'qualitativeTitle', 'qualitativePrivacy',
-      'qualitativeQ1', 'qualitativeQ2', 'qualitativeQ3', 'qualitativeQ4', 'qualitativeQ5', 'qualitativeQ6',
-      'frozenResultTitle', 'frozenResultIntro', 'feedbackTitle', 'feedbackHelper', 'saveFeedback',
+      'stepQualitative', 'stepResult', 'qualitativeTitle', 'qualitativeIntro', 'qualitativePrivacy',
+      'qualitativeQ1', 'qualitativeQ2', 'qualitativeQ3', 'qualitativeQ4', 'qualitativeQ5', 'qualitativeQ6', 'qualitativeQ7',
+      'qualitativePosition', 'qualitativePrevious', 'qualitativeNext', 'qualitativeFinish',
+      'confirmAndSubmit', 'resultCardTitle', 'resultCardPreview', 'submitResponse', 'completeSavedTitle',
     ]) {
       assert.equal(typeof copy[locale][key], 'string', `${locale} is missing ${key}`);
       assert.notEqual(copy[locale][key], '');
     }
   }
-  assert.match(copy['zh-CN'].feedbackTitle, /哪些结构能帮助解释您刚才谈到的 ESG 实践经验/);
+  assert.equal(
+    copy['zh-CN'].qualitativeIntro,
+    '请根据您最熟悉的物流或供应链服务或业务进行作答。如果不适用、没有可靠记录或暂时无法判断，请填写【NA】。',
+  );
+  assert.match(copy['zh-CN'].qualitativePrivacy, /机密。\n未提交/);
 });
 
-test('the new experience section follows M1 topics and Q7 is gated by a verified frozen result', () => {
-  assert.match(app, /qualitative: renderQualitative/);
-  assert.match(app, /state\.currentIndex === factors\.length - 1 && allTopicsReviewed\(\)[\s\S]*?goTo\('qualitative'\)/);
-  assert.match(app, /if \(!allTopicsReviewed\(\) \|\| !state\.qualitativeSectionComplete/);
-  assert.match(app, /resultIsVerified = state\.frozenResultVerified && state\.frozenResultCard/);
-  assert.match(app, /if \(!state\.frozenResultVerified \|\| !state\.frozenResultCard/);
+test('Q1–Q6 render one question per page and Q7 is submitted with the final POST', () => {
+  assert.match(app, /const qualitativeQuestionIds = \['q1', 'q2', 'q3', 'q4', 'q5', 'q6'\]/);
+  assert.match(app, /const qualitativeAnswerIds = \[\.\.\.qualitativeQuestionIds, 'q7'\]/);
+  assert.match(app, /qualitativeIndex/);
+  assert.match(app, /if \(state\.qualitativeIndex < qualitativeQuestionIds\.length - 1\)/);
+  assert.match(app, /id="final-submit-form"/);
+  assert.match(app, /qualitativeAnswers: Object\.fromEntries\(qualitativeAnswerIds/);
+  assert.doesNotMatch(app, /renderReview/);
+  assert.doesNotMatch(app, /feedbackToken|loadFrozenResult|submitFeedback/);
+  assert.doesNotMatch(app, /data-action="verify-result"|data-action="save-feedback"/);
 });
 
-test('subjective answers and the frozen result card use responsive, scrollable form styling', () => {
-  assert.match(styles, /\.qualitative-field textarea,[\s\S]*?min-height:\s*132px/);
-  assert.match(styles, /\.frozen-result-card\s*\{[\s\S]*?border-top:\s*3px\s+solid\s+var\(--accent\)/);
-  assert.match(styles, /@media\s*\(max-width:\s*767px\)[\s\S]*?\.frozen-result-groups\s*\{[\s\S]*?grid-template-columns:\s*1fr/);
+test('written fields have no grey placeholders and the privacy note keeps its line break', () => {
+  assert.match(app, /data-question-id="\$\{id\}"/);
+  assert.match(app, /data-question-id="q7"/);
+  assert.doesNotMatch(app, /textarea[\s\S]{0,500}placeholder=/);
+  assert.match(styles, /\.qualitative-privacy\s*\{[\s\S]*?white-space:\s*pre-line/);
+  assert.match(styles, /\.qualitative-privacy\s*\{[\s\S]*?text-align:\s*justify/);
+  assert.match(styles, /\.qualitative-field\s*\{[\s\S]*?gap:\s*5px/);
 });

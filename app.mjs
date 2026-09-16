@@ -1,13 +1,14 @@
 import {
   applySourceSelections,
   buildDirectMatrix,
+  buildM1ResultCard,
   buildSubmission,
   createPairs,
   selectedTargetsForSource,
   tryWriteStorage,
 } from './survey-core.mjs';
 import { displayTopicName, localisedFactors, studyConfig } from './survey-config.mjs?v=topic-definitions-contains-20260908';
-import { copy, languageNames, locales } from './translations.mjs?v=subjective-m1-freeze-v1';
+import { copy, languageNames, locales } from './translations.mjs?v=subjective-m1-final-v2';
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
 import { resolveLocale } from './locale-state.mjs';
 import { guideStepsForScreen } from './guide-steps.mjs';
@@ -20,6 +21,7 @@ const factors = studyConfig.factors;
 const factorIds = factors.map((factor) => factor.id);
 const pairs = createPairs(factors);
 const qualitativeQuestionIds = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6'];
+const qualitativeAnswerIds = [...qualitativeQuestionIds, 'q7'];
 const maxQualitativeAnswerLength = 3000;
 const app = document.querySelector('#app');
 const languageSwitch = document.querySelector('#language-switch');
@@ -55,7 +57,7 @@ function emptySelections() {
 }
 
 function blankQualitativeAnswers() {
-  return Object.fromEntries([...qualitativeQuestionIds, 'q7'].map((id) => [id, '']));
+  return Object.fromEntries(qualitativeAnswerIds.map((id) => [id, '']));
 }
 
 function blankState(locale = preferredLocale()) {
@@ -68,19 +70,14 @@ function blankState(locale = preferredLocale()) {
     noInfluenceFactors: [],
     reviewedFactors: [],
     currentIndex: 0,
-    editingFromReview: false,
+    qualitativeIndex: 0,
     showValidation: false,
     completedAt: '',
     submissionId: '',
     clientSubmissionId: '',
     qualitativeAnswers: blankQualitativeAnswers(),
     qualitativeSectionComplete: false,
-    feedbackToken: '',
-    frozenResultCard: null,
-    frozenResultVerified: false,
-    frozenResultState: 'idle',
-    feedbackSubmittedAt: '',
-    feedbackState: 'idle',
+    resultCard: null,
     submitState: 'idle',
     confirmNewResponse: false,
   };
@@ -118,37 +115,36 @@ function loadState() {
       locales,
     });
 
-    return {
-      ...blankState(locale),
-      ...saved,
-      locale,
-      screen: 'welcome',
-      answers,
-      factorSelections,
-      noInfluenceFactors,
-      reviewedFactors,
-      participant: { ...blankState(locale).participant, ...(saved.participant || {}) },
-      qualitativeAnswers: Object.fromEntries([...qualitativeQuestionIds, 'q7'].map((id) => [
-        id,
-        typeof saved.qualitativeAnswers?.[id] === 'string'
-          ? saved.qualitativeAnswers[id].slice(0, maxQualitativeAnswerLength)
-          : '',
-      ])),
-      qualitativeSectionComplete: saved.qualitativeSectionComplete === true,
-      feedbackToken: String(saved.feedbackToken || ''),
-      frozenResultCard: saved.frozenResultCard && typeof saved.frozenResultCard === 'object'
-        ? saved.frozenResultCard
-        : null,
-      frozenResultVerified: false,
-      frozenResultState: 'idle',
-      feedbackSubmittedAt: String(saved.feedbackSubmittedAt || ''),
-      feedbackState: 'idle',
-      currentIndex: Math.min(Math.max(Number(saved.currentIndex) || 0, 0), factors.length - 1),
-      editingFromReview: false,
-      submitState: 'idle',
-      completedAt: submissionId ? saved.completedAt || '' : '',
-      submissionId,
+    const savedResultCard = saved.resultCard && typeof saved.resultCard === 'object'
+      ? saved.resultCard
+      : null;
+    const next = blankState(locale);
+    next.locale = locale;
+    next.participant = {
+      ...next.participant,
+      ...(saved.participant && typeof saved.participant === 'object' ? saved.participant : {}),
     };
+    next.answers = answers;
+    next.factorSelections = factorSelections;
+    next.noInfluenceFactors = noInfluenceFactors;
+    next.reviewedFactors = reviewedFactors;
+    next.currentIndex = Math.min(Math.max(Number(saved.currentIndex) || 0, 0), factors.length - 1);
+    next.qualitativeIndex = Math.min(
+      Math.max(Number(saved.qualitativeIndex) || 0, 0),
+      qualitativeQuestionIds.length - 1,
+    );
+    next.qualitativeAnswers = Object.fromEntries(qualitativeAnswerIds.map((id) => [
+      id,
+      typeof saved.qualitativeAnswers?.[id] === 'string'
+        ? saved.qualitativeAnswers[id].slice(0, maxQualitativeAnswerLength)
+        : '',
+    ]));
+    next.qualitativeSectionComplete = saved.qualitativeSectionComplete === true;
+    next.completedAt = submissionId ? String(saved.completedAt || '') : '';
+    next.submissionId = submissionId;
+    next.clientSubmissionId = submissionId ? '' : String(saved.clientSubmissionId || '');
+    next.resultCard = savedResultCard;
+    return next;
   } catch {
     storageAvailable = false;
     return blankState();
@@ -160,6 +156,8 @@ let guideIndex = 0;
 let guideReturnScreen = state.screen;
 let guideIsOpen = false;
 let guideSessionSteps = guideStepsForScreen(state.screen);
+let persistTimer = null;
+let lastPersistedSnapshot = '';
 
 function t(key, values = {}) {
   const template = copy[state.locale][key] || copy.en[key] || key;
@@ -225,34 +223,67 @@ function createClientSubmissionId() {
   return `m1-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 }
 
-function createFeedbackCapabilityToken() {
-  const bytes = new Uint8Array(32);
-  if (typeof window.crypto?.getRandomValues !== 'function') {
-    throw new Error('secure random token generation is unavailable');
-  }
-  window.crypto.getRandomValues(bytes);
-  return [...bytes].map((value) => value.toString(16).padStart(2, '0')).join('');
-}
-
 function hasExplicitNone(sourceId) {
   return state.noInfluenceFactors.includes(sourceId);
 }
 
-function persist() {
-  if (!storageAvailable) return false;
-
+function persistedSnapshot() {
+  // Once a response is submitted, retain only the receipt and server result.
+  // Draft participant text and narrative answers should not remain in storage.
+  if (state.submissionId) {
+    return JSON.stringify({
+      locale: state.locale,
+      submissionId: state.submissionId,
+      completedAt: state.completedAt,
+      resultCard: state.resultCard,
+    });
+  }
   const snapshot = {
     ...state,
     screen: undefined,
-    editingFromReview: false,
     submitState: 'idle',
   };
+  delete snapshot.resultCard;
+  return JSON.stringify(snapshot);
+}
+
+function writePersistedSnapshot() {
+  if (!storageAvailable) return false;
+  const serialized = persistedSnapshot();
+  if (serialized === lastPersistedSnapshot) return true;
   try {
-    storageAvailable = tryWriteStorage(window.localStorage, STORAGE_KEY, JSON.stringify(snapshot));
+    storageAvailable = tryWriteStorage(window.localStorage, STORAGE_KEY, serialized);
+    if (storageAvailable) lastPersistedSnapshot = serialized;
   } catch {
     storageAvailable = false;
   }
   return storageAvailable;
+}
+
+function persist({ immediate = false } = {}) {
+  if (!storageAvailable) return false;
+  if (persistTimer !== null) {
+    window.clearTimeout(persistTimer);
+    persistTimer = null;
+  }
+  if (immediate) return writePersistedSnapshot();
+  persistTimer = window.setTimeout(() => {
+    persistTimer = null;
+    writePersistedSnapshot();
+  }, 250);
+  return true;
+}
+
+function persistSoon() {
+  return persist({ immediate: false });
+}
+
+function flushPersist() {
+  if (persistTimer !== null) {
+    window.clearTimeout(persistTimer);
+    persistTimer = null;
+  }
+  writePersistedSnapshot();
 }
 
 function pageTop() {
@@ -273,25 +304,22 @@ function goTo(screen, { scroll = true } = {}) {
 
 function navigateToStage(targetStage) {
   if (!canNavigateToStage(state.screen, targetStage)) return;
-  const fromReview = state.screen === 'review';
 
   if (targetStage === 'profile') {
-    state.editingFromReview = fromReview;
     state.showValidation = false;
     goTo('profile');
     return;
   }
 
-  if (targetStage === 'survey') {
-    state.currentIndex = fromReview ? 0 : Math.min(state.currentIndex, factors.length - 1);
-    state.editingFromReview = fromReview;
-    goTo('survey');
+  if (targetStage === 'qualitative') {
+    state.qualitativeSectionComplete = false;
+    goTo('qualitative');
     return;
   }
 
-  if (targetStage === 'qualitative') {
-    state.editingFromReview = false;
-    goTo('qualitative');
+  if (targetStage === 'survey') {
+    state.currentIndex = Math.min(state.currentIndex, factors.length - 1);
+    goTo('survey');
   }
 }
 
@@ -445,20 +473,20 @@ function closeGuide() {
 function renderStepper() {
   const activeIndex = {
     profile: 0,
-    survey: 1,
-    qualitative: 2,
-    review: 3,
-    complete: 4,
+    qualitative: 1,
+    survey: 2,
+    complete: 3,
   }[state.screen] ?? 0;
-  const steps = [t('stepProfile'), t('stepSurvey'), t('stepQualitative'), t('stepReview'), t('stepResult')];
-  const stageIds = ['profile', 'survey', 'qualitative', 'review', 'complete'];
+  const steps = [t('stepProfile'), t('stepQualitative'), t('stepSurvey'), t('stepResult')];
+  const stageIds = ['profile', 'qualitative', 'survey', 'complete'];
+  const stepNumbers = ['01', '02', '03', '05'];
   const stageItems = steps.map((label, index) => {
     const stage = stageIds[index];
     const isActive = index === activeIndex;
     const isDone = index < activeIndex;
     const canGoBack = canNavigateToStage(state.screen, stage);
     const stepContent = `
-      <span>${String(index + 1).padStart(2, '0')}</span>
+      <span>${stepNumbers[index]}</span>
       <b>${escapeHtml(label)}</b>
     `;
     return `
@@ -730,7 +758,7 @@ function renderSurvey() {
           <span aria-hidden="true">i</span>${escapeHtml(t('topicNotesButton'))}
         </button>
         <button class="primary-button" type="button" data-action="confirm-topic" ${hasChoice ? '' : 'disabled'}>
-          ${escapeHtml(state.editingFromReview ? t('confirmAndReview') : isLast ? t('confirmAndQualitative') : t('confirmAndNext'))}<span aria-hidden="true">→</span>
+          ${escapeHtml(isLast ? t('confirmAndSubmit') : t('confirmAndNext'))}<span aria-hidden="true">→</span>
         </button>
       </div>
       <section class="topic-notes" aria-label="${escapeHtml(t('candidateNotes'))}" hidden tabindex="-1">
@@ -742,25 +770,25 @@ function renderSurvey() {
 }
 
 function renderQualitative() {
-  const questions = qualitativeQuestionIds.map((id, index) => {
-    const question = t(`qualitativeQ${index + 1}`);
-    const countId = `qualitative-count-${id}`;
-    return `
-      <label class="field-group note-field qualitative-field" for="qualitative-${id}">
-        <span class="qualitative-question-label"><i>${String(index + 1).padStart(2, '0')}</i>${escapeHtml(question)}</span>
-        <textarea
-          id="qualitative-${id}"
-          name="qualitative-answer"
-          data-question-id="${id}"
-          maxlength="${maxQualitativeAnswerLength}"
-          rows="5"
-          aria-describedby="${countId}"
-          placeholder="${escapeHtml(t('qualitativePlaceholder'))}"
-        >${escapeHtml(state.qualitativeAnswers[id])}</textarea>
-        <small id="${countId}" data-char-count="${id}">${escapeHtml(t('qualitativeCharCount', { n: state.qualitativeAnswers[id].length }))}</small>
-      </label>
-    `;
-  }).join('');
+  const index = Math.min(state.qualitativeIndex, qualitativeQuestionIds.length - 1);
+  const id = qualitativeQuestionIds[index];
+  const countId = `qualitative-count-${id}`;
+  const isLast = index === qualitativeQuestionIds.length - 1;
+  const question = t(`qualitativeQ${index + 1}`);
+  const questionField = `
+    <label class="field-group note-field qualitative-field" for="qualitative-${id}">
+      <span class="qualitative-question-label"><i>${String(index + 1).padStart(2, '0')}</i><span>${escapeHtml(question)}</span></span>
+      <textarea
+        id="qualitative-${id}"
+        name="qualitative-answer"
+        data-question-id="${id}"
+        maxlength="${maxQualitativeAnswerLength}"
+        rows="8"
+        aria-describedby="${countId}"
+      >${escapeHtml(state.qualitativeAnswers[id])}</textarea>
+      <small id="${countId}" data-char-count="${id}">${escapeHtml(t('qualitativeCharCount', { n: state.qualitativeAnswers[id].length }))}</small>
+    </label>
+  `;
 
   return renderShell(`
     <div class="form-page qualitative-page">
@@ -773,229 +801,99 @@ function renderQualitative() {
       <p class="qualitative-privacy">${escapeHtml(t('qualitativePrivacy'))}</p>
 
       <form class="qualitative-form" id="qualitative-form">
-        <div class="qualitative-fields">${questions}</div>
+        <div class="qualitative-progress" aria-live="polite">${escapeHtml(t('qualitativePosition', { i: index + 1, total: qualitativeQuestionIds.length }))}</div>
+        <div class="qualitative-fields">${questionField}</div>
         <div class="form-actions">
-          <button class="text-button" type="button" data-action="back-to-survey"><span aria-hidden="true">←</span>${escapeHtml(t('qualitativeBack'))}</button>
-          <button class="primary-button" type="submit">${escapeHtml(t('qualitativeContinue'))}<span aria-hidden="true">→</span></button>
+          <button class="text-button" type="button" data-action="qualitative-previous"><span aria-hidden="true">←</span>${escapeHtml(index === 0 ? t('back') : t('qualitativePrevious'))}</button>
+          <button class="primary-button" type="submit">${escapeHtml(isLast ? t('qualitativeFinish') : t('qualitativeNext'))}<span aria-hidden="true">→</span></button>
         </div>
       </form>
     </div>
   `, 'form-shell qualitative-shell');
 }
 
-function renderMatrix() {
-  const localFactors = localisedFactors(state.locale);
-  const matrix = buildDirectMatrix(localFactors, state.answers);
-  const idIndex = new Map(localFactors.map((factor, index) => [factor.id, index]));
-
-  function cell(rowFactor, columnFactor) {
-    if (rowFactor.id === columnFactor.id) return '<td class="matrix-self">·</td>';
-    const value = matrix[idIndex.get(rowFactor.id)][idIndex.get(columnFactor.id)];
-    if (value === null) return '<td class="matrix-empty"></td>';
-    return `<td class="matrix-${value}">${value}</td>`;
-  }
-
-  return `
-    <p class="matrix-swipe-hint">${escapeHtml(t('matrixSwipeHint'))}</p>
-    <div class="matrix-scroll" tabindex="0" role="region" aria-labelledby="matrix-title">
-      <table class="direction-matrix">
-        <thead><tr><th></th>${localFactors.map((factor) => `<th title="${escapeHtml(factor.label)}">${factor.id}</th>`).join('')}</tr></thead>
-        <tbody>
-          ${localFactors.map((rowFactor) => `
-            <tr><th title="${escapeHtml(rowFactor.label)}">${rowFactor.id}</th>${localFactors.map((columnFactor) => cell(rowFactor, columnFactor)).join('')}</tr>
-          `).join('')}
-        </tbody>
-      </table>
-    </div>
-  `;
-}
-
-function pairArrow(relation) {
-  return { V: '→', A: '←', X: '↔', O: '—' }[relation] || '?';
-}
-
-function pairRelationText(relation) {
-  return {
-    V: t('leftToRightShort'),
-    A: t('rightToLeftShort'),
-    X: t('bothDirectionsShort'),
-    O: t('noRelationShort'),
-  }[relation] || t('unanswered');
-}
-
-function renderPairReview(isLocked = false) {
-  return pairs.map((pair, index) => {
-    const left = factorFor(pair.leftId);
-    const right = factorFor(pair.rightId);
-    const relation = state.answers[pair.id]?.relation;
-    return `
-      <div class="pair-review-row">
-        <span class="pair-review-index">${index + 1}</span>
-        <span class="pair-review-factors">
-          <button type="button" data-action="edit-topic" data-factor-id="${left.id}" aria-label="${escapeHtml(t('editTopicLabel', { topic: left.label }))}" ${isLocked ? 'disabled' : ''}>${escapeHtml(left.label)}</button>
-          <i aria-hidden="true">${pairArrow(relation)}</i>
-          <button type="button" data-action="edit-topic" data-factor-id="${right.id}" aria-label="${escapeHtml(t('editTopicLabel', { topic: right.label }))}" ${isLocked ? 'disabled' : ''}>${escapeHtml(right.label)}</button>
-        </span>
-        <span class="pair-review-result">${escapeHtml(pairRelationText(relation))}</span>
-      </div>
-    `;
-  }).join('');
-}
-
-function renderReview() {
-  const isSubmitting = state.submitState === 'submitting';
-  const topicRows = factors.map((factor, index) => {
-    const source = factorFor(factor.id);
-    const selected = selectedTargets(source.id).map((id) => factorFor(id).label);
-    return `
-      <button class="topic-review-row" type="button" data-action="edit-topic" data-factor-id="${source.id}" ${isSubmitting ? 'disabled' : ''}>
-        <span class="review-index">${String(index + 1).padStart(2, '0')}</span>
-        <span class="topic-review-source"><b>${escapeHtml(source.label)}</b><small>${source.id}</small></span>
-        <span class="topic-review-result"><i aria-hidden="true">→</i>${escapeHtml(selected.length ? selected.join(t('listSeparator')) : t('noneResult'))}</span>
-        <span class="review-edit">${escapeHtml(t('edit'))} →</span>
-      </button>
-    `;
-  }).join('');
-  return renderShell(`
-    <div class="review-page">
-      <header class="page-heading review-heading">
-        <p class="eyebrow">${escapeHtml(t('reviewEyebrow'))}</p>
-        <h1 data-page-title tabindex="-1">${escapeHtml(t('reviewTitle'))}</h1>
-      </header>
-
-      <div class="review-summary">
-        <article><span>${escapeHtml(t('confirmedTopics'))}</span><b>${reviewedCount()} / ${factors.length}</b></article>
-        <article><span>${escapeHtml(t('directLinks'))}</span><b>${directLinkCount()}</b></article>
-        <article><span>${escapeHtml(t('allTopics'))}</span><b>${factors.length}</b></article>
-      </div>
-
-      <div class="review-actions">
-        <button class="text-button" type="button" data-action="back-qualitative" ${isSubmitting ? 'disabled' : ''}><span aria-hidden="true">←</span>${escapeHtml(t('back'))}</button>
-        <button class="primary-button" type="button" data-action="submit-response" ${isSubmitting || !allTopicsReviewed() || !state.qualitativeSectionComplete ? 'disabled' : ''}>
-          ${escapeHtml(isSubmitting ? t('submitting') : t('submitResponse'))}<span aria-hidden="true">→</span>
-        </button>
-      </div>
-      ${state.submitState === 'error' ? `
-        <div class="submit-error" role="alert">
-          <span>${escapeHtml(t('submitError'))}</span>
-          <button type="button" data-action="submit-response">${escapeHtml(t('retrySubmit'))}</button>
-        </div>
-      ` : ''}
-
-      <section class="review-panel topic-list-panel">
-        <div class="panel-heading">
-          <div><h2>${escapeHtml(t('topicListTitle'))}</h2></div>
-        </div>
-        <div class="topic-review-list">${topicRows}</div>
-      </section>
-
-      <details class="review-panel pair-check-panel">
-        <summary class="matrix-summary">
-          <span><b>${escapeHtml(t('pairListTitle'))}</b></span>
-          <i aria-hidden="true">+</i>
-        </summary>
-        <div class="pair-review-list">${renderPairReview(isSubmitting)}</div>
-      </details>
-
-      <details class="review-panel matrix-panel">
-        <summary class="matrix-summary">
-          <span><b id="matrix-title">${escapeHtml(t('matrixTitle'))}</b></span>
-          <i aria-hidden="true">+</i>
-        </summary>
-        ${renderMatrix()}
-      </details>
-    </div>
-  `, 'review-shell');
-}
-
-function renderFrozenTopicList(titleKey, topics = []) {
+function renderResultTopicList(titleKey, topics = []) {
   const rows = topics.map((topic) => `
     <li>
-      <span class="frozen-topic-code">${escapeHtml(topic.id)}</span>
-      <span class="frozen-topic-label">${escapeHtml(topic.label)}</span>
+      <span class="result-topic-code">${escapeHtml(topic.id)}</span>
+      <span class="result-topic-label">${escapeHtml(topic.label)}</span>
       <b>${escapeHtml(topic.count)}</b>
     </li>
   `).join('');
   return `
-    <section class="frozen-topic-group">
+    <section class="result-topic-group">
       <h3>${escapeHtml(t(titleKey))}</h3>
       ${rows ? `<ol>${rows}</ol>` : `<p>${escapeHtml(t('noStructure'))}</p>`}
     </section>
   `;
 }
 
-function renderFrozenResultCard() {
-  const result = state.frozenResultCard;
+function renderResultCard(result, { preview = false } = {}) {
   if (!result) return '';
   return `
-    <section class="frozen-result-card" aria-labelledby="frozen-result-title">
+    <section class="result-card" aria-labelledby="result-card-title">
       <header>
         <p class="eyebrow">${escapeHtml(t('stepResult'))}</p>
-        <h2 id="frozen-result-title">${escapeHtml(t('frozenResultTitle'))}</h2>
-        <p>${escapeHtml(t('frozenResultIntro'))}</p>
+        <h2 id="result-card-title">${escapeHtml(t('resultCardTitle'))}</h2>
+        <p>${escapeHtml(t(preview ? 'resultCardPreview' : 'resultCardSaved'))}</p>
       </header>
-      <div class="frozen-result-stats">
-        <article><span>${escapeHtml(t('frozenResultTopics'))}</span><b>${escapeHtml(result.topicCount)}</b></article>
-        <article><span>${escapeHtml(t('frozenResultDirectLinks'))}</span><b>${escapeHtml(result.directLinkCount)}</b></article>
+      <div class="result-card-stats">
+        <article><span>${escapeHtml(t('resultCardTopics'))}</span><b>${escapeHtml(result.topicCount)}</b></article>
+        <article><span>${escapeHtml(t('resultCardDirectLinks'))}</span><b>${escapeHtml(result.directLinkCount)}</b></article>
       </div>
-      <div class="frozen-result-groups">
-        ${renderFrozenTopicList('leadingTopics', result.leadingTopics)}
-        ${renderFrozenTopicList('receivingTopics', result.receivingTopics)}
+      <div class="result-card-groups">
+        ${renderResultTopicList('leadingTopics', result.leadingTopics)}
+        ${renderResultTopicList('receivingTopics', result.receivingTopics)}
       </div>
     </section>
   `;
 }
 
 function renderComplete() {
-  const resultIsVerified = state.frozenResultVerified && state.frozenResultCard;
-  const isSavingFeedback = state.feedbackState === 'saving';
-  const countId = 'feedback-q7-count';
-  const verification = resultIsVerified
-    ? renderFrozenResultCard()
-    : state.frozenResultState === 'loading'
-      ? `<p class="result-verification-status" role="status">${escapeHtml(t('resultProofWait'))}</p>`
-      : `<div class="result-verification-error" role="alert"><p>${escapeHtml(t('resultProofError'))}</p><button class="secondary-button" type="button" data-action="verify-result">${escapeHtml(t('retryResult'))}</button></div>`;
-  const feedback = resultIsVerified && !state.feedbackSubmittedAt ? `
-    <form class="feedback-form" id="feedback-form">
-      <label class="field-group note-field" for="qualitative-q7">
-        <span>${escapeHtml(t('feedbackTitle'))}</span>
-        <textarea id="qualitative-q7" name="feedback-answer" maxlength="${maxQualitativeAnswerLength}" rows="6" aria-describedby="feedback-q7-help ${countId}" placeholder="${escapeHtml(t('feedbackPlaceholder'))}">${escapeHtml(state.qualitativeAnswers.q7)}</textarea>
-        <small id="feedback-q7-help">${escapeHtml(t('feedbackHelper'))}</small>
-        <small id="${countId}" data-char-count="q7">${escapeHtml(t('qualitativeCharCount', { n: state.qualitativeAnswers.q7.length }))}</small>
-      </label>
-      <div class="form-actions">
-        <button class="primary-button" type="submit" ${isSavingFeedback ? 'disabled' : ''}>
-          ${escapeHtml(isSavingFeedback ? t('savingFeedback') : t('saveFeedback'))}<span aria-hidden="true">→</span>
-        </button>
-      </div>
-      ${state.feedbackState === 'error' ? `<div class="submit-error" role="alert"><span>${escapeHtml(t('feedbackSubmitError'))}</span><button type="button" data-action="save-feedback">${escapeHtml(t('retryFeedback'))}</button></div>` : ''}
-    </form>
-  ` : '';
-  const savedFeedback = state.feedbackSubmittedAt ? `
-    <section class="feedback-saved" role="status">
-      <h2>${escapeHtml(t('feedbackCompleteTitle'))}</h2>
-      <p>${escapeHtml(t('feedbackCompleteText'))}</p>
-    </section>
-  ` : '';
-  const canStartAgain = Boolean(state.feedbackSubmittedAt) || state.frozenResultState === 'error';
+  const submitted = Boolean(state.submissionId);
+  const preview = submitted ? null : buildM1ResultCard({
+    submissionId: 'preview',
+    frozenAt: '',
+    factors: localisedFactors(state.locale),
+    directInfluenceMatrix: buildDirectMatrix(localisedFactors(state.locale), state.answers)
+      .map((row, rowIndex) => row.map((value, columnIndex) => (rowIndex === columnIndex ? 0 : value))),
+  });
+  const result = state.resultCard || preview;
+  const countId = 'qualitative-count-q7';
 
   return renderShell(`
     <div class="complete-page">
-      <h1 data-page-title tabindex="-1">${escapeHtml(state.feedbackSubmittedAt ? t('feedbackCompleteTitle') : t('completeTitle'))}</h1>
-      <div class="receipt-block">
+      <header class="page-heading complete-heading">
+        <p class="eyebrow">${escapeHtml(t('completeEyebrow'))}</p>
+        <h1 data-page-title tabindex="-1">${escapeHtml(submitted ? t('completeSavedTitle') : t('completeTitle'))}</h1>
+        <p>${escapeHtml(submitted ? t('completeSavedText') : t('completeIntro'))}</p>
+      </header>
+      ${submitted ? `<div class="receipt-block">
         <span>${escapeHtml(t('receiptLabel'))}</span>
         <strong>${escapeHtml(state.submissionId)}</strong>
-      </div>
-      ${verification}
-      ${feedback}
-      ${savedFeedback}
-      ${canStartAgain ? `
+      </div>` : ''}
+      ${renderResultCard(result, { preview: !submitted })}
+      ${!submitted ? `
+        <p class="qualitative-privacy complete-privacy">${escapeHtml(t('qualitativePrivacy'))}</p>
+        <form class="final-answer-form final-submit-form" id="final-submit-form">
+          <label class="field-group note-field" for="qualitative-q7">
+            <span class="qualitative-question-label"><i>07</i><span>${escapeHtml(t('qualitativeQ7'))}</span></span>
+            <textarea id="qualitative-q7" name="qualitative-answer" data-question-id="q7" maxlength="${maxQualitativeAnswerLength}" rows="8" aria-describedby="${countId}">${escapeHtml(state.qualitativeAnswers.q7)}</textarea>
+            <small id="${countId}" data-char-count="q7">${escapeHtml(t('qualitativeCharCount', { n: state.qualitativeAnswers.q7.length }))}</small>
+          </label>
+          <div class="form-actions">
+            <button class="text-button" type="button" data-action="back-to-survey"><span aria-hidden="true">←</span>${escapeHtml(t('backToSurvey'))}</button>
+            <button class="primary-button" type="submit" ${state.submitState === 'submitting' ? 'disabled' : ''}>${escapeHtml(state.submitState === 'submitting' ? t('submitting') : t('submitResponse'))}<span aria-hidden="true">→</span></button>
+          </div>
+          ${state.submitState === 'error' ? `<div class="submit-error" role="alert"><span>${escapeHtml(t('submitError'))}</span><button type="button" data-action="submit-response">${escapeHtml(t('retrySubmit'))}</button></div>` : ''}
+        </form>
+      ` : `
         <div class="complete-actions">
           <button class="secondary-button ${state.confirmNewResponse ? 'confirm-reset' : ''}" type="button" data-action="new-response">
             ${escapeHtml(state.confirmNewResponse ? t('confirmNewResponse') : t('newResponse'))}
           </button>
         </div>
-      ` : ''}
+      `}
     </div>
   `, 'complete-shell');
 }
@@ -1013,9 +911,8 @@ function render() {
   app.innerHTML = {
     welcome: renderWelcome,
     profile: renderProfile,
-    survey: renderSurvey,
     qualitative: renderQualitative,
-    review: renderReview,
+    survey: renderSurvey,
     complete: renderComplete,
   }[state.screen]();
   detachTopicDefinitionHints = state.screen === 'survey'
@@ -1056,14 +953,7 @@ function markCurrentTopicPending(sourceId) {
   state.completedAt = '';
   state.submissionId = '';
   state.clientSubmissionId = '';
-  state.qualitativeAnswers = blankQualitativeAnswers();
-  state.qualitativeSectionComplete = false;
-  state.feedbackToken = '';
-  state.frozenResultCard = null;
-  state.frozenResultVerified = false;
-  state.frozenResultState = 'idle';
-  state.feedbackSubmittedAt = '';
-  state.feedbackState = 'idle';
+  state.resultCard = null;
   state.submitState = 'idle';
 }
 
@@ -1095,30 +985,14 @@ function confirmCurrentTopic() {
   state.answers = applySourceSelections(state.answers, pairs, sourceId, selected);
   if (!state.reviewedFactors.includes(sourceId)) state.reviewedFactors.push(sourceId);
   state.reviewedFactors = factorIds.filter((id) => state.reviewedFactors.includes(id));
-  const returnToReview = state.editingFromReview;
-  state.editingFromReview = false;
-  persist();
-
-  if (returnToReview) {
-    if (allTopicsReviewed()) {
-      goTo('review');
-    } else {
-      state.currentIndex = firstUnreviewedIndex();
-      persist();
-      render();
-      pageTop();
-      focusPageHeading();
-    }
-    return;
-  }
-
-  if (state.currentIndex === factors.length - 1 && allTopicsReviewed()) {
-    goTo('qualitative');
+  if (allTopicsReviewed()) {
+    persist({ immediate: true });
+    goTo('complete');
     return;
   }
 
   state.currentIndex += 1;
-  persist();
+  persist({ immediate: true });
   render();
   pageTop();
   focusPageHeading();
@@ -1145,9 +1019,9 @@ function buildCurrentSubmission() {
     ...submission,
     clientSubmissionId: state.clientSubmissionId,
     status: 'complete',
-    collectionMethod: 'source-topic-multi-select-plus-qualitative-v1',
-    qualitativeSectionComplete: state.qualitativeSectionComplete,
-    qualitativeAnswers: Object.fromEntries(qualitativeQuestionIds.map((id) => [
+    collectionMethod: 'source-topic-multi-select-plus-qualitative-v2',
+    qualitativeSectionComplete: true,
+    qualitativeAnswers: Object.fromEntries(qualitativeAnswerIds.map((id) => [
       id,
       state.qualitativeAnswers[id].trim(),
     ])),
@@ -1171,99 +1045,15 @@ function buildCurrentSubmission() {
   };
 }
 
-function submissionResourceUrl(...segments) {
-  const endpoint = new URL(resolveSubmissionEndpoint(), window.location.href);
-  endpoint.pathname = `${endpoint.pathname.replace(/\/+$/, '')}/${segments.map(encodeURIComponent).join('/')}`;
-  endpoint.search = '';
-  endpoint.hash = '';
-  return endpoint.toString();
-}
-
-function isFrozenResultCard(value, submissionId) {
+function isResultCard(value, submissionId = '') {
   return value && typeof value === 'object'
     && value.version === 'm1-direct-structure-card-v1'
-    && value.submissionId === submissionId
+    && (!submissionId || value.submissionId === submissionId)
     && typeof value.frozenAt === 'string'
-    && Number.isFinite(Date.parse(value.frozenAt))
     && value.topicCount === factors.length
     && Number.isInteger(value.directLinkCount)
     && Array.isArray(value.leadingTopics)
     && Array.isArray(value.receivingTopics);
-}
-
-async function loadFrozenResult() {
-  if (!state.submissionId) return;
-  if (state.feedbackSubmittedAt && state.frozenResultCard) {
-    state.frozenResultVerified = true;
-    state.frozenResultState = 'verified';
-    state.feedbackState = 'success';
-    if (state.screen !== 'complete') goTo('complete');
-    else render();
-    return;
-  }
-  state.frozenResultState = 'loading';
-  state.frozenResultVerified = false;
-  state.feedbackState = 'idle';
-  if (state.screen !== 'complete') goTo('complete');
-  else render();
-
-  if (!state.feedbackToken) {
-    state.frozenResultState = 'error';
-    render();
-    return;
-  }
-
-  try {
-    const response = await fetch(submissionResourceUrl(state.submissionId, 'frozen-result'), {
-      headers: { authorization: `Bearer ${state.feedbackToken}` },
-    });
-    if (!response.ok) throw new Error('frozen result verification failed');
-    const payload = await response.json();
-    if (!isFrozenResultCard(payload.resultCard, state.submissionId)) {
-      throw new Error('frozen result is invalid');
-    }
-    state.frozenResultCard = payload.resultCard;
-    state.frozenResultVerified = true;
-    state.frozenResultState = 'verified';
-    state.feedbackSubmittedAt = String(payload.feedbackSubmittedAt || '');
-    persist();
-    render();
-  } catch {
-    state.frozenResultState = 'error';
-    state.frozenResultVerified = false;
-    render();
-  }
-}
-
-async function submitFeedback() {
-  if (!state.frozenResultVerified || !state.frozenResultCard || state.feedbackSubmittedAt
-    || state.feedbackState === 'saving') return;
-  state.feedbackState = 'saving';
-  render();
-  try {
-    const response = await fetch(submissionResourceUrl(state.submissionId, 'feedback'), {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${state.feedbackToken}`,
-      },
-      body: JSON.stringify({ answer: state.qualitativeAnswers.q7.trim() }),
-    });
-    if (!response.ok) throw new Error('feedback submit failed');
-    const receipt = await response.json();
-    if (!receipt.feedbackSubmittedAt) throw new Error('missing feedback receipt');
-    state.feedbackSubmittedAt = receipt.feedbackSubmittedAt;
-    state.qualitativeAnswers.q7 = '';
-    state.feedbackToken = '';
-    state.feedbackState = 'success';
-    persist();
-    render();
-    pageTop();
-    focusPageHeading();
-  } catch {
-    state.feedbackState = 'error';
-    render();
-  }
 }
 
 async function submitResponse() {
@@ -1276,39 +1066,27 @@ async function submitResponse() {
     if (!clientSubmissionId) {
       clientSubmissionId = createClientSubmissionId();
       state.clientSubmissionId = clientSubmissionId;
-      persist();
-    }
-    if (!state.feedbackToken) {
-      state.feedbackToken = createFeedbackCapabilityToken();
-      persist();
+      persist({ immediate: true });
     }
     const response = await fetch(resolveSubmissionEndpoint(), {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        authorization: `Bearer ${state.feedbackToken}`,
       },
       body: JSON.stringify(buildCurrentSubmission()),
     });
     if (!response.ok) throw new Error('submit failed');
     const receipt = await response.json();
-    if (!receipt.submissionId || !isFrozenResultCard(receipt.resultCard, receipt.submissionId)) {
-      throw new Error('missing frozen result');
+    if (!receipt.submissionId || !isResultCard(receipt.resultCard, receipt.submissionId)) {
+      throw new Error('missing result card');
     }
     if (state.clientSubmissionId !== clientSubmissionId) return;
 
     state.submissionId = receipt.submissionId;
     state.completedAt = receipt.receivedAt || new Date().toISOString();
-    state.frozenResultCard = receipt.resultCard;
-    state.frozenResultVerified = true;
-    state.frozenResultState = 'verified';
-    state.feedbackSubmittedAt = '';
-    state.qualitativeAnswers = {
-      ...state.qualitativeAnswers,
-      ...Object.fromEntries(qualitativeQuestionIds.map((id) => [id, ''])),
-    };
+    state.resultCard = receipt.resultCard;
     state.submitState = 'success';
-    persist();
+    persist({ immediate: true });
     goTo('complete');
   } catch {
     if (clientSubmissionId && state.clientSubmissionId !== clientSubmissionId) return;
@@ -1354,18 +1132,29 @@ guideOverlay?.addEventListener('keydown', (event) => {
 });
 window.addEventListener('resize', positionGuide);
 window.addEventListener('scroll', positionGuide, { passive: true });
+window.addEventListener('pagehide', flushPersist);
+window.addEventListener('beforeunload', flushPersist);
 
 app.addEventListener('submit', (event) => {
   if (event.target.id === 'qualitative-form') {
     event.preventDefault();
+    if (state.qualitativeIndex < qualitativeQuestionIds.length - 1) {
+      state.qualitativeIndex += 1;
+      persist({ immediate: true });
+      render();
+      pageTop();
+      focusPageHeading();
+      return;
+    }
     state.qualitativeSectionComplete = true;
-    persist();
-    goTo('review');
+    state.currentIndex = firstUnreviewedIndex();
+    persist({ immediate: true });
+    goTo('survey');
     return;
   }
-  if (event.target.id === 'feedback-form') {
+  if (event.target.id === 'final-submit-form') {
     event.preventDefault();
-    void submitFeedback();
+    void submitResponse();
     return;
   }
   if (event.target.id !== 'profile-form') return;
@@ -1378,34 +1167,26 @@ app.addEventListener('submit', (event) => {
   }
 
   state.showValidation = false;
-  state.currentIndex = firstUnreviewedIndex();
-  persist();
-  goTo('survey');
+  state.qualitativeIndex = Math.min(state.qualitativeIndex, qualitativeQuestionIds.length - 1);
+  persist({ immediate: true });
+  goTo('qualitative');
 });
 
 app.addEventListener('input', (event) => {
   if (event.target.name === 'code') {
     state.participant.code = event.target.value;
     updateProfileValidation();
-    persist();
+    persistSoon();
     return;
   }
   if (event.target.name === 'qualitative-answer') {
     const questionId = event.target.dataset.questionId;
-    if (!qualitativeQuestionIds.includes(questionId)) return;
+    if (!qualitativeAnswerIds.includes(questionId)) return;
     state.qualitativeAnswers[questionId] = event.target.value.slice(0, maxQualitativeAnswerLength);
     document.querySelector(`[data-char-count="${questionId}"]`)?.replaceChildren(
       document.createTextNode(t('qualitativeCharCount', { n: state.qualitativeAnswers[questionId].length })),
     );
-    persist();
-    return;
-  }
-  if (event.target.name === 'feedback-answer') {
-    state.qualitativeAnswers.q7 = event.target.value.slice(0, maxQualitativeAnswerLength);
-    document.querySelector('[data-char-count="q7"]')?.replaceChildren(
-      document.createTextNode(t('qualitativeCharCount', { n: state.qualitativeAnswers.q7.length })),
-    );
-    persist();
+    persistSoon();
   }
 });
 
@@ -1414,12 +1195,12 @@ app.addEventListener('change', (event) => {
   if (target.name === 'role') {
     state.participant.role = target.value;
     updateProfileValidation();
-    persist();
+    persistSoon();
     return;
   }
   if (target.name === 'experience') {
     state.participant.experience = target.value;
-    persist();
+    persistSoon();
     return;
   }
   if (target.name !== 'direct-target') return;
@@ -1439,7 +1220,7 @@ app.addEventListener('change', (event) => {
   }
 
   markCurrentTopicPending(sourceId);
-  persist();
+  persistSoon();
   updateSurveySelectionUi(sourceId);
 });
 
@@ -1457,14 +1238,16 @@ app.addEventListener('click', (event) => {
       break;
     case 'start':
       if (state.submissionId) {
-        void loadFrozenResult();
-      } else if (profileIsReady() && allTopicsReviewed()) {
-        goTo(state.qualitativeSectionComplete ? 'review' : 'qualitative');
-      } else if (profileIsReady()) {
+        goTo('complete');
+      } else if (!profileIsReady()) {
+        goTo('profile');
+      } else if (!state.qualitativeSectionComplete) {
+        goTo('qualitative');
+      } else if (!allTopicsReviewed()) {
         state.currentIndex = firstUnreviewedIndex();
         goTo('survey');
       } else {
-        goTo('profile');
+        goTo('complete');
       }
       break;
     case 'back-welcome':
@@ -1472,8 +1255,7 @@ app.addEventListener('click', (event) => {
       break;
     case 'previous-topic':
       if (state.currentIndex > 0) state.currentIndex -= 1;
-      state.editingFromReview = false;
-      persist();
+      persist({ immediate: true });
       render();
       pageTop();
       focusPageHeading();
@@ -1484,32 +1266,25 @@ app.addEventListener('click', (event) => {
     case 'confirm-topic':
       confirmCurrentTopic();
       break;
-    case 'edit-topic':
-      state.currentIndex = factors.findIndex((factor) => factor.id === button.dataset.factorId);
-      state.editingFromReview = true;
-      persist();
-      goTo('survey');
+    case 'qualitative-previous':
+      if (state.qualitativeIndex > 0) {
+        state.qualitativeIndex -= 1;
+        persist({ immediate: true });
+        render();
+        pageTop();
+        focusPageHeading();
+      } else {
+        goTo('profile');
+      }
       break;
     case 'back-to-survey':
-      state.currentIndex = factors.length - 1;
-      state.editingFromReview = false;
-      persist();
+      state.qualitativeSectionComplete = true;
+      state.currentIndex = Math.min(state.currentIndex, factors.length - 1);
+      persist({ immediate: true });
       goTo('survey');
       break;
     case 'back-qualitative':
       goTo('qualitative');
-      break;
-    case 'verify-result':
-      void loadFrozenResult();
-      break;
-    case 'save-feedback':
-      void submitFeedback();
-      break;
-    case 'back-survey':
-      state.currentIndex = factors.length - 1;
-      state.editingFromReview = true;
-      persist();
-      goTo('survey');
       break;
     case 'submit-response':
       void submitResponse();

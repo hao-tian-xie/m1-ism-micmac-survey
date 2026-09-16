@@ -1,21 +1,30 @@
-import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { appendFile, mkdir, open, readFile, rename, stat, truncate, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
-import { buildFrozenM1ResultCard } from '../survey-core.mjs';
+
+import { buildM1ResultCard } from '../survey-core.mjs';
 
 const API_PATH = '/api/m1-submissions';
 const HEALTH_PATH = `${API_PATH}/health`;
 const EXPORT_PATH = `${API_PATH}/export`;
 const DEFAULT_MAX_BODY_BYTES = 256 * 1024;
 const MAX_QUALITATIVE_ANSWER_LENGTH = 3000;
-const QUALITATIVE_QUESTION_IDS = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6'];
+const QUALITATIVE_QUESTION_IDS = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7'];
 const SERVER_OWNED_SUBMISSION_FIELDS = [
   'submissionId',
   'receivedAt',
-  'm1FrozenResult',
   'resultCard',
+  'm1FrozenResult',
+  'qualitativeSubmittedAt',
+  'feedbackSubmittedAt',
+  'feedbackTokenHash',
+  'feedbackToken',
+  'editToken',
+];
+const LEGACY_RECORD_FIELDS = [
+  'm1FrozenResult',
   'qualitativeSubmittedAt',
   'feedbackSubmittedAt',
   'feedbackTokenHash',
@@ -59,25 +68,6 @@ function sendJson(response, statusCode, body, headers = {}) {
   response.end(JSON.stringify(body));
 }
 
-function sameValue(actual, expected) {
-  const actualBytes = Buffer.from(actual);
-  const expectedBytes = Buffer.from(expected);
-  return actualBytes.length === expectedBytes.length
-    && timingSafeEqual(actualBytes, expectedBytes);
-}
-
-function tokenHash(token) {
-  return createHash('sha256').update(token).digest('hex');
-}
-
-function feedbackAnswersAreValid(value) {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    && Object.keys(value).every((key) => QUALITATIVE_QUESTION_IDS.includes(key))
-    && QUALITATIVE_QUESTION_IDS.every((key) => (
-      typeof value[key] === 'string' && value[key].length <= MAX_QUALITATIVE_ANSWER_LENGTH
-    ));
-}
-
 function stableJson(value) {
   if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
   if (value && typeof value === 'object') {
@@ -87,11 +77,31 @@ function stableJson(value) {
 }
 
 function sameM1Submission(left, right) {
+  // A browser may retry after a timeout with a newer client timestamp. The
+  // client id is the idempotency key; substantive answers must be unchanged.
   const fields = [
     'schemaVersion', 'studyId', 'locale', 'participant', 'study', 'factors', 'responses',
     'initialReachabilityMatrix', 'directInfluenceMatrix', 'progress',
+    'status', 'collectionMethod', 'qualitativeSectionComplete', 'qualitativeAnswers',
+    'confirmedTopics', 'sourceSelections',
   ];
   return fields.every((field) => stableJson(left?.[field]) === stableJson(right?.[field]));
+}
+
+function sameM1Core(left, right) {
+  const fields = [
+    'schemaVersion', 'studyId', 'locale', 'participant', 'study', 'factors', 'responses',
+    'initialReachabilityMatrix', 'directInfluenceMatrix', 'progress', 'status',
+    'confirmedTopics', 'sourceSelections',
+  ];
+  return fields.every((field) => stableJson(left?.[field]) === stableJson(right?.[field]));
+}
+
+function legacyWrittenAnswersMatch(existing, incoming) {
+  if (!existing || typeof existing !== 'object') return true;
+  return Object.keys(existing).every((key) => QUALITATIVE_QUESTION_IDS.includes(key)
+    && typeof existing[key] === 'string'
+    && existing[key] === incoming?.[key]);
 }
 
 function hasServerOwnedSubmissionFields(submission) {
@@ -100,47 +110,13 @@ function hasServerOwnedSubmissionFields(submission) {
   ));
 }
 
-function bearerToken(request) {
-  const authorization = String(request.headers.authorization || '');
-  return authorization.match(/^Bearer\s+(.+)$/i)?.[1] || '';
-}
-
-function basicCredentials(request) {
-  const authorization = request.headers.authorization || '';
-  if (!authorization.startsWith('Basic ')) return null;
-  try {
-    const decoded = Buffer.from(authorization.slice(6), 'base64').toString('utf8');
-    const separator = decoded.indexOf(':');
-    if (separator < 0) return null;
-    return {
-      user: decoded.slice(0, separator),
-      password: decoded.slice(separator + 1),
-    };
-  } catch {
-    return null;
-  }
-}
-
-async function readJson(request, maxBodyBytes) {
-  const declaredSize = Number(request.headers['content-length']);
-  if (Number.isFinite(declaredSize) && declaredSize > maxBodyBytes) {
-    request.resume();
-    throw new ApiError(413, 'Request body is too large');
-  }
-
-  const chunks = [];
-  let receivedBytes = 0;
-  let tooLarge = false;
-  for await (const chunk of request) {
-    receivedBytes += chunk.length;
-    if (receivedBytes > maxBodyBytes) {
-      tooLarge = true;
-    } else {
-      chunks.push(chunk);
-    }
-  }
-  if (tooLarge) throw new ApiError(413, 'Request body is too large');
-  return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+function qualitativeAnswersAreValid(value) {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    && Object.keys(value).length === QUALITATIVE_QUESTION_IDS.length
+    && Object.keys(value).every((key) => QUALITATIVE_QUESTION_IDS.includes(key))
+    && QUALITATIVE_QUESTION_IDS.every((key) => (
+      typeof value[key] === 'string' && value[key].length <= MAX_QUALITATIVE_ANSWER_LENGTH
+    ));
 }
 
 function matrixMatches(actual, expected) {
@@ -161,7 +137,9 @@ function isCompleteM1Submission(submission) {
     || submission.study?.factorVersion !== FACTOR_VERSION) return false;
   if (submission.status !== 'complete') return false;
   if (!['zh-CN', 'zh-HK', 'en'].includes(submission.locale)) return false;
-  if (typeof submission.clientSubmissionId !== 'string' || !submission.clientSubmissionId.trim()) return false;
+  if (typeof submission.clientSubmissionId !== 'string'
+    || submission.clientSubmissionId.trim().length < 8
+    || submission.clientSubmissionId.trim().length > 128) return false;
   if (typeof submission.submittedAt !== 'string' || !Number.isFinite(Date.parse(submission.submittedAt))) return false;
   if (typeof submission.participant?.code !== 'string' || !submission.participant.code.trim()) return false;
   if (typeof submission.participant?.roleCode !== 'string' || !submission.participant.roleCode) return false;
@@ -174,13 +152,17 @@ function isCompleteM1Submission(submission) {
     || submission.factors.length !== FACTOR_IDS.length
     || !submission.factors.every((factor, index) => factor?.id === FACTOR_IDS[index])) return false;
   if (!Array.isArray(submission.responses) || submission.responses.length !== PAIRS.length) return false;
-  if (submission.qualitativeSectionComplete !== undefined
-    && submission.qualitativeSectionComplete !== true) return false;
-  const hasQualitativeSection = submission.qualitativeSectionComplete === true;
-  if (hasQualitativeSection
-    && !feedbackAnswersAreValid(submission.qualitativeAnswers)) return false;
-  if (!hasQualitativeSection
-    && submission.qualitativeAnswers !== undefined) return false;
+
+  // The final request is the only persistence boundary. All seven answers,
+  // including Q7, are required in that request (blank strings are allowed).
+  if (submission.qualitativeSectionComplete !== true
+    || !qualitativeAnswersAreValid(submission.qualitativeAnswers)) return false;
+  if (!submission.confirmedTopics || !Array.isArray(submission.confirmedTopics.ids)
+    || submission.confirmedTopics.ids.length !== FACTOR_IDS.length
+    || submission.confirmedTopics.total !== FACTOR_IDS.length
+    || submission.confirmedTopics.complete !== true) return false;
+  if (!Array.isArray(submission.sourceSelections)
+    || submission.sourceSelections.length !== FACTOR_IDS.length) return false;
 
   const responses = new Map(submission.responses.map((response) => [response?.pairId, response]));
   if (responses.size !== PAIRS.length) return false;
@@ -202,11 +184,57 @@ function isCompleteM1Submission(submission) {
     directMatrix[rightIndex][leftIndex] = directions[1];
   }
 
+  if (submission.confirmedTopics.ids.some((id, index) => id !== FACTOR_IDS[index])) return false;
+  if (submission.sourceSelections.some((selection, index) => selection?.sourceId !== FACTOR_IDS[index])) return false;
   const reachabilityMatrix = directMatrix.map((row, rowIndex) => (
     row.map((value, columnIndex) => (rowIndex === columnIndex ? 1 : value))
   ));
-  return matrixMatches(submission.directInfluenceMatrix, directMatrix)
-    && matrixMatches(submission.initialReachabilityMatrix, reachabilityMatrix);
+  if (!matrixMatches(submission.directInfluenceMatrix, directMatrix)
+    || !matrixMatches(submission.initialReachabilityMatrix, reachabilityMatrix)) return false;
+
+  for (const [index, selection] of submission.sourceSelections.entries()) {
+    const expectedTargets = FACTOR_IDS.filter((_, targetIndex) => (
+      targetIndex !== index && directMatrix[index][targetIndex] === 1
+    ));
+    if (typeof selection.noDirectInfluence !== 'boolean'
+      || !Array.isArray(selection.targetIds)
+      || selection.targetIds.length !== expectedTargets.length
+      || expectedTargets.some((id, targetIndex) => selection.targetIds[targetIndex] !== id)
+      || selection.noDirectInfluence !== (expectedTargets.length === 0)) return false;
+  }
+  return true;
+}
+
+function serverResultCard(record, submissionId, receivedAt) {
+  if (record.resultCard || record.submission?.resultCard || record.submission?.m1FrozenResult) {
+    return record.resultCard || record.submission.resultCard || record.submission.m1FrozenResult;
+  }
+  if (!Array.isArray(record.submission?.factors)
+    || !Array.isArray(record.submission?.directInfluenceMatrix)) return null;
+  return buildM1ResultCard({
+    submissionId,
+    frozenAt: receivedAt,
+    factors: record.submission.factors,
+    directInfluenceMatrix: record.submission.directInfluenceMatrix,
+  });
+}
+
+function stripLegacyRecordFields(record) {
+  const next = { ...record };
+  for (const key of LEGACY_RECORD_FIELDS) delete next[key];
+  if (next.submission && typeof next.submission === 'object' && !Array.isArray(next.submission)) {
+    next.submission = { ...next.submission };
+    for (const key of ['resultCard', ...LEGACY_RECORD_FIELDS]) delete next.submission[key];
+  }
+  return next;
+}
+
+function publicReceipt(record) {
+  return {
+    submissionId: record.submissionId,
+    receivedAt: record.receivedAt,
+    resultCard: record.resultCard,
+  };
 }
 
 export function createM1SubmissionStore({ dataFile = defaultDataFile() } = {}) {
@@ -227,10 +255,7 @@ export function createM1SubmissionStore({ dataFile = defaultDataFile() } = {}) {
     try {
       let byteOffset = 0;
       let corruptOffset = null;
-      const lines = createInterface({
-        input: createReadStream(dataFile),
-        crlfDelay: Infinity,
-      });
+      const lines = createInterface({ input: createReadStream(dataFile), crlfDelay: Infinity });
       for await (const line of lines) {
         const lineStart = byteOffset;
         byteOffset += Buffer.byteLength(line) + 1;
@@ -239,13 +264,8 @@ export function createM1SubmissionStore({ dataFile = defaultDataFile() } = {}) {
         try {
           const record = JSON.parse(line);
           const clientId = clientIdOf(record.submission);
-          if (clientId) {
-            const entry = {
-              rawRecord: record,
-              submissionId: record.submissionId,
-              receivedAt: record.receivedAt,
-              feedbackTokenHash: record.feedbackTokenHash || '',
-            };
+          if (clientId && record.submissionId) {
+            const entry = { rawRecord: record, submissionId: record.submissionId, receivedAt: record.receivedAt };
             recordsByClientId.set(clientId, entry);
             recordsBySubmissionId.set(record.submissionId, entry);
           }
@@ -254,7 +274,6 @@ export function createM1SubmissionStore({ dataFile = defaultDataFile() } = {}) {
         }
       }
       if (corruptOffset !== null) await truncate(dataFile, corruptOffset);
-
       const fileStat = await stat(dataFile);
       if (fileStat.size > 0) {
         const handle = await open(dataFile, 'r');
@@ -285,12 +304,7 @@ export function createM1SubmissionStore({ dataFile = defaultDataFile() } = {}) {
     await writeFile(temporaryPath, updated, 'utf8');
     await rename(temporaryPath, dataFile);
     needsLeadingNewline = false;
-
-    const nextEntry = {
-      ...entry,
-      rawRecord: updatedRecord,
-      feedbackTokenHash: updatedRecord.feedbackTokenHash || '',
-    };
+    const nextEntry = { ...entry, rawRecord: updatedRecord };
     recordsBySubmissionId.set(updatedRecord.submissionId, nextEntry);
     const clientId = clientIdOf(updatedRecord.submission);
     if (clientId) recordsByClientId.set(clientId, nextEntry);
@@ -298,142 +312,67 @@ export function createM1SubmissionStore({ dataFile = defaultDataFile() } = {}) {
   }
 
   return {
-    async append(submission, editToken = '') {
+    async append(submission) {
       let record;
       const write = async () => {
         await loadExistingRecords();
         const clientId = clientIdOf(submission);
-        const feedbackTokenHash = editToken ? tokenHash(editToken) : '';
-        if (submission.qualitativeSectionComplete === true && !feedbackTokenHash) {
-          throw new ApiError(401, 'Feedback token is required');
-        }
         if (clientId && recordsByClientId.has(clientId)) {
           const entry = recordsByClientId.get(clientId);
-          const legacySubmission = entry.rawRecord.submission || submission;
-          if (!sameM1Submission(legacySubmission, submission)) {
+          const existingSubmission = entry.rawRecord.submission || {};
+          const legacyAnswers = existingSubmission.qualitativeAnswers;
+          const exactMatch = sameM1Submission(existingSubmission, submission);
+          const legacyMatch = !exactMatch
+            && sameM1Core(existingSubmission, submission)
+            && legacyWrittenAnswersMatch(legacyAnswers, submission.qualitativeAnswers);
+          if (!exactMatch && !legacyMatch) {
             throw new ApiError(409, 'Submission ID was already used for a different M1 response');
           }
-          if (feedbackTokenHash && entry.feedbackTokenHash
-            && entry.feedbackTokenHash !== feedbackTokenHash) {
-            throw new ApiError(409, 'Submission already exists with a different edit token');
-          }
 
-          const needsFeedbackToken = feedbackTokenHash && !entry.feedbackTokenHash;
-          const needsFrozenResult = !legacySubmission.m1FrozenResult;
-          const existingAnswers = legacySubmission.qualitativeAnswers;
-          if (submission.qualitativeSectionComplete === true && existingAnswers
-            && QUALITATIVE_QUESTION_IDS.some((key) => existingAnswers[key] !== submission.qualitativeAnswers[key])) {
-            throw new ApiError(409, 'Submission already exists with different written answers');
-          }
-          const needsQualitativeAnswers = submission.qualitativeSectionComplete === true && !existingAnswers;
-          if (needsFeedbackToken || needsFrozenResult || needsQualitativeAnswers) {
-            const updatedRecord = {
-              ...entry.rawRecord,
-              ...(needsFeedbackToken ? { feedbackTokenHash } : {}),
-              submission: {
-                ...legacySubmission,
-                ...(needsQualitativeAnswers ? {
-                  qualitativeSectionComplete: true,
-                  qualitativeAnswers: submission.qualitativeAnswers,
-                } : {}),
-                ...(needsFrozenResult ? {
-                  m1FrozenResult: buildFrozenM1ResultCard({
-                    submissionId: entry.submissionId,
-                    frozenAt: entry.receivedAt,
-                    factors: legacySubmission.factors,
-                    directInfluenceMatrix: legacySubmission.directInfluenceMatrix,
-                  }),
-                } : {}),
-              },
-            };
+          const resultCard = serverResultCard(entry.rawRecord, entry.submissionId, entry.receivedAt);
+          const hasLegacyFields = LEGACY_RECORD_FIELDS.some((key) => (
+            Object.prototype.hasOwnProperty.call(entry.rawRecord, key)
+            || Object.prototype.hasOwnProperty.call(entry.rawRecord.submission || {}, key)
+          )) || Object.prototype.hasOwnProperty.call(entry.rawRecord.submission || {}, 'resultCard');
+          if (legacyMatch || !entry.rawRecord.resultCard || hasLegacyFields) {
+            const updatedRecord = stripLegacyRecordFields({
+              submissionId: entry.submissionId,
+              receivedAt: entry.receivedAt,
+              resultCard,
+              submission: legacyMatch ? { ...existingSubmission, ...submission } : { ...existingSubmission },
+            });
             record = (await replaceRecord(entry, updatedRecord)).rawRecord;
-            return;
+          } else {
+            record = entry.rawRecord;
           }
-          record = entry.rawRecord;
           return;
         }
 
-        const storedSubmission = { ...submission };
-        delete storedSubmission.editToken;
         const submissionId = randomUUID();
         const receivedAt = new Date().toISOString();
-        const m1FrozenResult = buildFrozenM1ResultCard({
-          submissionId,
-          frozenAt: receivedAt,
-          factors: storedSubmission.factors,
-          directInfluenceMatrix: storedSubmission.directInfluenceMatrix,
-        });
-        storedSubmission.m1FrozenResult = m1FrozenResult;
-        record = {
-          submissionId,
-          receivedAt,
-          ...(feedbackTokenHash ? { feedbackTokenHash } : {}),
-          submission: storedSubmission,
-        };
+        const resultCard = Array.isArray(submission.factors)
+          && Array.isArray(submission.directInfluenceMatrix)
+          ? buildM1ResultCard({
+            submissionId,
+            frozenAt: receivedAt,
+            factors: submission.factors,
+            directInfluenceMatrix: submission.directInfluenceMatrix,
+          })
+          : null;
+        record = { submissionId, receivedAt, resultCard, submission: { ...submission } };
         await mkdir(dirname(dataFile), { recursive: true });
         const separator = needsLeadingNewline ? '\n' : '';
         await appendFile(dataFile, `${separator}${JSON.stringify(record)}\n`, 'utf8');
         needsLeadingNewline = false;
         if (clientId) {
-          const entry = {
-            rawRecord: record,
-            submissionId: record.submissionId,
-            receivedAt: record.receivedAt,
-            feedbackTokenHash,
-          };
+          const entry = { rawRecord: record, submissionId, receivedAt };
           recordsByClientId.set(clientId, entry);
-          recordsBySubmissionId.set(record.submissionId, entry);
+          recordsBySubmissionId.set(submissionId, entry);
         }
       };
       writeQueue = writeQueue.catch(() => undefined).then(write);
       await writeQueue;
       return record;
-    },
-
-    async frozenResult(submissionId, editToken) {
-      await writeQueue.catch(() => undefined);
-      await loadExistingRecords();
-      const entry = recordsBySubmissionId.get(submissionId);
-      if (typeof editToken !== 'string' || !editToken || !entry || !entry.feedbackTokenHash
-        || !sameValue(tokenHash(editToken), entry.feedbackTokenHash)) {
-        return null;
-      }
-      return {
-        resultCard: entry.rawRecord.submission?.m1FrozenResult || null,
-        feedbackSubmittedAt: entry.rawRecord.submission?.qualitativeSubmittedAt || '',
-      };
-    },
-
-    async saveFeedback(submissionId, editToken, answer) {
-      let result;
-      const write = async () => {
-        await loadExistingRecords();
-        const entry = recordsBySubmissionId.get(submissionId);
-        if (typeof editToken !== 'string' || !editToken || !entry || !entry.feedbackTokenHash
-          || !sameValue(tokenHash(editToken), entry.feedbackTokenHash)) {
-          throw new ApiError(403, 'Feedback token is invalid');
-        }
-        const submission = entry.rawRecord.submission;
-        if (submission.qualitativeSubmittedAt) {
-          result = { feedbackSubmittedAt: submission.qualitativeSubmittedAt };
-          return;
-        }
-
-        const feedbackSubmittedAt = new Date().toISOString();
-        const updatedRecord = {
-          ...entry.rawRecord,
-          submission: {
-            ...submission,
-            qualitativeAnswers: { ...submission.qualitativeAnswers, q7: answer },
-            qualitativeSubmittedAt: feedbackSubmittedAt,
-          },
-        };
-        await replaceRecord(entry, updatedRecord);
-        result = { feedbackSubmittedAt };
-      };
-      writeQueue = writeQueue.catch(() => undefined).then(write);
-      await writeQueue;
-      return result;
     },
 
     async openExport() {
@@ -443,9 +382,7 @@ export function createM1SubmissionStore({ dataFile = defaultDataFile() } = {}) {
         const fileStat = await stat(dataFile);
         return {
           size: fileStat.size,
-          stream: fileStat.size > 0
-            ? createReadStream(dataFile, { end: fileStat.size - 1 })
-            : null,
+          stream: fileStat.size > 0 ? createReadStream(dataFile, { end: fileStat.size - 1 }) : null,
         };
       } catch (error) {
         if (error.code === 'ENOENT') return { size: 0, stream: null };
@@ -466,9 +403,6 @@ export function createM1SubmissionHandler(options = {}) {
   }) {
     const pathname = new URL(request.url, 'http://localhost').pathname;
 
-    const frozenResultMatch = pathname.match(/^\/api\/m1-submissions\/([^/]+)\/frozen-result$/);
-    const feedbackMatch = pathname.match(/^\/api\/m1-submissions\/([^/]+)\/feedback$/);
-
     if (request.method === 'GET' && pathname === HEALTH_PATH) {
       sendJson(response, 200, { ok: true, service: 'm1-submissions' });
       return;
@@ -479,17 +413,23 @@ export function createM1SubmissionHandler(options = {}) {
         sendJson(response, 503, { error: 'Admin access is not configured' });
         return;
       }
-
-      const credentials = basicCredentials(request);
-      const userMatches = sameValue(credentials?.user || '', adminUser);
-      const passwordMatches = sameValue(credentials?.password || '', adminPassword);
-      if (!userMatches || !passwordMatches) {
+      const token = String(request.headers.authorization || '').match(/^Basic\s+(.+)$/i)?.[1] || '';
+      let user = '';
+      let password = '';
+      try {
+        const decoded = Buffer.from(token, 'base64').toString('utf8');
+        const separator = decoded.indexOf(':');
+        if (separator >= 0) {
+          user = decoded.slice(0, separator);
+          password = decoded.slice(separator + 1);
+        }
+      } catch { /* malformed credentials remain empty */ }
+      if (user !== adminUser || password !== adminPassword) {
         sendJson(response, 401, { error: 'Authentication required' }, {
           'www-authenticate': 'Basic realm="M1 research data", charset="UTF-8"',
         });
         return;
       }
-
       void (async () => {
         try {
           const exported = await store.openExport();
@@ -512,59 +452,6 @@ export function createM1SubmissionHandler(options = {}) {
       return;
     }
 
-    if (request.method === 'GET' && frozenResultMatch) {
-      void (async () => {
-        try {
-          const submissionId = decodeURIComponent(frozenResultMatch[1]);
-          const frozen = await store.frozenResult(submissionId, bearerToken(request));
-          if (!frozen?.resultCard) {
-            sendJson(response, 404, { error: 'Frozen M1 result not found' });
-            return;
-          }
-          sendJson(response, 200, frozen);
-        } catch {
-          sendJson(response, 500, { error: 'Frozen M1 result could not be loaded' });
-        }
-      })();
-      return;
-    }
-
-    if (request.method === 'POST' && feedbackMatch) {
-      const contentType = String(request.headers['content-type'] || '')
-        .split(';', 1)[0]
-        .trim()
-        .toLowerCase();
-      if (contentType !== 'application/json') {
-        request.resume();
-        sendJson(response, 415, { error: 'Content-Type must be application/json' });
-        return;
-      }
-      void (async () => {
-        try {
-          const feedback = await readJson(request, maxBodyBytes);
-          if (!feedback || typeof feedback.answer !== 'string'
-            || feedback.answer.length > MAX_QUALITATIVE_ANSWER_LENGTH) {
-            sendJson(response, 422, { error: 'Invalid qualitative feedback' });
-            return;
-          }
-          const submissionId = decodeURIComponent(feedbackMatch[1]);
-          const saved = await store.saveFeedback(submissionId, bearerToken(request), feedback.answer);
-          sendJson(response, 200, saved);
-        } catch (error) {
-          if (error instanceof ApiError) {
-            sendJson(response, error.statusCode, { error: error.message });
-            return;
-          }
-          if (error instanceof SyntaxError) {
-            sendJson(response, 400, { error: 'Invalid JSON' });
-            return;
-          }
-          sendJson(response, 500, { error: 'Qualitative feedback could not be stored' });
-        }
-      })();
-      return;
-    }
-
     if (request.method !== 'POST' || pathname !== API_PATH) {
       next();
       return;
@@ -582,29 +469,37 @@ export function createM1SubmissionHandler(options = {}) {
 
     void (async () => {
       try {
-        const submission = await readJson(request, maxBodyBytes);
+        const declaredSize = Number(request.headers['content-length']);
+        if (Number.isFinite(declaredSize) && declaredSize > maxBodyBytes) {
+          request.resume();
+          throw new ApiError(413, 'Request body is too large');
+        }
+        const chunks = [];
+        let receivedBytes = 0;
+        for await (const chunk of request) {
+          receivedBytes += chunk.length;
+          if (receivedBytes > maxBodyBytes) {
+            request.resume();
+            throw new ApiError(413, 'Request body is too large');
+          }
+          chunks.push(chunk);
+        }
+        let submission;
+        try {
+          submission = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+        } catch {
+          sendJson(response, 400, { error: 'Invalid JSON' });
+          return;
+        }
         if (!isCompleteM1Submission(submission)) {
           sendJson(response, 422, { error: 'Invalid M1 submission' });
           return;
         }
-        const editToken = bearerToken(request);
-        if (submission.qualitativeSectionComplete === true && (editToken.length < 32 || editToken.length > 128)) {
-          sendJson(response, 401, { error: 'Feedback token is required' });
-          return;
-        }
-        const stored = await store.append(submission, editToken);
-        sendJson(response, 201, {
-          submissionId: stored.submissionId,
-          receivedAt: stored.receivedAt,
-          ...(stored.submission?.m1FrozenResult ? { resultCard: stored.submission.m1FrozenResult } : {}),
-        });
+        const stored = await store.append(submission);
+        sendJson(response, 201, publicReceipt(stored));
       } catch (error) {
         if (error instanceof ApiError) {
           sendJson(response, error.statusCode, { error: error.message });
-          return;
-        }
-        if (error instanceof SyntaxError) {
-          sendJson(response, 400, { error: 'Invalid JSON' });
           return;
         }
         sendJson(response, 500, { error: 'Submission could not be stored' });

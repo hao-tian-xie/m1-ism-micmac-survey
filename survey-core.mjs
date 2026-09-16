@@ -135,7 +135,7 @@ export function buildDirectMatrix(factors, answers = {}) {
   return matrix;
 }
 
-export function buildFrozenM1ResultCard({
+export function buildM1ResultCard({
   submissionId,
   frozenAt,
   factors = [],
@@ -171,6 +171,11 @@ export function buildFrozenM1ResultCard({
     receivingTopics: ranked('incoming'),
   };
 }
+
+// Backward-compatible export for older analysis scripts. The current flow
+// previews and stores this card at the single final submission boundary; it is
+// not an intermediate frozen-result gate.
+export const buildFrozenM1ResultCard = buildM1ResultCard;
 
 export function buildSubmission({
   studyId,

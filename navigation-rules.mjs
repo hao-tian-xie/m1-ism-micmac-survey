@@ -1,4 +1,6 @@
-const stageOrder = ['profile', 'survey', 'qualitative', 'review', 'complete'];
+// The collection has three input stages. The final receipt is shown as stage 05;
+// there is deliberately no intermediate review/freeze stage.
+const stageOrder = ['profile', 'qualitative', 'survey', 'complete'];
 
 export function stageIndex(screen) {
   return stageOrder.indexOf(screen);
