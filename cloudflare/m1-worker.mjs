@@ -1,10 +1,3 @@
-import {
-  MAX_QUALITATIVE_ANSWER_LENGTH,
-  buildM1ResultSnapshot,
-  m1ResultSnapshotMatches,
-  qualitativeAnswersAreComplete,
-} from '../survey-core.mjs';
-
 const STUDY_ID = 'M1-ESG-ISM-MICMAC';
 const FACTOR_VERSION = 'esrs-set1-subtopics-v2-38-verified';
 const FACTOR_IDS = Array.from({ length: 38 }, (_, index) => `F${index + 1}`);
@@ -17,12 +10,6 @@ const PAIRS = FACTOR_IDS.flatMap((leftId, leftIndex) => (
   }))
 ));
 const PAIR_COUNT = PAIRS.length;
-const RELATION_DIRECTIONS = {
-  V: [1, 0],
-  A: [0, 1],
-  X: [1, 1],
-  O: [0, 0],
-};
 const MAX_BODY_BYTES = 256 * 1024;
 const DEFAULT_ORIGINS = [
   'https://hao-tian-xie.github.io',
@@ -138,17 +125,9 @@ function isMatrix(value) {
       && row.every((cell) => cell === null || cell === 0 || cell === 1));
 }
 
-function matrixMatches(actual, expected) {
-  return Array.isArray(actual)
-    && actual.length === expected.length
-    && actual.every((row, rowIndex) => Array.isArray(row)
-      && row.length === expected[rowIndex].length
-      && row.every((value, columnIndex) => value === expected[rowIndex][columnIndex]));
-}
-
 function validateSubmission(record) {
   if (!isObject(record)) return 'invalid-record';
-  if (![1, 2].includes(record.schemaVersion) || record.studyId !== STUDY_ID) return 'wrong-study';
+  if (record.schemaVersion !== 1 || record.studyId !== STUDY_ID) return 'wrong-study';
   if (!isObject(record.study) || record.study.factorVersion !== FACTOR_VERSION) return 'wrong-factor-version';
   if (!['zh-CN', 'zh-HK', 'en'].includes(record.locale)) return 'invalid-locale';
   if (record.status !== 'complete' || !isIsoDate(record.submittedAt)) return 'incomplete';
@@ -178,111 +157,19 @@ function validateSubmission(record) {
     || record.confirmedTopics.complete !== true) return 'incomplete-topics';
   if (!Array.isArray(record.sourceSelections) || record.sourceSelections.length !== FACTOR_COUNT) return 'invalid-selections';
 
+  const validRelations = new Set(['V', 'A', 'X', 'O']);
   const responsesByPairId = new Map(record.responses.map((response) => [response?.pairId, response]));
   if (responsesByPairId.size !== PAIR_COUNT) return 'invalid-response';
-  const directMatrix = FACTOR_IDS.map(() => FACTOR_IDS.map(() => 0));
-  const factorIndex = new Map(FACTOR_IDS.map((id, index) => [id, index]));
   for (const pair of PAIRS) {
     const response = responsesByPairId.get(pair.pairId);
     if (!isObject(response)
       || response.leftId !== pair.leftId
       || response.rightId !== pair.rightId
-      || !RELATION_DIRECTIONS[response.relation]) return 'invalid-response';
-    const [leftToRight, rightToLeft] = RELATION_DIRECTIONS[response.relation];
-    if (response.leftToRight !== leftToRight || response.rightToLeft !== rightToLeft) return 'invalid-response';
-    const leftIndex = factorIndex.get(pair.leftId);
-    const rightIndex = factorIndex.get(pair.rightId);
-    directMatrix[leftIndex][rightIndex] = leftToRight;
-    directMatrix[rightIndex][leftIndex] = rightToLeft;
+      || (response.relation !== null && !validRelations.has(response.relation))) return 'invalid-response';
   }
   if (record.confirmedTopics.ids.some((id, index) => id !== FACTOR_IDS[index])) return 'invalid-topics';
   if (record.sourceSelections.some((selection, index) => selection?.sourceId !== FACTOR_IDS[index])) return 'invalid-selections';
-  const reachabilityMatrix = directMatrix.map((row, rowIndex) => (
-    row.map((value, columnIndex) => (rowIndex === columnIndex ? 1 : value))
-  ));
-  if (!matrixMatches(record.directInfluenceMatrix, directMatrix)
-    || !matrixMatches(record.initialReachabilityMatrix, reachabilityMatrix)) return 'invalid-matrix';
-
-  if (record.schemaVersion === 2) {
-    const qualitative = record.qualitativeResponses;
-    const result = record.m1ResultSnapshot;
-    const submittedAt = Date.parse(record.submittedAt);
-    if (!isObject(qualitative)
-      || qualitative.phase !== 'before-m1'
-      || !isIsoDate(qualitative.completedAt)
-      || !qualitativeAnswersAreComplete(qualitative.answers, MAX_QUALITATIVE_ANSWER_LENGTH)) return 'invalid-qualitative';
-    if (!isObject(result)
-      || !m1ResultSnapshotMatches({
-        snapshot: result,
-        factorVersion: FACTOR_VERSION,
-        factors: record.factors,
-        directInfluenceMatrix: directMatrix,
-      })
-      || Date.parse(qualitative.completedAt) > Date.parse(result.frozenAt)
-      || Date.parse(result.frozenAt) > submittedAt) return 'invalid-frozen-results';
-    if (typeof record.q7Response !== 'string'
-      || !record.q7Response.trim()
-      || record.q7Response.length > MAX_QUALITATIVE_ANSWER_LENGTH) return 'invalid-q7';
-  }
   return null;
-}
-
-const FREEZE_CONTENT_FIELDS = [
-  'schemaVersion', 'studyId', 'clientSubmissionId', 'locale', 'study', 'participant',
-  'progress', 'factors', 'responses', 'initialReachabilityMatrix', 'directInfluenceMatrix',
-  'confirmedTopics', 'sourceSelections', 'qualitativeResponses',
-];
-
-function validateFreezeRequest(record) {
-  if (!isObject(record)
-    || record.schemaVersion !== 2
-    || record.phase !== 'm1-freeze'
-    || record.status !== 'm1-freeze-request'
-    || !isIsoDate(record.requestedAt)
-    || Object.hasOwn(record, 'm1ResultSnapshot')
-    || Object.hasOwn(record, 'q7Response')) return 'invalid-freeze-request';
-  let snapshot;
-  try {
-    snapshot = buildM1ResultSnapshot({
-      factorVersion: FACTOR_VERSION,
-      frozenAt: record.requestedAt,
-      factors: record.factors,
-      directInfluenceMatrix: record.directInfluenceMatrix,
-    });
-  } catch {
-    return 'invalid-freeze-request';
-  }
-  const candidate = {
-    ...record,
-    status: 'complete',
-    submittedAt: record.requestedAt,
-    m1ResultSnapshot: snapshot,
-    q7Response: 'freeze-validation',
-  };
-  delete candidate.phase;
-  delete candidate.requestedAt;
-  return validateSubmission(candidate);
-}
-
-function isFinalizeRequest(record) {
-  return isObject(record)
-    && record.schemaVersion === 2
-    && record.phase === 'q7-finalize'
-    && record.studyId === STUDY_ID
-    && typeof record.clientSubmissionId === 'string'
-    && record.clientSubmissionId.length >= 8
-    && record.clientSubmissionId.length <= 128
-    && typeof record.freezeReceiptId === 'string'
-    && record.freezeReceiptId.length > 0
-    && typeof record.q7Response === 'string'
-    && Boolean(record.q7Response.trim())
-    && record.q7Response.length <= MAX_QUALITATIVE_ANSWER_LENGTH;
-}
-
-function sameFreezePayload(stored, request) {
-  return isObject(stored)
-    && JSON.stringify(FREEZE_CONTENT_FIELDS.map((field) => stored[field]))
-      === JSON.stringify(FREEZE_CONTENT_FIELDS.map((field) => request[field]));
 }
 
 function basicCredentials(request) {
@@ -338,19 +225,7 @@ async function submit(request, env) {
   } catch {
     return json(request, env, { error: 'invalid-json' }, 400);
   }
-
-  if (record?.phase === 'm1-freeze') {
-    const validationError = validateFreezeRequest(record);
-    if (validationError) return json(request, env, { error: validationError }, 422);
-    return freezeM1(request, env, record);
-  }
-  if (record?.phase === 'q7-finalize') {
-    if (!isFinalizeRequest(record)) return json(request, env, { error: 'invalid-finalization-request' }, 422);
-    return finalizeQ7(request, env, record);
-  }
-  const validationError = record?.schemaVersion === 1 && record?.status === 'complete'
-    ? validateSubmission(record)
-    : 'freeze-required';
+  const validationError = validateSubmission(record);
   if (validationError) return json(request, env, { error: validationError }, 422);
 
   const submissionId = `M1-${crypto.randomUUID()}`;
@@ -372,124 +247,6 @@ async function submit(request, env) {
   }, 201);
 }
 
-async function readStoredSubmission(env, clientSubmissionId) {
-  const row = await env.DB.prepare(
-    'SELECT submission_id, received_at, record_json FROM submissions WHERE client_submission_id = ?',
-  ).bind(clientSubmissionId).first();
-  if (!row?.record_json) return null;
-  try {
-    return { ...row, submission: JSON.parse(row.record_json) };
-  } catch {
-    return { ...row, submission: null };
-  }
-}
-
-async function freezeM1(request, env, requestRecord) {
-  const existing = await readStoredSubmission(env, requestRecord.clientSubmissionId);
-  if (existing) {
-    if (!sameFreezePayload(existing.submission, requestRecord)
-      || !existing.submission?.m1ResultSnapshot
-      || !isIsoDate(existing.submission.m1ResultSnapshot.frozenAt)) {
-      return json(request, env, { error: 'client-id-conflict' }, 409);
-    }
-    return json(request, env, {
-      submissionId: existing.submission_id,
-      receivedAt: existing.received_at,
-      frozenAt: existing.submission.m1ResultSnapshot.frozenAt,
-      m1ResultSnapshot: existing.submission.m1ResultSnapshot,
-    }, 201);
-  }
-
-  const receivedAt = new Date().toISOString();
-  const m1ResultSnapshot = buildM1ResultSnapshot({
-    factorVersion: FACTOR_VERSION,
-    frozenAt: receivedAt,
-    factors: requestRecord.factors,
-    directInfluenceMatrix: requestRecord.directInfluenceMatrix,
-  });
-  const frozenRecord = {
-    ...requestRecord,
-    phase: 'm1-frozen',
-    status: 'm1-frozen',
-    frozenAt: receivedAt,
-    m1ResultSnapshot,
-  };
-  delete frozenRecord.requestedAt;
-  const submissionId = `M1-${crypto.randomUUID()}`;
-  await env.DB.prepare(
-    `INSERT OR IGNORE INTO submissions
-      (client_submission_id, submission_id, received_at, record_json)
-     VALUES (?, ?, ?, ?)`,
-  ).bind(requestRecord.clientSubmissionId, submissionId, receivedAt, JSON.stringify(frozenRecord)).run();
-
-  const stored = await readStoredSubmission(env, requestRecord.clientSubmissionId);
-  if (!stored) return json(request, env, { error: 'store-failed' }, 500);
-  if (!sameFreezePayload(stored.submission, requestRecord)
-    || !stored.submission?.m1ResultSnapshot) return json(request, env, { error: 'client-id-conflict' }, 409);
-  return json(request, env, {
-    submissionId: stored.submission_id,
-    receivedAt: stored.received_at,
-    frozenAt: stored.submission.m1ResultSnapshot.frozenAt,
-    m1ResultSnapshot: stored.submission.m1ResultSnapshot,
-  }, 201);
-}
-
-async function finalizeQ7(request, env, finalizeRequest) {
-  const frozen = await readStoredSubmission(env, finalizeRequest.clientSubmissionId);
-  if (!frozen || frozen.submission_id !== finalizeRequest.freezeReceiptId) {
-    return json(request, env, { error: 'matching-freeze-not-found' }, 409);
-  }
-  const previous = frozen.submission;
-  if (previous?.status === 'complete') {
-    if (previous.q7Response !== finalizeRequest.q7Response) {
-      return json(request, env, { error: 'already-finalized' }, 409);
-    }
-    return json(request, env, {
-      submissionId: frozen.submission_id,
-      receivedAt: frozen.received_at,
-    }, 201);
-  }
-  if (previous?.status !== 'm1-frozen'
-    || !m1ResultSnapshotMatches({
-      snapshot: previous.m1ResultSnapshot,
-      factorVersion: FACTOR_VERSION,
-      factors: previous.factors,
-      directInfluenceMatrix: previous.directInfluenceMatrix,
-    })) return json(request, env, { error: 'm1-not-frozen' }, 409);
-
-  const receivedAt = new Date().toISOString();
-  const completeRecord = {
-    ...previous,
-    phase: 'q7-finalize',
-    status: 'complete',
-    submittedAt: receivedAt,
-    q7Response: finalizeRequest.q7Response,
-  };
-  const validationError = validateSubmission(completeRecord);
-  if (validationError) return json(request, env, { error: validationError }, 422);
-
-  const updated = await env.DB.prepare(
-    `UPDATE submissions SET received_at = ?, record_json = ?
-     WHERE client_submission_id = ? AND submission_id = ? AND record_json = ?`,
-  ).bind(
-    receivedAt,
-    JSON.stringify(completeRecord),
-    finalizeRequest.clientSubmissionId,
-    finalizeRequest.freezeReceiptId,
-    frozen.record_json,
-  ).run();
-  if (!updated?.meta?.changes) {
-    const current = await readStoredSubmission(env, finalizeRequest.clientSubmissionId);
-    if (current?.submission?.status === 'complete'
-      && current.submission.q7Response === finalizeRequest.q7Response
-      && current.submission_id === finalizeRequest.freezeReceiptId) {
-      return json(request, env, { submissionId: current.submission_id, receivedAt: current.received_at }, 201);
-    }
-    return json(request, env, { error: 'finalization-conflict' }, 409);
-  }
-  return json(request, env, { submissionId: frozen.submission_id, receivedAt }, 201);
-}
-
 async function exportSubmissions(request, env) {
   await ensureSchema(env);
   if (!adminIsConfigured(env)) return json(request, env, { error: 'admin-not-configured' }, 503);
@@ -502,14 +259,7 @@ async function exportSubmissions(request, env) {
   const rows = await env.DB.prepare(
     'SELECT record_json FROM submissions ORDER BY rowid ASC',
   ).all();
-  const lines = (rows.results || []).map((row) => row.record_json).filter((recordJson) => {
-    if (!recordJson) return false;
-    try {
-      return JSON.parse(recordJson)?.status !== 'm1-frozen';
-    } catch {
-      return false;
-    }
-  });
+  const lines = (rows.results || []).map((row) => row.record_json).filter(Boolean);
   const body = lines.length ? `${lines.join('\n')}\n` : '';
   return respond(request, env, body, 200, {
     'content-type': 'application/x-ndjson; charset=utf-8',

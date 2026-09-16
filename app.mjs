@@ -2,25 +2,16 @@ import {
   applySourceSelections,
   buildDirectMatrix,
   buildSubmission,
-  m1ResultSnapshotMatches,
   createPairs,
-  MAX_QUALITATIVE_ANSWER_LENGTH,
-  qualitativeAnswersAreComplete,
   selectedTargetsForSource,
   tryWriteStorage,
 } from './survey-core.mjs';
 import { displayTopicName, localisedFactors, studyConfig } from './survey-config.mjs?v=topic-definitions-contains-20260908';
-import { copy, languageNames, locales } from './translations.mjs?v=interview-freeze-q7-20260916';
+import { copy, languageNames, locales } from './translations.mjs?v=topic-question-promote-20260909';
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
 import { resolveLocale } from './locale-state.mjs';
 import { guideStepsForScreen } from './guide-steps.mjs';
-import {
-  canFreezeM1,
-  canNavigateToStage,
-  canShowQ7,
-  canStartM1,
-  topicIsAvailable,
-} from './navigation-rules.mjs';
+import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs';
 import { attachTopicDefinitionHints } from './topic-definition-hints.mjs';
 
 const STORAGE_KEY = `bextools:${studyConfig.id}:${studyConfig.version}`;
@@ -46,7 +37,6 @@ const guideNext = document.querySelector('#guide-next');
 const guideClose = document.querySelector('#guide-close');
 const roleKeys = ['roleOperations', 'roleEsg', 'roleTechnology', 'roleManagement', 'roleAcademic', 'roleOther'];
 const experienceKeys = ['exp1', 'exp2', 'exp3', 'exp4'];
-const interviewQuestionIds = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6'];
 let storageAvailable = true;
 let detachTopicDefinitionHints = () => {};
 
@@ -62,28 +52,11 @@ function emptySelections() {
   return Object.fromEntries(factorIds.map((id) => [id, []]));
 }
 
-function emptyInterviewResponses() {
-  return Object.fromEntries(interviewQuestionIds.map((id) => [id, '']));
-}
-
-function isTimestamp(value) {
-  return typeof value === 'string' && Number.isFinite(Date.parse(value));
-}
-
 function blankState(locale = preferredLocale()) {
   return {
     locale,
     screen: 'welcome',
     participant: { code: '', role: '', experience: '' },
-    interviewResponses: emptyInterviewResponses(),
-    interviewCompletedAt: '',
-    m1StartedAt: '',
-    m1FreezeAttempted: false,
-    m1FrozenAt: '',
-    m1FreezeReceiptId: '',
-    freezeState: 'idle',
-    m1ResultSnapshot: null,
-    q7Response: '',
     answers: {},
     factorSelections: emptySelections(),
     noInfluenceFactors: [],
@@ -91,8 +64,6 @@ function blankState(locale = preferredLocale()) {
     currentIndex: 0,
     editingFromReview: false,
     showValidation: false,
-    showInterviewValidation: false,
-    showQ7Validation: false,
     completedAt: '',
     submissionId: '',
     clientSubmissionId: '',
@@ -125,20 +96,6 @@ function loadState() {
     const noInfluenceFactors = Array.isArray(saved.noInfluenceFactors)
       ? factorIds.filter((id) => saved.noInfluenceFactors.includes(id))
       : reviewedFactors.filter((id) => factorSelections[id].length === 0);
-    const interviewResponses = {
-      ...emptyInterviewResponses(),
-      ...(saved.interviewResponses && typeof saved.interviewResponses === 'object'
-        ? Object.fromEntries(interviewQuestionIds.map((id) => [id, String(saved.interviewResponses[id] || '').slice(0, MAX_QUALITATIVE_ANSWER_LENGTH)]))
-        : {}),
-    };
-    const interviewCompletedAt = qualitativeAnswersAreComplete(interviewResponses)
-      && isTimestamp(saved.interviewCompletedAt)
-      ? String(saved.interviewCompletedAt || '')
-      : '';
-    const m1StartedAt = interviewCompletedAt && isTimestamp(saved.m1StartedAt)
-      ? String(saved.m1StartedAt)
-      : '';
-    const m1FreezeAttempted = Boolean(saved.m1FreezeAttempted);
     const submissionId = String(saved.submissionId || '');
     const locale = resolveLocale({
       queryLocale: new URLSearchParams(window.location.search).get('lang'),
@@ -146,25 +103,6 @@ function loadState() {
       browserLocale: navigator.language || '',
       locales,
     });
-
-    const savedFrozenAt = isTimestamp(saved.m1FrozenAt) ? String(saved.m1FrozenAt) : '';
-    const m1FreezeReceiptId = String(saved.m1FreezeReceiptId || '');
-    const freezeMatrix = buildDirectMatrix(localisedFactors(locale), answers).map((row, rowIndex) => (
-        row.map((value, columnIndex) => (rowIndex === columnIndex ? 0 : value))
-    ));
-    const savedSnapshot = saved.m1ResultSnapshot;
-    const m1Frozen = Boolean(savedFrozenAt
-      && m1FreezeReceiptId
-      && m1StartedAt
-      && reviewedFactors.length === factors.length
-      && pairs.every((pair) => answers[pair.id]?.relation)
-      && m1ResultSnapshotMatches({
-        snapshot: savedSnapshot,
-        factorVersion: studyConfig.version,
-        factors: localisedFactors(locale),
-        directInfluenceMatrix: freezeMatrix,
-      }));
-    const m1ResultSnapshot = m1Frozen ? savedSnapshot : null;
 
     return {
       ...blankState(locale),
@@ -175,15 +113,6 @@ function loadState() {
       factorSelections,
       noInfluenceFactors,
       reviewedFactors,
-      interviewResponses,
-      interviewCompletedAt,
-      m1StartedAt,
-      m1FreezeAttempted,
-      m1FrozenAt: m1ResultSnapshot ? savedFrozenAt : '',
-      m1FreezeReceiptId: m1ResultSnapshot ? m1FreezeReceiptId : '',
-      freezeState: m1ResultSnapshot ? 'frozen' : (m1FreezeAttempted ? 'error' : 'idle'),
-      m1ResultSnapshot,
-      q7Response: String(saved.q7Response || '').slice(0, MAX_QUALITATIVE_ANSWER_LENGTH),
       participant: { ...blankState(locale).participant, ...(saved.participant || {}) },
       currentIndex: Math.min(Math.max(Number(saved.currentIndex) || 0, 0), factors.length - 1),
       editingFromReview: false,
@@ -230,14 +159,6 @@ function reviewedCount() {
 
 function allTopicsReviewed() {
   return reviewedCount() === factors.length;
-}
-
-function interviewIsComplete() {
-  return qualitativeAnswersAreComplete(state.interviewResponses);
-}
-
-function m1IsFrozen() {
-  return Boolean(state.m1FrozenAt && state.m1FreezeReceiptId && state.m1ResultSnapshot);
 }
 
 function progressPercent() {
@@ -287,9 +208,6 @@ function persist() {
     screen: undefined,
     editingFromReview: false,
     submitState: 'idle',
-    showValidation: false,
-    showInterviewValidation: false,
-    showQ7Validation: false,
   };
   try {
     storageAvailable = tryWriteStorage(window.localStorage, STORAGE_KEY, JSON.stringify(snapshot));
@@ -316,23 +234,13 @@ function goTo(screen, { scroll = true } = {}) {
 }
 
 function navigateToStage(targetStage) {
-  if (!canNavigateToStage(state.screen, targetStage, {
-    m1Started: Boolean(state.m1StartedAt),
-    m1Frozen: m1IsFrozen(),
-    m1FreezeAttempted: state.m1FreezeAttempted,
-  })) return;
+  if (!canNavigateToStage(state.screen, targetStage)) return;
   const fromReview = state.screen === 'review';
 
   if (targetStage === 'profile') {
     state.editingFromReview = fromReview;
     state.showValidation = false;
     goTo('profile');
-    return;
-  }
-
-  if (targetStage === 'interview') {
-    state.showInterviewValidation = false;
-    goTo('interview');
     return;
   }
 
@@ -344,7 +252,7 @@ function navigateToStage(targetStage) {
 }
 
 function navigateToTopic(index) {
-  if (state.screen !== 'survey' || m1IsFrozen() || !Number.isInteger(index) || !factors[index]) return;
+  if (state.screen !== 'survey' || !Number.isInteger(index) || !factors[index]) return;
   const factor = factors[index];
   if (!topicIsAvailable(index, state.currentIndex, state.reviewedFactors, factor.id)) return;
   state.currentIndex = index;
@@ -493,23 +401,17 @@ function closeGuide() {
 function renderStepper() {
   const activeIndex = {
     profile: 0,
-    interview: 1,
-    survey: 2,
-    review: 3,
-    results: 4,
-    complete: 4,
+    survey: 1,
+    review: 2,
+    complete: 2,
   }[state.screen] ?? 0;
-  const steps = [t('stepProfile'), t('stepInterview'), t('stepSurvey'), t('stepReview'), t('stepResults')];
-  const stageIds = ['profile', 'interview', 'survey', 'review', 'results'];
+  const steps = [t('stepProfile'), t('stepSurvey'), t('stepReview')];
+  const stageIds = ['profile', 'survey', 'review'];
   const stageItems = steps.map((label, index) => {
     const stage = stageIds[index];
-    const isActive = state.screen !== 'complete' && index === activeIndex;
-    const isDone = state.screen === 'complete' || index < activeIndex;
-    const canGoBack = canNavigateToStage(state.screen, stage, {
-      m1Started: Boolean(state.m1StartedAt),
-      m1Frozen: m1IsFrozen(),
-      m1FreezeAttempted: state.m1FreezeAttempted,
-    });
+    const isActive = index === activeIndex;
+    const isDone = index < activeIndex;
+    const canGoBack = canNavigateToStage(state.screen, stage);
     const stepContent = `
       <span>${String(index + 1).padStart(2, '0')}</span>
       <b>${escapeHtml(label)}</b>
@@ -673,44 +575,6 @@ function renderProfile() {
         <div class="form-actions">
           <button class="text-button" type="button" data-action="back-welcome"><span aria-hidden="true">←</span>${escapeHtml(t('back'))}</button>
           <button class="primary-button" type="submit">${escapeHtml(t('beginTopics'))}<span aria-hidden="true">→</span></button>
-        </div>
-      </form>
-    </div>
-  `, 'form-shell');
-}
-
-function renderInterview() {
-  const questions = interviewQuestionIds.map((id, index) => {
-    const isInvalid = state.showInterviewValidation && !state.interviewResponses[id].trim();
-    const questionId = `interview-${id}`;
-    return `
-      <fieldset class="interview-question-card">
-        <legend>
-          <span class="interview-question-number">Q${index + 1}</span>
-          <span class="interview-question-copy">${escapeHtml(t(`interview${id.toUpperCase()}`))}<em aria-hidden="true">*</em></span>
-        </legend>
-        <textarea id="${questionId}" name="interview-${id}" data-interview-answer="${id}" rows="3" maxlength="${MAX_QUALITATIVE_ANSWER_LENGTH}" required aria-required="true" aria-invalid="${isInvalid}" ${isInvalid ? `aria-describedby="interview-error-${id}"` : ''} placeholder="${escapeHtml(t('interviewPlaceholder'))}">${escapeHtml(state.interviewResponses[id])}</textarea>
-        ${isInvalid ? `<p class="form-error interview-field-error" id="interview-error-${id}" role="alert">${escapeHtml(t('interviewRequired'))}</p>` : ''}
-      </fieldset>
-    `;
-  }).join('');
-  const hasErrors = state.showInterviewValidation && !interviewIsComplete();
-
-  return renderShell(`
-    <div class="interview-page">
-      <header class="page-heading interview-heading">
-        <p class="eyebrow">${escapeHtml(t('interviewEyebrow'))}</p>
-        <h1 data-page-title tabindex="-1">${escapeHtml(t('interviewTitle'))}</h1>
-        <p>${escapeHtml(t('interviewIntro'))}</p>
-        <p class="interview-privacy">${escapeHtml(t('interviewPrivacy'))}</p>
-      </header>
-
-      <form class="interview-form" id="interview-form" novalidate>
-        <div class="interview-question-list">${questions}</div>
-        ${hasErrors ? `<p class="form-error interview-error" id="interview-error" role="alert">${escapeHtml(t('requiredMessage'))}</p>` : ''}
-        <div class="form-actions interview-actions">
-          <button class="text-button" type="button" data-action="back-profile"><span aria-hidden="true">←</span>${escapeHtml(t('interviewBack'))}</button>
-          <button class="primary-button" type="submit">${escapeHtml(t('interviewContinue'))}<span aria-hidden="true">→</span></button>
         </div>
       </form>
     </div>
@@ -892,13 +756,12 @@ function renderPairReview(isLocked = false) {
 }
 
 function renderReview() {
-  const isSubmitting = state.submitState === 'submitting' || state.freezeState === 'submitting';
-  const freezeUnconfirmed = state.m1FreezeAttempted && !m1IsFrozen();
+  const isSubmitting = state.submitState === 'submitting';
   const topicRows = factors.map((factor, index) => {
     const source = factorFor(factor.id);
     const selected = selectedTargets(source.id).map((id) => factorFor(id).label);
     return `
-      <button class="topic-review-row" type="button" data-action="edit-topic" data-factor-id="${source.id}" ${isSubmitting || freezeUnconfirmed ? 'disabled' : ''}>
+      <button class="topic-review-row" type="button" data-action="edit-topic" data-factor-id="${source.id}" ${isSubmitting ? 'disabled' : ''}>
         <span class="review-index">${String(index + 1).padStart(2, '0')}</span>
         <span class="topic-review-source"><b>${escapeHtml(source.label)}</b><small>${source.id}</small></span>
         <span class="topic-review-result"><i aria-hidden="true">→</i>${escapeHtml(selected.length ? selected.join(t('listSeparator')) : t('noneResult'))}</span>
@@ -911,7 +774,6 @@ function renderReview() {
       <header class="page-heading review-heading">
         <p class="eyebrow">${escapeHtml(t('reviewEyebrow'))}</p>
         <h1 data-page-title tabindex="-1">${escapeHtml(t('reviewTitle'))}</h1>
-        <p>${escapeHtml(t('freezeNotice'))}</p>
       </header>
 
       <div class="review-summary">
@@ -921,12 +783,17 @@ function renderReview() {
       </div>
 
       <div class="review-actions">
-        <button class="text-button" type="button" data-action="back-survey" ${isSubmitting || freezeUnconfirmed ? 'disabled' : ''}><span aria-hidden="true">←</span>${escapeHtml(t('back'))}</button>
-        <button class="primary-button" type="button" data-action="freeze-results" ${isSubmitting || freezeUnconfirmed || !allTopicsReviewed() ? 'disabled' : ''}>
-          ${escapeHtml(state.freezeState === 'submitting' ? t('freezingResults') : t('freezeResults'))}<span aria-hidden="true">→</span>
+        <button class="text-button" type="button" data-action="back-survey" ${isSubmitting ? 'disabled' : ''}><span aria-hidden="true">←</span>${escapeHtml(t('back'))}</button>
+        <button class="primary-button" type="button" data-action="submit-response" ${isSubmitting || !allTopicsReviewed() ? 'disabled' : ''}>
+          ${escapeHtml(isSubmitting ? t('submitting') : t('submitResponse'))}<span aria-hidden="true">→</span>
         </button>
       </div>
-      ${state.freezeState === 'error' ? `<div class="submit-error" role="alert"><span>${escapeHtml(t('freezeError'))}</span><button type="button" data-action="freeze-results">${escapeHtml(t('retryFreeze'))}</button></div>` : ''}
+      ${state.submitState === 'error' ? `
+        <div class="submit-error" role="alert">
+          <span>${escapeHtml(t('submitError'))}</span>
+          <button type="button" data-action="submit-response">${escapeHtml(t('retrySubmit'))}</button>
+        </div>
+      ` : ''}
 
       <section class="review-panel topic-list-panel">
         <div class="panel-heading">
@@ -942,111 +809,16 @@ function renderReview() {
         </summary>
         <div class="pair-review-list">${renderPairReview(isSubmitting)}</div>
       </details>
+
+      <details class="review-panel matrix-panel">
+        <summary class="matrix-summary">
+          <span><b id="matrix-title">${escapeHtml(t('matrixTitle'))}</b></span>
+          <i aria-hidden="true">+</i>
+        </summary>
+        ${renderMatrix()}
+      </details>
     </div>
   `, 'review-shell');
-}
-
-function renderResults() {
-  if (!canShowQ7({
-    interviewComplete: interviewIsComplete(),
-    m1Frozen: m1IsFrozen(),
-    resultSnapshot: state.m1ResultSnapshot,
-  })) {
-    return renderShell(`
-      <div class="results-page">
-        <header class="page-heading results-heading">
-          <p class="eyebrow">${escapeHtml(t('resultsEyebrow'))}</p>
-          <h1 data-page-title tabindex="-1">${escapeHtml(t('resultsTitle'))}</h1>
-        </header>
-        <p class="results-locked-message" role="status">${escapeHtml(t('q7MustWait'))}</p>
-      </div>
-    `, 'results-shell');
-  }
-
-  const snapshot = state.m1ResultSnapshot;
-  const localFactors = localisedFactors(state.locale);
-  const labelsById = new Map(localFactors.map((factor) => [factor.id, displayTopicName(factor.name, state.locale)]));
-  const dateLabel = new Date(snapshot.frozenAt).toLocaleString(state.locale, { dateStyle: 'medium', timeStyle: 'short' });
-  const metrics = snapshot.metrics;
-  const rankList = (field) => [...metrics]
-    .filter((item) => item[field] > 0)
-    .sort((left, right) => right[field] - left[field] || factorIds.indexOf(left.id) - factorIds.indexOf(right.id))
-    .slice(0, 5)
-    .map((item) => `
-      <li><span class="result-rank-topic"><b>${item.id}</b>${escapeHtml(labelsById.get(item.id) || item.id)}</span><strong>${item[field]}</strong></li>
-    `).join('');
-  const metricRows = metrics.map((item) => `
-    <tr>
-      <th scope="row"><span>${item.id}</span><b>${escapeHtml(labelsById.get(item.id) || item.id)}</b></th>
-      <td>${item.drivingPower}</td>
-      <td>${item.dependence}</td>
-    </tr>
-  `).join('');
-  const q7Invalid = state.showQ7Validation && !state.q7Response.trim();
-
-  return renderShell(`
-    <div class="results-page">
-      <header class="page-heading results-heading">
-        <p class="eyebrow">${escapeHtml(t('resultsEyebrow'))}</p>
-        <h1 data-page-title tabindex="-1">${escapeHtml(t('resultsTitle'))}</h1>
-      </header>
-
-      <section class="result-card" aria-labelledby="result-card-title">
-        <div class="result-card-topline">
-          <h2 id="result-card-title">${escapeHtml(t('resultFrozen'))}</h2>
-          <span>${escapeHtml(dateLabel)}</span>
-        </div>
-        <p class="result-card-intro">${escapeHtml(t('resultCardIntro'))}</p>
-
-        <div class="result-summary">
-          <article><span>${escapeHtml(t('resultDirectLinks'))}</span><b>${snapshot.directLinkCount}</b></article>
-          <article><span>${escapeHtml(t('allTopics'))}</span><b>${snapshot.metrics.length}</b></article>
-        </div>
-
-        <div class="result-highlights">
-          <section>
-            <h3>${escapeHtml(t('resultTopDrivers'))}</h3>
-            <ol>${rankList('drivingPower') || `<li>${escapeHtml(t('noneResult'))}</li>`}</ol>
-          </section>
-          <section>
-            <h3>${escapeHtml(t('resultTopReceivers'))}</h3>
-            <ol>${rankList('dependence') || `<li>${escapeHtml(t('noneResult'))}</li>`}</ol>
-          </section>
-        </div>
-
-        <section class="result-metrics-section">
-          <h3>${escapeHtml(t('resultMetricHeading'))}</h3>
-          <div class="result-metrics-scroll" role="region" tabindex="0" aria-label="${escapeHtml(t('resultMetricHeading'))}">
-            <table class="result-metrics-table">
-              <thead><tr><th scope="col">${escapeHtml(t('resultTopic'))}</th><th scope="col">${escapeHtml(t('resultDrivingPower'))}</th><th scope="col">${escapeHtml(t('resultDependence'))}</th></tr></thead>
-              <tbody>${metricRows}</tbody>
-            </table>
-          </div>
-        </section>
-      </section>
-
-      <section class="interpretation-section" aria-labelledby="interpretation-title">
-        <header>
-          <p class="eyebrow">${escapeHtml(t('interpretationTitle'))}</p>
-          <h2 id="interpretation-title">${escapeHtml(t('interpretationQuestion'))}</h2>
-        </header>
-        <form class="interpretation-form" id="interpretation-form" novalidate>
-          <textarea id="q7-response" name="q7-response" rows="5" maxlength="${MAX_QUALITATIVE_ANSWER_LENGTH}" required aria-required="true" aria-invalid="${q7Invalid}" ${state.submitState === 'error' ? 'readonly' : ''} ${q7Invalid ? 'aria-describedby="q7-error"' : ''} placeholder="${escapeHtml(t('interpretationPlaceholder'))}">${escapeHtml(state.q7Response)}</textarea>
-          ${q7Invalid ? `<p class="form-error" id="q7-error" role="alert">${escapeHtml(t('interpretationRequired'))}</p>` : ''}
-          <div class="form-actions result-actions">
-            <span></span>
-            <button class="primary-button" type="submit" ${state.submitState === 'submitting' ? 'disabled' : ''}>${escapeHtml(state.submitState === 'submitting' ? t('submitting') : t('submitResponse'))}<span aria-hidden="true">→</span></button>
-          </div>
-        </form>
-        ${state.submitState === 'error' ? `
-          <div class="submit-error" role="alert">
-            <span>${escapeHtml(t('submitError'))}</span>
-            <button type="button" data-action="submit-response">${escapeHtml(t('retrySubmit'))}</button>
-          </div>
-        ` : ''}
-      </section>
-    </div>
-  `, 'results-shell');
 }
 
 function renderComplete() {
@@ -1081,10 +853,8 @@ function render() {
   app.innerHTML = {
     welcome: renderWelcome,
     profile: renderProfile,
-    interview: renderInterview,
     survey: renderSurvey,
     review: renderReview,
-    results: renderResults,
     complete: renderComplete,
   }[state.screen]();
   detachTopicDefinitionHints = state.screen === 'survey'
@@ -1115,123 +885,12 @@ function updateProfileValidation() {
   }
 }
 
-function updateInterviewValidation() {
-  if (!state.showInterviewValidation) return;
-  interviewQuestionIds.forEach((id) => {
-    const input = document.querySelector(`[data-interview-answer="${id}"]`);
-    const isValid = Boolean(state.interviewResponses[id].trim());
-    input?.setAttribute('aria-invalid', String(!isValid));
-    if (isValid) {
-      input?.removeAttribute('aria-describedby');
-      document.querySelector(`#interview-error-${id}`)?.remove();
-    } else {
-      input?.setAttribute('aria-describedby', `interview-error-${id}`);
-    }
-  });
-  if (interviewIsComplete()) {
-    state.showInterviewValidation = false;
-    document.querySelector('#interview-error')?.remove();
-  }
-}
-
-function updateQ7Validation() {
-  if (!state.showQ7Validation) return;
-  const input = document.querySelector('#q7-response');
-  const isValid = Boolean(state.q7Response.trim());
-  input?.setAttribute('aria-invalid', String(!isValid));
-  if (isValid) {
-    state.showQ7Validation = false;
-    input?.removeAttribute('aria-describedby');
-    document.querySelector('#q7-error')?.remove();
-  } else {
-    input?.setAttribute('aria-describedby', 'q7-error');
-  }
-}
-
-function enterM1() {
-  if (!canStartM1({
-    profileReady: profileIsReady(),
-    interviewComplete: interviewIsComplete(),
-    m1Frozen: m1IsFrozen(),
-  })) return;
-  state.interviewCompletedAt ||= new Date().toISOString();
-  state.m1StartedAt ||= new Date().toISOString();
-  state.currentIndex = firstUnreviewedIndex();
-  state.showInterviewValidation = false;
-  persist();
-  goTo(allTopicsReviewed() ? 'review' : 'survey');
-}
-
-async function freezeM1Results() {
-  if (!canFreezeM1({
-    interviewComplete: interviewIsComplete(),
-    m1Started: Boolean(state.m1StartedAt),
-    allTopicsReviewed: allTopicsReviewed(),
-    m1Frozen: m1IsFrozen(),
-  }) || state.freezeState === 'submitting') return;
-
-  const clientSubmissionId = state.clientSubmissionId || createClientSubmissionId();
-  state.clientSubmissionId = clientSubmissionId;
-  state.m1FreezeAttempted = true;
-  state.freezeState = 'submitting';
-  persist();
-  render();
-
-  try {
-    const freezeRequest = {
-      ...buildCurrentSubmission(),
-      phase: 'm1-freeze',
-      status: 'm1-freeze-request',
-      requestedAt: new Date().toISOString(),
-    };
-    delete freezeRequest.submittedAt;
-    delete freezeRequest.m1ResultSnapshot;
-    delete freezeRequest.q7Response;
-    const response = await fetch(resolveSubmissionEndpoint(), {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(freezeRequest),
-    });
-    if (!response.ok) throw new Error('freeze failed');
-    const receipt = await response.json();
-    const localFactors = localisedFactors(state.locale);
-    const directInfluenceMatrix = buildDirectMatrix(localFactors, state.answers).map((row, rowIndex) => (
-      row.map((value, columnIndex) => (rowIndex === columnIndex ? 0 : value))
-    ));
-    if (!receipt.submissionId
-      || !isTimestamp(receipt.frozenAt)
-      || receipt.m1ResultSnapshot?.frozenAt !== receipt.frozenAt
-      || !m1ResultSnapshotMatches({
-        snapshot: receipt.m1ResultSnapshot,
-        factorVersion: studyConfig.version,
-        factors: localFactors,
-        directInfluenceMatrix,
-      })) throw new Error('invalid freeze receipt');
-    if (state.clientSubmissionId !== clientSubmissionId) return;
-
-    state.m1FreezeReceiptId = receipt.submissionId;
-    state.m1FrozenAt = receipt.frozenAt;
-    state.m1ResultSnapshot = receipt.m1ResultSnapshot;
-    state.freezeState = 'frozen';
-    state.showQ7Validation = false;
-    persist();
-    goTo('results');
-  } catch {
-    if (state.clientSubmissionId !== clientSubmissionId) return;
-    state.freezeState = 'error';
-    persist();
-    render();
-    document.querySelector('.submit-error')?.focus?.();
-  }
-}
-
 function firstUnreviewedIndex() {
   const index = factors.findIndex((factor) => !state.reviewedFactors.includes(factor.id));
   return index < 0 ? 0 : index;
 }
 
 function markCurrentTopicPending(sourceId) {
-  if (m1IsFrozen()) return;
   state.reviewedFactors = state.reviewedFactors.filter((id) => id !== sourceId);
   state.completedAt = '';
   state.submissionId = '';
@@ -1260,7 +919,6 @@ function updateSurveySelectionUi(sourceId) {
 }
 
 function confirmCurrentTopic() {
-  if (state.screen !== 'survey' || m1IsFrozen()) return;
   const sourceId = factors[state.currentIndex].id;
   const selected = selectedTargets(sourceId);
   if (!selected.length && !hasExplicitNone(sourceId)) return;
@@ -1302,7 +960,6 @@ function buildCurrentSubmission() {
   };
   const submission = buildSubmission({
     studyId: studyConfig.id,
-    schemaVersion: 2,
     locale: state.locale,
     participant,
     factors: localisedFactors(state.locale),
@@ -1312,7 +969,6 @@ function buildCurrentSubmission() {
 
   return {
     ...submission,
-    schemaVersion: 2,
     clientSubmissionId: state.clientSubmissionId,
     status: 'complete',
     collectionMethod: 'source-topic-multi-select-v1',
@@ -1326,13 +982,6 @@ function buildCurrentSubmission() {
       targetIds: selectedTargets(sourceId),
       noDirectInfluence: hasExplicitNone(sourceId),
     })),
-    qualitativeResponses: {
-      phase: 'before-m1',
-      completedAt: state.interviewCompletedAt,
-      answers: Object.fromEntries(interviewQuestionIds.map((id) => [id, state.interviewResponses[id].trim()])),
-    },
-    m1ResultSnapshot: state.m1ResultSnapshot,
-    q7Response: state.q7Response.trim(),
     study: {
       title: localeText(studyConfig.title),
       scope: localeText(studyConfig.scope),
@@ -1344,20 +993,7 @@ function buildCurrentSubmission() {
 }
 
 async function submitResponse() {
-  if (!allTopicsReviewed()
-    || !canShowQ7({
-      interviewComplete: interviewIsComplete(),
-      m1Frozen: m1IsFrozen(),
-      resultSnapshot: state.m1ResultSnapshot,
-    })
-    || state.submitState === 'submitting') return;
-  state.showQ7Validation = true;
-  if (!state.q7Response.trim() || state.q7Response.length > MAX_QUALITATIVE_ANSWER_LENGTH) {
-    render();
-    document.querySelector('#q7-response')?.focus();
-    return;
-  }
-  state.showQ7Validation = false;
+  if (!allTopicsReviewed() || state.submitState === 'submitting') return;
   let clientSubmissionId = state.clientSubmissionId;
   state.submitState = 'submitting';
   render();
@@ -1371,14 +1007,7 @@ async function submitResponse() {
     const response = await fetch(resolveSubmissionEndpoint(), {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        schemaVersion: 2,
-        phase: 'q7-finalize',
-        studyId: studyConfig.id,
-        clientSubmissionId,
-        freezeReceiptId: state.m1FreezeReceiptId,
-        q7Response: state.q7Response.trim(),
-      }),
+      body: JSON.stringify(buildCurrentSubmission()),
     });
     if (!response.ok) throw new Error('submit failed');
     const receipt = await response.json();
@@ -1436,54 +1065,26 @@ window.addEventListener('resize', positionGuide);
 window.addEventListener('scroll', positionGuide, { passive: true });
 
 app.addEventListener('submit', (event) => {
+  if (event.target.id !== 'profile-form') return;
   event.preventDefault();
-  if (event.target.id === 'profile-form') {
-    state.showValidation = true;
-    if (!profileIsReady()) {
-      render();
-      document.querySelector('[aria-invalid="true"]')?.focus();
-      return;
-    }
-
-    state.showValidation = false;
-    goTo('interview');
+  state.showValidation = true;
+  if (!profileIsReady()) {
+    render();
+    document.querySelector('[aria-invalid="true"]')?.focus();
     return;
   }
 
-  if (event.target.id === 'interview-form') {
-    state.showInterviewValidation = true;
-    if (!interviewIsComplete()) {
-      render();
-      document.querySelector('[aria-invalid="true"]')?.focus();
-      return;
-    }
-    enterM1();
-    return;
-  }
-
-  if (event.target.id === 'interpretation-form') void submitResponse();
+  state.showValidation = false;
+  state.currentIndex = firstUnreviewedIndex();
+  persist();
+  goTo('survey');
 });
 
 app.addEventListener('input', (event) => {
-  const target = event.target;
-  if (target.name === 'code') {
-    state.participant.code = target.value;
-    updateProfileValidation();
-    persist();
-    return;
-  }
-  const interviewId = target.dataset.interviewAnswer;
-  if (interviewId && interviewQuestionIds.includes(interviewId)) {
-    state.interviewResponses[interviewId] = target.value;
-    updateInterviewValidation();
-    persist();
-    return;
-  }
-  if (target.id === 'q7-response') {
-    state.q7Response = target.value;
-    updateQ7Validation();
-    persist();
-  }
+  if (event.target.name !== 'code') return;
+  state.participant.code = event.target.value;
+  updateProfileValidation();
+  persist();
 });
 
 app.addEventListener('change', (event) => {
@@ -1500,7 +1101,6 @@ app.addEventListener('change', (event) => {
     return;
   }
   if (target.name !== 'direct-target') return;
-  if (m1IsFrozen() || state.screen !== 'survey') return;
 
   const sourceId = target.dataset.sourceId;
   if (target.value === NONE_VALUE) {
@@ -1524,7 +1124,7 @@ app.addEventListener('change', (event) => {
 app.addEventListener('click', (event) => {
   const button = event.target.closest('[data-action]');
   if (!button) return;
-  if (state.submitState === 'submitting' || state.freezeState === 'submitting') return;
+  if (state.submitState === 'submitting') return;
 
   switch (button.dataset.action) {
     case 'stage-nav':
@@ -1536,21 +1136,17 @@ app.addEventListener('click', (event) => {
     case 'start':
       if (state.submissionId) {
         goTo('complete');
-      } else if (m1IsFrozen()) {
-        goTo('results');
-      } else if (profileIsReady() && interviewIsComplete()) {
-        enterM1();
+      } else if (profileIsReady() && allTopicsReviewed()) {
+        goTo('review');
       } else if (profileIsReady()) {
-        goTo('interview');
+        state.currentIndex = firstUnreviewedIndex();
+        goTo('survey');
       } else {
         goTo('profile');
       }
       break;
     case 'back-welcome':
       goTo('welcome');
-      break;
-    case 'back-profile':
-      goTo('profile');
       break;
     case 'previous-topic':
       if (state.currentIndex > 0) state.currentIndex -= 1;
@@ -1573,14 +1169,10 @@ app.addEventListener('click', (event) => {
       goTo('survey');
       break;
     case 'back-survey':
-      if (m1IsFrozen()) break;
       state.currentIndex = factors.length - 1;
       state.editingFromReview = true;
       persist();
       goTo('survey');
-      break;
-    case 'freeze-results':
-      void freezeM1Results();
       break;
     case 'submit-response':
       void submitResponse();

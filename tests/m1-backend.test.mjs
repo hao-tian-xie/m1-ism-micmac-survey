@@ -12,7 +12,6 @@ import {
   m1SubmissionsPlugin,
 } from '../server/m1-submission-store.mjs';
 import { createM1ProductionServer } from '../server/m1-production-server.mjs';
-import { buildM1ResultSnapshot } from '../survey-core.mjs';
 
 async function temporaryDirectory(t) {
   const directory = await mkdtemp(join(tmpdir(), 'm1-backend-'));
@@ -77,49 +76,6 @@ function completeSubmission(overrides = {}) {
   };
 }
 
-function completeQualitativeSubmission(overrides = {}) {
-  const factors = Array.from({ length: 38 }, (_, index) => ({
-    id: `F${index + 1}`,
-    label: `F${index + 1}`,
-    description: `F${index + 1} description`,
-  }));
-  const directInfluenceMatrix = factors.map(() => factors.map(() => 0));
-  const interviewCompletedAt = '2026-09-15T10:00:00.000Z';
-  const frozenAt = '2026-09-15T10:02:00.000Z';
-  const answers = Object.fromEntries(Array.from({ length: 6 }, (_, index) => [
-    `q${index + 1}`,
-    `Qualitative answer ${index + 1}`,
-  ]));
-  return completeSubmission({
-    schemaVersion: 2,
-    submittedAt: '2026-09-15T10:04:00.000Z',
-    qualitativeResponses: {
-      phase: 'before-m1',
-      completedAt: interviewCompletedAt,
-      answers,
-    },
-    m1ResultSnapshot: buildM1ResultSnapshot({
-      factorVersion: 'esrs-set1-subtopics-v2-38-verified',
-      frozenAt,
-      factors,
-      directInfluenceMatrix,
-    }),
-    q7Response: 'The result card partly matches what I have seen.',
-    ...overrides,
-  });
-}
-
-function m1FreezeRequest(overrides = {}) {
-  const complete = completeQualitativeSubmission(overrides);
-  const { submittedAt, m1ResultSnapshot, q7Response, ...base } = complete;
-  return {
-    ...base,
-    phase: 'm1-freeze',
-    status: 'm1-freeze-request',
-    requestedAt: '2026-09-15T10:03:00.000Z',
-  };
-}
-
 test('POST /api/m1-submissions rejects a stale factor version', async (t) => {
   const directory = await temporaryDirectory(t);
   const dataFile = join(directory, 'submissions.ndjson');
@@ -169,125 +125,6 @@ test('POST /api/m1-submissions accepts a complete answer without optional experi
   assert.equal(records[0].submissionId, receipt.submissionId);
   assert.equal(records[0].receivedAt, receipt.receivedAt);
   assert.deepEqual(records[0].submission, submission);
-});
-
-test('POST /api/m1-submissions persists a server freeze before accepting Q7', async (t) => {
-  const directory = await temporaryDirectory(t);
-  const dataFile = join(directory, 'submissions.ndjson');
-  const handler = createM1SubmissionHandler({ dataFile });
-  const server = createServer((request, response) => {
-    handler(request, response, () => response.writeHead(404).end());
-  });
-  closeServer(t, server);
-  const origin = await listen(server);
-  const freeze = m1FreezeRequest();
-  const freezeResponse = await fetch(`${origin}/api/m1-submissions`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(freeze),
-  });
-  const freezeReceipt = await freezeResponse.json();
-  const pendingRows = (await readFile(dataFile, 'utf8')).trim().split('\n').map(JSON.parse);
-
-  assert.equal(freezeResponse.status, 201);
-  assert.equal(pendingRows[0].submission.status, 'm1-frozen');
-  assert.equal(pendingRows[0].submission.q7Response, undefined);
-  assert.equal(freezeReceipt.m1ResultSnapshot.directLinkCount, 0);
-  assert.equal(freezeReceipt.frozenAt, freezeReceipt.m1ResultSnapshot.frozenAt);
-
-  const finalizeResponse = await fetch(`${origin}/api/m1-submissions`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      schemaVersion: 2,
-      phase: 'q7-finalize',
-      studyId: 'M1-ESG-ISM-MICMAC',
-      clientSubmissionId: freeze.clientSubmissionId,
-      freezeReceiptId: freezeReceipt.submissionId,
-      q7Response: 'The result card partly matches what I have seen.',
-    }),
-  });
-  const receipt = await finalizeResponse.json();
-  const records = (await readFile(dataFile, 'utf8')).trim().split('\n').map(JSON.parse);
-
-  assert.equal(finalizeResponse.status, 201);
-  assert.equal(records.length, 1);
-  assert.equal(records[0].submission.status, 'complete');
-  assert.equal(records[0].submission.qualitativeResponses.answers.q1, 'Qualitative answer 1');
-  assert.equal(records[0].submission.m1ResultSnapshot.directLinkCount, 0);
-  assert.equal(records[0].submission.q7Response, 'The result card partly matches what I have seen.');
-  assert.equal(receipt.submissionId, freezeReceipt.submissionId);
-});
-
-test('POST /api/m1-submissions rejects Q7 without a matching freeze and invalid M1 data', async (t) => {
-  const directory = await temporaryDirectory(t);
-  const dataFile = join(directory, 'submissions.ndjson');
-  const handler = createM1SubmissionHandler({ dataFile });
-  const server = createServer((request, response) => {
-    handler(request, response, () => response.writeHead(404).end());
-  });
-  closeServer(t, server);
-  const origin = await listen(server);
-  const altered = m1FreezeRequest();
-  altered.directInfluenceMatrix[0][1] = 1;
-  const lateInterview = m1FreezeRequest({
-    qualitativeResponses: {
-      ...completeQualitativeSubmission().qualitativeResponses,
-      completedAt: '2026-09-16T10:05:00.000Z',
-    },
-  });
-  const directFinalization = completeQualitativeSubmission();
-
-  for (const submission of [altered, lateInterview, directFinalization]) {
-    const response = await fetch(`${origin}/api/m1-submissions`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(submission),
-    });
-    assert.equal(response.status, 422);
-  }
-  await assert.rejects(readFile(dataFile, 'utf8'), { code: 'ENOENT' });
-});
-
-test('Q7 finalization is blocked until the matching freeze exists and is retryable afterward', async (t) => {
-  const directory = await temporaryDirectory(t);
-  const dataFile = join(directory, 'submissions.ndjson');
-  const handler = createM1SubmissionHandler({ dataFile });
-  const server = createServer((request, response) => {
-    handler(request, response, () => response.writeHead(404).end());
-  });
-  closeServer(t, server);
-  const origin = await listen(server);
-  const freeze = m1FreezeRequest();
-  const finalize = (freezeReceiptId) => fetch(`${origin}/api/m1-submissions`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      schemaVersion: 2,
-      phase: 'q7-finalize',
-      studyId: 'M1-ESG-ISM-MICMAC',
-      clientSubmissionId: freeze.clientSubmissionId,
-      freezeReceiptId,
-      q7Response: 'The result card partly matches what I have seen.',
-    }),
-  });
-
-  const premature = await finalize('M1-no-such-freeze');
-  assert.equal(premature.status, 409);
-
-  const freezeResponse = await fetch(`${origin}/api/m1-submissions`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(freeze),
-  });
-  const freezeReceipt = await freezeResponse.json();
-  const first = await finalize(freezeReceipt.submissionId);
-  const retry = await finalize(freezeReceipt.submissionId);
-  assert.equal(first.status, 201);
-  assert.equal(retry.status, 201);
-
-  const exported = await createM1SubmissionStore({ dataFile }).openExport();
-  assert.ok(exported.size > 0);
 });
 
 test('POST /api/m1-submissions requires a JSON content type', async (t) => {
