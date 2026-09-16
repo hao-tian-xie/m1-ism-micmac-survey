@@ -13,6 +13,16 @@ services:
         value: 24.14.1
       - key: M1_SUBMISSIONS_FILE
         value: /var/data/m1-submissions.ndjson
+      - key: M1_QUESTION_CONFIG_FILE
+        value: /var/data/m1-question-config.json
+      - key: ADMIN_AUTH_DB
+        value: /var/data/m1-admin-auth.sqlite
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD_HASH
+        sync: false
+      - key: ADMIN_AUTH_PEPPER
+        sync: false
       - key: M1_ADMIN_USER
         sync: false
       - key: M1_ADMIN_PASSWORD

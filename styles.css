@@ -4513,6 +4513,87 @@ body[data-screen="complete"] .content-stage {
   color: var(--accent);
 }
 
+.qualitative-question-label em {
+  margin-left: 5px;
+  color: var(--danger);
+  font-style: normal;
+}
+
+.module-help {
+  max-height: 3.2em;
+  margin: -4px 0 7px 48px;
+  overflow: auto;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.4;
+  white-space: pre-line;
+}
+
+.module-choice-group {
+  height: var(--written-answer-height);
+  min-width: 0;
+  margin: 0;
+  padding: 1px;
+  overflow: auto;
+  border: 0;
+  background: var(--line);
+}
+
+.module-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+}
+
+.module-option-card {
+  display: flex;
+  min-width: 0;
+  min-height: 52px;
+  padding: 11px 13px;
+  align-items: center;
+  gap: 10px;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.module-option-card:hover,
+.module-option-card.is-selected {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.module-option-card input {
+  width: 19px;
+  height: 19px;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: var(--accent);
+}
+
+.module-option-card span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.module-choice-group:has([aria-invalid="true"]) {
+  outline: 1px solid var(--danger);
+  outline-offset: 1px;
+}
+
+.written-question-form .module-error {
+  min-height: 18px;
+  margin: 3px 0 0;
+}
+
+.questionnaire-loading {
+  max-width: 760px;
+  margin: 80px auto;
+  padding: 24px;
+  color: var(--muted);
+  text-align: center;
+}
+
 .written-question-form .qualitative-field textarea,
 .written-question-form .final-submit-form textarea,
 .final-submit-form textarea {
@@ -4685,6 +4766,15 @@ body[data-screen="survey"] .source-progress {
     gap: 7px;
     font-size: 16px;
     line-height: 1.35;
+  }
+
+  .module-help {
+    margin-left: 35px;
+    font-size: 13px;
+  }
+
+  .module-choice-grid {
+    grid-template-columns: 1fr;
   }
 
   .qualitative-na-button {

@@ -1,6 +1,6 @@
 const finalQuestionStep = {
   screen: 'complete',
-  target: '#qualitative-q7',
+  target: '.question-module-field',
   title: 'guideFinalQuestionTitle',
   text: 'guideFinalQuestionText',
 };

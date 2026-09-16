@@ -1,5 +1,10 @@
 node_modules/
 dist/
+worker-assets/
 .wrangler/
+.dev.vars
+.env
+.env.*
 data/m1-submissions.ndjson
+data/m1-question-config.json
 .DS_Store

@@ -5,6 +5,9 @@ import { dirname, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
 
 import { buildM1ResultCard } from '../survey-core.mjs';
+import { M1_DEFAULT_QUESTIONNAIRE_CONFIG } from './m1-default-question-config.mjs';
+import { validateVersionedModuleAnswers, versionedModuleAnswersMode } from './m1-module-answer-validation.mjs';
+import { createFileQuestionConfigStore } from './question-config-store.mjs';
 
 const API_PATH = '/api/m1-submissions';
 const HEALTH_PATH = `${API_PATH}/health`;
@@ -83,7 +86,7 @@ function sameM1Submission(left, right) {
     'schemaVersion', 'studyId', 'locale', 'participant', 'study', 'factors', 'responses',
     'initialReachabilityMatrix', 'directInfluenceMatrix', 'progress',
     'status', 'collectionMethod', 'qualitativeSectionComplete', 'qualitativeAnswers',
-    'confirmedTopics', 'sourceSelections',
+    'confirmedTopics', 'sourceSelections', 'questionnaireConfigRevision', 'moduleAnswers',
   ];
   return fields.every((field) => stableJson(left?.[field]) === stableJson(right?.[field]));
 }
@@ -92,7 +95,7 @@ function sameM1Core(left, right) {
   const fields = [
     'schemaVersion', 'studyId', 'locale', 'participant', 'study', 'factors', 'responses',
     'initialReachabilityMatrix', 'directInfluenceMatrix', 'progress', 'status',
-    'confirmedTopics', 'sourceSelections',
+    'confirmedTopics', 'sourceSelections', 'questionnaireConfigRevision', 'moduleAnswers',
   ];
   return fields.every((field) => stableJson(left?.[field]) === stableJson(right?.[field]));
 }
@@ -153,10 +156,16 @@ function isCompleteM1Submission(submission) {
     || !submission.factors.every((factor, index) => factor?.id === FACTOR_IDS[index])) return false;
   if (!Array.isArray(submission.responses) || submission.responses.length !== PAIRS.length) return false;
 
-  // The final request is the only persistence boundary. All seven answers,
-  // including Q7, are required in that request (blank strings are allowed).
-  if (submission.qualitativeSectionComplete !== true
-    || !qualitativeAnswersAreValid(submission.qualitativeAnswers)) return false;
+  // Legacy clients submit the fixed Q1-Q7 string map. Revisioned clients use
+  // moduleAnswers as the canonical payload because an admin may change any of
+  // those modules to a choice or judgement type.
+  const moduleAnswersMode = versionedModuleAnswersMode(submission);
+  if (moduleAnswersMode === 'legacy'
+    && (submission.qualitativeSectionComplete !== true
+      || !qualitativeAnswersAreValid(submission.qualitativeAnswers))) return false;
+  if (moduleAnswersMode !== 'legacy'
+    && submission.qualitativeAnswers !== undefined
+    && !qualitativeAnswersAreValid(submission.qualitativeAnswers)) return false;
   if (!submission.confirmedTopics || !Array.isArray(submission.confirmedTopics.ids)
     || submission.confirmedTopics.ids.length !== FACTOR_IDS.length
     || submission.confirmedTopics.total !== FACTOR_IDS.length
@@ -394,6 +403,10 @@ export function createM1SubmissionStore({ dataFile = defaultDataFile() } = {}) {
 
 export function createM1SubmissionHandler(options = {}) {
   const store = createM1SubmissionStore(options);
+  const questionStore = options.questionStore || createFileQuestionConfigStore({
+    dataFile: options.questionConfigFile,
+    defaultConfig: M1_DEFAULT_QUESTIONNAIRE_CONFIG,
+  });
   const adminUser = options.adminUser ?? process.env.M1_ADMIN_USER ?? '';
   const adminPassword = options.adminPassword ?? process.env.M1_ADMIN_PASSWORD ?? '';
   const maxBodyBytes = options.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES;
@@ -492,6 +505,10 @@ export function createM1SubmissionHandler(options = {}) {
           return;
         }
         if (!isCompleteM1Submission(submission)) {
+          sendJson(response, 422, { error: 'Invalid M1 submission' });
+          return;
+        }
+        if (!await validateVersionedModuleAnswers(submission, questionStore)) {
           sendJson(response, 422, { error: 'Invalid M1 submission' });
           return;
         }

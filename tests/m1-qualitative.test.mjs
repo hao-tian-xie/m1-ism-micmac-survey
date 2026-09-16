@@ -41,16 +41,20 @@ test('all locales include the one-page written-question flow and final-submit co
   assert.match(copy['zh-CN'].qualitativePrivacy, /机密。\n未提交/);
 });
 
-test('Q1–Q6 render one question per page and Q7 is submitted with the final POST', () => {
-  assert.match(app, /const qualitativeQuestionIds = \['q1', 'q2', 'q3', 'q4', 'q5', 'q6'\]/);
-  assert.match(app, /const qualitativeAnswerIds = \[\.\.\.qualitativeQuestionIds, 'q7'\]/);
+test('active configured modules render one per page and are submitted with their revision', () => {
+  assert.match(app, /loadPublicQuestionnaireConfig/);
+  assert.match(app, /beforeTopicModules\(\)/);
+  assert.match(app, /afterTopicModules\(\)/);
   assert.match(app, /qualitativeIndex/);
-  assert.match(app, /if \(state\.qualitativeIndex < qualitativeQuestionIds\.length - 1\)/);
+  assert.match(app, /if \(state\.qualitativeIndex < modules\.length - 1\)/);
   assert.match(app, /id="final-submit-form"/);
-  assert.match(app, /function renderWrittenQuestionField/);
+  assert.match(app, /function renderModuleField/);
+  assert.match(app, /displayedModuleOptions\(module\)/);
   assert.match(app, /data-action="qualitative-na"/);
-  assert.match(app, /state\.qualitativeAnswers\[questionId\] = 'NA'/);
-  assert.match(app, /qualitativeAnswers: Object\.fromEntries\(qualitativeAnswerIds/);
+  assert.match(app, /normalizeModuleValue\(module, 'NA'\)/);
+  assert.match(app, /qualitativeAnswers: legacyQualitativeAnswers\(questionModules, state\.moduleAnswers\)/);
+  assert.match(app, /questionnaireConfigRevision: questionnaireConfig\.revision/);
+  assert.match(app, /moduleAnswers: questionModules\.map/);
   assert.doesNotMatch(app, /renderReview/);
   assert.doesNotMatch(app, /renderResultCard|class="result-card"/);
   assert.doesNotMatch(app, /completeIntro/);
@@ -59,15 +63,16 @@ test('Q1–Q6 render one question per page and Q7 is submitted with the final PO
   assert.doesNotMatch(app, /data-action="verify-result"|data-action="save-feedback"/);
 });
 
-test('written fields have no grey placeholders and the privacy note keeps its line break', () => {
-  assert.match(app, /data-question-id="\$\{id\}"/);
-  assert.match(app, /data-question-id="q7"/);
-  assert.doesNotMatch(app, /textarea[\s\S]{0,500}placeholder=/);
+test('written fields honor configured placeholders and keep the privacy note line break', () => {
+  assert.match(app, /data-module-id="\$\{escapeHtml\(module\.id\)\}"/);
+  assert.match(app, /localized\.placeholder/);
+  assert.match(app, /aria-required="\$\{module\.required\}"/);
   assert.match(styles, /\.qualitative-privacy\s*\{[\s\S]*?white-space:\s*pre-line/);
   assert.match(styles, /\.qualitative-privacy\s*\{[\s\S]*?text-align:\s*justify/);
   assert.match(styles, /\.qualitative-field\s*\{[\s\S]*?gap:\s*5px/);
   assert.match(styles, /body\[data-screen="qualitative"\][\s\S]*?overflow:\s*hidden/);
   assert.match(styles, /\.written-question-row\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto/);
   assert.match(styles, /\.qualitative-na-button\s*\{/);
+  assert.match(styles, /\.module-choice-grid\s*\{/);
   assert.match(styles, /resize:\s*none/);
 });

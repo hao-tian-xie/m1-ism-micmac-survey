@@ -13,7 +13,7 @@ test('welcome keeps the full guide while other screens use local steps', () => {
   assert.equal(guideStepsForScreen('complete', { submitted: true }).length, 1);
   assert.deepEqual(
     guideStepsForScreen('complete').map((step) => step.target),
-    ['#qualitative-q7', '.steps', '#final-submit-form .primary-button'],
+    ['.question-module-field', '.steps', '#final-submit-form .primary-button'],
   );
   assert.ok(guideStepsForScreen('survey').every((step) => step.screen === 'survey'));
 });

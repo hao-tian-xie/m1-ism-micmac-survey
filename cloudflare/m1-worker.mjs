@@ -1,4 +1,10 @@
 import { buildM1ResultCard } from '../survey-core.mjs';
+import { createM1AdminRouter } from '../server/m1-admin-router.mjs';
+import { M1_DEFAULT_QUESTIONNAIRE_CONFIG } from '../server/m1-default-question-config.mjs';
+import { validateVersionedModuleAnswers, versionedModuleAnswersMode } from '../server/m1-module-answer-validation.mjs';
+import { createD1AdminAuthStore, createCloudflareAdminAuth } from './admin-auth.mjs';
+import { createM1D1AdminRepository } from './m1-admin-submissions.mjs';
+import { createD1QuestionConfigStore } from './question-config-store.mjs';
 
 const STUDY_ID = 'M1-ESG-ISM-MICMAC';
 const FACTOR_VERSION = 'esrs-set1-subtopics-v2-38-verified';
@@ -32,9 +38,11 @@ const DEFAULT_ORIGINS = [
 ];
 
 const jsonHeaders = { 'content-type': 'application/json; charset=utf-8' };
-let schemaReady;
+const submissionSchemaByDatabase = new WeakMap();
+const adminRuntimeByEnvironment = new WeakMap();
 
 async function ensureSchema(env) {
+  let schemaReady = submissionSchemaByDatabase.get(env.DB);
   if (!schemaReady) {
     schemaReady = env.DB.batch([
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS submissions (
@@ -45,9 +53,10 @@ async function ensureSchema(env) {
       )`),
       env.DB.prepare('CREATE INDEX IF NOT EXISTS submissions_received_at_idx ON submissions(received_at)'),
     ]).catch((error) => {
-      schemaReady = null;
+      submissionSchemaByDatabase.delete(env.DB);
       throw error;
     });
+    submissionSchemaByDatabase.set(env.DB, schemaReady);
   }
   await schemaReady;
 }
@@ -84,6 +93,74 @@ function json(request, env, value, status = 200, headers = {}) {
 function originIsAllowed(request, env) {
   const origin = request.headers.get('Origin');
   return !origin || allowedOrigins(env).has(origin);
+}
+
+function adminRuntime(env) {
+  if (adminRuntimeByEnvironment.has(env)) return adminRuntimeByEnvironment.get(env);
+
+  const authStore = createD1AdminAuthStore(env.DB);
+  let authService = null;
+  try {
+    authService = createCloudflareAdminAuth(env, { store: authStore });
+  } catch {
+    // Missing or malformed secrets fail closed for the admin namespace without
+    // preventing public survey submissions or the public questionnaire config.
+  }
+  let authSchemaReady;
+  const prepareAuth = async () => {
+    if (!authSchemaReady) authSchemaReady = authStore.ensureSchema().catch((error) => {
+      authSchemaReady = null;
+      throw error;
+    });
+    await authSchemaReady;
+  };
+  const unavailable = () => new Response(JSON.stringify({ error: 'admin-auth-not-configured' }), {
+    status: 503,
+    headers: { 'cache-control': 'no-store', 'content-type': 'application/json; charset=utf-8' },
+  });
+  const auth = {
+    async handleLogin(request) {
+      if (!authService) return unavailable();
+      try { await prepareAuth(); } catch { return unavailable(); }
+      return authService.handleLogin(request);
+    },
+    async handleSession(request) {
+      if (!authService) return unavailable();
+      try { await prepareAuth(); } catch { return unavailable(); }
+      return authService.handleSession(request);
+    },
+    async handleLogout(request) {
+      if (!authService) return unavailable();
+      try { await prepareAuth(); } catch { return unavailable(); }
+      return authService.handleLogout(request);
+    },
+    async requireSession(request, options) {
+      if (!authService) return { ok: false, response: unavailable() };
+      try { await prepareAuth(); } catch { return { ok: false, response: unavailable() }; }
+      return authService.requireSession(request, options);
+    },
+  };
+
+  const d1Repository = createM1D1AdminRepository(env.DB);
+  const submissionsRepository = Object.fromEntries(
+    ['list', 'getById', 'counts', 'exportRecords'].map((method) => [method, async (...args) => {
+      await ensureSchema(env);
+      return d1Repository[method](...args);
+    }]),
+  );
+  const questionStore = createD1QuestionConfigStore({
+    db: env.DB,
+    defaultConfig: M1_DEFAULT_QUESTIONNAIRE_CONFIG,
+  });
+  const router = createM1AdminRouter({
+    auth,
+    questionStore,
+    submissionsRepository,
+    allowedOrigins: env.ALLOWED_ORIGINS || DEFAULT_ORIGINS,
+  });
+  const runtime = { questionStore, router };
+  adminRuntimeByEnvironment.set(env, runtime);
+  return runtime;
 }
 
 async function readBody(request) {
@@ -155,7 +232,7 @@ function sameM1Submission(left, right) {
     'schemaVersion', 'studyId', 'locale', 'participant', 'study', 'factors', 'responses',
     'initialReachabilityMatrix', 'directInfluenceMatrix', 'progress',
     'status', 'collectionMethod', 'qualitativeSectionComplete', 'qualitativeAnswers',
-    'confirmedTopics', 'sourceSelections',
+    'confirmedTopics', 'sourceSelections', 'questionnaireConfigRevision', 'moduleAnswers',
   ];
   return fields.every((field) => stableJson(left?.[field]) === stableJson(right?.[field]));
 }
@@ -164,7 +241,7 @@ function sameM1Core(left, right) {
   const fields = [
     'schemaVersion', 'studyId', 'locale', 'participant', 'study', 'factors', 'responses',
     'initialReachabilityMatrix', 'directInfluenceMatrix', 'progress', 'status',
-    'confirmedTopics', 'sourceSelections',
+    'confirmedTopics', 'sourceSelections', 'questionnaireConfigRevision', 'moduleAnswers',
   ];
   return fields.every((field) => stableJson(left?.[field]) === stableJson(right?.[field]));
 }
@@ -195,8 +272,13 @@ function validateSubmission(record) {
   if (!Array.isArray(record.factors)
     || record.factors.length !== FACTOR_COUNT
     || !record.factors.every((factor, index) => factor?.id === FACTOR_IDS[index])) return 'invalid-factors';
-  if (record.qualitativeSectionComplete !== true
-    || !qualitativeAnswersAreValid(record.qualitativeAnswers)) return 'invalid-qualitative-answers';
+  const moduleAnswersMode = versionedModuleAnswersMode(record);
+  if (moduleAnswersMode === 'legacy'
+    && (record.qualitativeSectionComplete !== true
+      || !qualitativeAnswersAreValid(record.qualitativeAnswers))) return 'invalid-qualitative-answers';
+  if (moduleAnswersMode !== 'legacy'
+    && record.qualitativeAnswers !== undefined
+    && !qualitativeAnswersAreValid(record.qualitativeAnswers)) return 'invalid-qualitative-answers';
   if (!isObject(record.confirmedTopics)
     || !Array.isArray(record.confirmedTopics.ids)
     || record.confirmedTopics.ids.length !== FACTOR_COUNT
@@ -312,6 +394,9 @@ async function submit(request, env) {
   }
   const validationError = validateSubmission(record);
   if (validationError) return json(request, env, { error: validationError }, 422);
+  if (!await validateVersionedModuleAnswers(record, adminRuntime(env).questionStore)) {
+    return json(request, env, { error: 'invalid-module-answers' }, 422);
+  }
 
   const candidateId = `M1-${crypto.randomUUID()}`;
   const candidateReceivedAt = new Date().toISOString();
@@ -390,9 +475,13 @@ async function exportSubmissions(request, env) {
 
 export default {
   async fetch(request, env) {
+    const url = new URL(request.url);
+    if (url.pathname === '/api/m1-questionnaire' || url.pathname === '/api/admin'
+      || url.pathname.startsWith('/api/admin/')) {
+      return adminRuntime(env).router(request);
+    }
     if (!originIsAllowed(request, env)) return json(request, env, { error: 'origin-not-allowed' }, 403);
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders(request, env) });
-    const url = new URL(request.url);
     if (url.pathname === `${API_PATH}/health` && request.method === 'GET') {
       return json(request, env, { ok: true, service: 'm1-ism-micmac-survey-api' });
     }

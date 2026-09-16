@@ -5,6 +5,9 @@ import { extname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { createM1SubmissionHandler } from './m1-submission-store.mjs';
+import { createM1AdminHttpHandler } from './m1-admin-http.mjs';
+import { M1_DEFAULT_QUESTIONNAIRE_CONFIG } from './m1-default-question-config.mjs';
+import { createFileQuestionConfigStore } from './question-config-store.mjs';
 
 const CONTENT_TYPES = {
   '.css': 'text/css; charset=utf-8',
@@ -74,13 +77,25 @@ export function createM1ProductionServer({
   dataFile,
   adminUser,
   adminPassword,
+  admin = {},
 } = {}) {
-  const apiHandler = createM1SubmissionHandler({ dataFile, adminUser, adminPassword });
-  return createServer((request, response) => {
-    apiHandler(request, response, () => {
-      void serveStatic(request, response, distDir);
+  const questionStore = admin.questionStore || createFileQuestionConfigStore({
+    dataFile: admin.questionConfigFile,
+    defaultConfig: M1_DEFAULT_QUESTIONNAIRE_CONFIG,
+  });
+  const apiHandler = createM1SubmissionHandler({
+    dataFile, adminUser, adminPassword, questionStore,
+  });
+  const adminHandler = createM1AdminHttpHandler({ dataFile, ...admin, questionStore });
+  const server = createServer((request, response) => {
+    adminHandler(request, response, () => {
+      apiHandler(request, response, () => {
+        void serveStatic(request, response, distDir);
+      });
     });
   });
+  server.once('close', () => adminHandler.close?.());
+  return server;
 }
 
 const isMainModule = process.argv[1]

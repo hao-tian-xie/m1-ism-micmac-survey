@@ -6,11 +6,20 @@ import {
   tryWriteStorage,
 } from './survey-core.mjs';
 import { displayTopicName, localisedFactors, studyConfig } from './survey-config.mjs?v=topic-definitions-contains-20260908';
-import { copy, languageNames, locales } from './translations.mjs?v=subjective-m1-final-v6';
+import { copy, languageNames, locales } from './translations.mjs?v=live-question-config-v1';
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
 import { resolveLocale } from './locale-state.mjs';
-import { guideStepsForScreen } from './guide-steps.mjs?v=guide-final-v3';
+import { guideStepsForScreen } from './guide-steps.mjs?v=live-question-config-v1';
 import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs';
+import {
+  FALLBACK_PUBLIC_QUESTIONNAIRE,
+  blankModuleValue,
+  legacyQualitativeAnswers,
+  loadPublicQuestionnaireConfig,
+  moduleAnswerError,
+  normalizeModuleValue,
+  serializeModuleAnswer,
+} from './public-questionnaire.mjs';
 import { attachTopicDefinitionHints } from './topic-definition-hints.mjs';
 
 const STORAGE_KEY = `bextools:${studyConfig.id}:${studyConfig.version}`;
@@ -18,9 +27,6 @@ const NONE_VALUE = '__none__';
 const factors = studyConfig.factors;
 const factorIds = factors.map((factor) => factor.id);
 const pairs = createPairs(factors);
-const qualitativeQuestionIds = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6'];
-const qualitativeAnswerIds = [...qualitativeQuestionIds, 'q7'];
-const maxQualitativeAnswerLength = 3000;
 const app = document.querySelector('#app');
 const languageSwitch = document.querySelector('#language-switch');
 const guideButton = document.querySelector('#guide-button');
@@ -41,6 +47,20 @@ const roleKeys = ['roleOperations', 'roleEsg', 'roleTechnology', 'roleManagement
 const experienceKeys = ['exp1', 'exp2', 'exp3', 'exp4'];
 let storageAvailable = true;
 let detachTopicDefinitionHints = () => {};
+let questionnaireConfig = FALLBACK_PUBLIC_QUESTIONNAIRE;
+let questionModules = [...questionnaireConfig.modules];
+
+function modulesForStage(stage) {
+  return questionModules.filter((module) => module.stage === stage);
+}
+
+function beforeTopicModules() {
+  return modulesForStage('before_topics');
+}
+
+function afterTopicModules() {
+  return modulesForStage('after_topics');
+}
 
 function preferredLocale() {
   return resolveLocale({
@@ -54,8 +74,12 @@ function emptySelections() {
   return Object.fromEntries(factorIds.map((id) => [id, []]));
 }
 
-function blankQualitativeAnswers() {
-  return Object.fromEntries(qualitativeAnswerIds.map((id) => [id, '']));
+function blankModuleAnswers() {
+  return Object.fromEntries(questionModules.map((module) => [module.id, blankModuleValue(module)]));
+}
+
+function moduleVersions() {
+  return Object.fromEntries(questionModules.map((module) => [module.id, module.version]));
 }
 
 function blankState(locale = preferredLocale()) {
@@ -69,11 +93,16 @@ function blankState(locale = preferredLocale()) {
     reviewedFactors: [],
     currentIndex: 0,
     qualitativeIndex: 0,
+    afterTopicsIndex: 0,
     showValidation: false,
+    questionValidationId: '',
+    questionValidationError: '',
     completedAt: '',
     submissionId: '',
     clientSubmissionId: '',
-    qualitativeAnswers: blankQualitativeAnswers(),
+    moduleAnswers: blankModuleAnswers(),
+    moduleAnswerVersions: moduleVersions(),
+    questionnaireConfigRevision: questionnaireConfig.revision,
     qualitativeSectionComplete: false,
     resultCard: null,
     submitState: 'idle',
@@ -129,15 +158,24 @@ function loadState() {
     next.currentIndex = Math.min(Math.max(Number(saved.currentIndex) || 0, 0), factors.length - 1);
     next.qualitativeIndex = Math.min(
       Math.max(Number(saved.qualitativeIndex) || 0, 0),
-      qualitativeQuestionIds.length - 1,
+      Math.max(0, beforeTopicModules().length - 1),
     );
-    next.qualitativeAnswers = Object.fromEntries(qualitativeAnswerIds.map((id) => [
-      id,
-      typeof saved.qualitativeAnswers?.[id] === 'string'
-        ? saved.qualitativeAnswers[id].slice(0, maxQualitativeAnswerLength)
-        : '',
-    ]));
-    next.qualitativeSectionComplete = saved.qualitativeSectionComplete === true;
+    next.afterTopicsIndex = Math.min(
+      Math.max(Number(saved.afterTopicsIndex) || 0, 0),
+      Math.max(0, afterTopicModules().length - 1),
+    );
+    next.moduleAnswers = Object.fromEntries(questionModules.map((module) => {
+      const versionMatches = saved.moduleAnswerVersions?.[module.id] === module.version;
+      const legacyValue = questionnaireConfig.revision === 0 && module.version === 1
+        ? saved.qualitativeAnswers?.[module.id]
+        : undefined;
+      const storedValue = versionMatches ? saved.moduleAnswers?.[module.id] : legacyValue;
+      return [module.id, normalizeModuleValue(module, storedValue)];
+    }));
+    next.moduleAnswerVersions = moduleVersions();
+    next.questionnaireConfigRevision = questionnaireConfig.revision;
+    next.qualitativeSectionComplete = saved.qualitativeSectionComplete === true
+      && beforeTopicModules().every((module) => !moduleAnswerError(module, next.moduleAnswers[module.id]));
     next.completedAt = submissionId ? String(saved.completedAt || '') : '';
     next.submissionId = submissionId;
     next.clientSubmissionId = submissionId ? '' : String(saved.clientSubmissionId || '');
@@ -149,7 +187,7 @@ function loadState() {
   }
 }
 
-let state = loadState();
+let state = blankState();
 let guideIndex = 0;
 let guideReturnScreen = state.screen;
 let guideIsOpen = false;
@@ -167,6 +205,44 @@ function t(key, values = {}) {
 
 function localeText(value) {
   return value?.[state.locale] || value?.en || '';
+}
+
+function moduleCopy(module) {
+  return module.translations?.[state.locale] || module.translations?.en || {
+    prompt: module.id,
+    helpText: '',
+    placeholder: '',
+  };
+}
+
+function optionLabel(option) {
+  return option.translations?.[state.locale]?.label || option.translations?.en?.label || option.id;
+}
+
+function activeModuleById(id) {
+  return questionModules.find((module) => module.id === id);
+}
+
+function moduleGlobalPosition(module) {
+  return Math.max(0, questionModules.findIndex(({ id }) => id === module.id)) + 1;
+}
+
+function stableOptionHash(value) {
+  let hash = 2166136261;
+  for (const character of value) {
+    hash ^= character.codePointAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function displayedModuleOptions(module) {
+  if (!module.constraints.randomizeOptions) return module.options;
+  const seed = `${questionnaireConfig.revision}:${module.id}:${state.participant.code.trim()}`;
+  return module.options
+    .map((option, index) => ({ option, index, score: stableOptionHash(`${seed}:${option.id}`) }))
+    .sort((left, right) => left.score - right.score || left.index - right.index)
+    .map(({ option }) => option);
 }
 
 function escapeHtml(value) {
@@ -310,6 +386,10 @@ function navigateToStage(targetStage) {
   }
 
   if (targetStage === 'qualitative') {
+    if (!beforeTopicModules().length) {
+      goTo('profile');
+      return;
+    }
     state.qualitativeSectionComplete = false;
     goTo('qualitative');
     return;
@@ -694,6 +774,10 @@ function renderSurvey() {
   const noneSelected = hasExplicitNone(source.id);
   const hasChoice = selectedTargets(source.id).length > 0 || noneSelected;
   const isLast = state.currentIndex === factors.length - 1;
+  const legacyQ7Finish = afterTopicModules().length === 1 && afterTopicModules()[0].id === 'q7';
+  const finishLabel = legacyQ7Finish
+    ? t('confirmAndSubmit')
+    : (afterTopicModules().length ? t('continueAfterTopics') : t('submitResponse'));
   const topicNotes = targets.map((target) => `
     <li><b>${escapeHtml(target.id)} · ${escapeHtml(target.label)}</b><span>${escapeHtml(target.description)}</span></li>
   `).join('');
@@ -767,7 +851,7 @@ function renderSurvey() {
           <span aria-hidden="true">i</span>${escapeHtml(t('topicNotesButton'))}
         </button>
         <button class="primary-button" type="button" data-action="confirm-topic" ${hasChoice ? '' : 'disabled'}>
-          ${escapeHtml(isLast ? t('confirmAndSubmit') : t('confirmAndNext'))}<span aria-hidden="true">→</span>
+          ${escapeHtml(isLast ? finishLabel : t('confirmAndNext'))}<span aria-hidden="true">→</span>
         </button>
       </div>
       <section class="topic-notes" aria-label="${escapeHtml(t('candidateNotes'))}" hidden tabindex="-1">
@@ -778,48 +862,116 @@ function renderSurvey() {
   `, 'survey-shell');
 }
 
-function renderWrittenQuestionField(id, number) {
-  const countId = `qualitative-count-${id}`;
-  const question = t(`qualitativeQ${number}`);
-  const value = state.qualitativeAnswers[id] || '';
-  const questionIdAttribute = id === 'q7' ? 'data-question-id="q7"' : `data-question-id="${id}"`;
-  return `
-    <div class="field-group note-field qualitative-field">
-      <div class="written-question-row">
-        <label class="qualitative-question-label" for="qualitative-${id}">
-          <i>${String(number).padStart(2, '0')}</i><span>${escapeHtml(question)}</span>
-        </label>
-        <button class="qualitative-na-button" type="button" data-action="qualitative-na" data-question-id="${id}">
-          ${escapeHtml(t('qualitativeNa'))}
-        </button>
-      </div>
+function answerErrorText(module, errorCode) {
+  if (!errorCode) return '';
+  if (errorCode === 'too-short') {
+    return t('questionMinLength', { min: module.constraints.minLength });
+  }
+  if (errorCode === 'too-few') {
+    return t('questionMinSelections', {
+      min: Math.max(module.required ? 1 : 0, module.constraints.minSelections),
+    });
+  }
+  if (errorCode === 'too-many') {
+    return t('questionMaxSelections', { max: module.constraints.maxSelections });
+  }
+  return t('requiredMessage');
+}
+
+function renderModuleField(module, number) {
+  const localized = moduleCopy(module);
+  const value = normalizeModuleValue(module, state.moduleAnswers[module.id]);
+  const countId = `qualitative-count-${module.id}`;
+  const helpId = `question-help-${module.id}`;
+  const errorId = `question-error-${module.id}`;
+  const errorCode = state.questionValidationId === module.id ? state.questionValidationError : '';
+  const describedBy = [localized.helpText ? helpId : '', module.type === 'subjective_text' ? countId : '', errorCode ? errorId : '']
+    .filter(Boolean).join(' ');
+  const prompt = `
+    <span>${escapeHtml(localized.prompt)}${module.required ? '<em aria-hidden="true">*</em>' : ''}</span>
+    ${module.required ? `<span class="visually-hidden">${escapeHtml(t('questionRequired'))}</span>` : ''}
+  `;
+  let control;
+  if (module.type === 'subjective_text') {
+    const placeholder = localized.placeholder
+      ? ` placeholder="${escapeHtml(localized.placeholder)}"`
+      : '';
+    control = `
       <textarea
-        id="qualitative-${id}"
-        name="qualitative-answer"
-        ${questionIdAttribute}
-        maxlength="${maxQualitativeAnswerLength}"
-        rows="8"
-        aria-describedby="${countId}"
+        id="qualitative-${module.id}"
+        name="module-text-answer"
+        data-module-id="${escapeHtml(module.id)}"
+        maxlength="${module.constraints.maxLength}"
+        rows="${module.constraints.multiline ? 8 : 2}"
+        aria-required="${module.required}"
+        aria-invalid="${Boolean(errorCode)}"
+        ${describedBy ? `aria-describedby="${describedBy}"` : ''}${placeholder}
       >${escapeHtml(value)}</textarea>
-      <small id="${countId}" data-char-count="${id}">${escapeHtml(t('qualitativeCharCount', { n: value.length }))}</small>
+      <small id="${countId}" data-char-count="${escapeHtml(module.id)}">${escapeHtml(t('questionCharCount', {
+        n: value.length,
+        max: module.constraints.maxLength,
+      }))}</small>
+    `;
+  } else {
+    const isMultiple = module.type === 'multiple_choice';
+    const selected = new Set(isMultiple ? value : [value]);
+    control = `
+      <fieldset class="module-choice-group" ${describedBy ? `aria-describedby="${describedBy}"` : ''}>
+        <legend class="visually-hidden">${escapeHtml(localized.prompt)}</legend>
+        <div class="module-choice-grid">
+          ${displayedModuleOptions(module).map((option) => `
+            <label class="module-option-card ${selected.has(option.id) ? 'is-selected' : ''}">
+              <input
+                type="${isMultiple ? 'checkbox' : 'radio'}"
+                name="module-answer-${escapeHtml(module.id)}"
+                data-module-id="${escapeHtml(module.id)}"
+                value="${escapeHtml(option.id)}"
+                ${selected.has(option.id) ? 'checked' : ''}
+                aria-invalid="${Boolean(errorCode)}"
+              />
+              <span>${escapeHtml(optionLabel(option))}</span>
+            </label>
+          `).join('')}
+        </div>
+      </fieldset>
+    `;
+  }
+  return `
+    <div class="field-group note-field qualitative-field question-module-field" data-module-type="${module.type}">
+      <div class="written-question-row">
+        ${module.type === 'subjective_text' ? `<label class="qualitative-question-label" for="qualitative-${module.id}">` : '<div class="qualitative-question-label">'}
+          <i>${String(number).padStart(2, '0')}</i>${prompt}
+        ${module.type === 'subjective_text' ? '</label>' : '</div>'}
+        ${module.type === 'subjective_text' ? `
+          <button class="qualitative-na-button" type="button" data-action="qualitative-na" data-module-id="${escapeHtml(module.id)}">
+            ${escapeHtml(t('qualitativeNa'))}
+          </button>
+        ` : ''}
+      </div>
+      ${localized.helpText ? `<p class="module-help" id="${helpId}">${escapeHtml(localized.helpText)}</p>` : ''}
+      ${control}
+      ${errorCode ? `<p class="form-error module-error" id="${errorId}" role="alert">${escapeHtml(answerErrorText(module, errorCode))}</p>` : ''}
     </div>
   `;
 }
 
 function renderWrittenQuestionScreen({ final = false } = {}) {
-  const index = final ? qualitativeAnswerIds.length - 1 : Math.min(state.qualitativeIndex, qualitativeQuestionIds.length - 1);
-  const id = qualitativeAnswerIds[index];
-  const total = final ? qualitativeAnswerIds.length : qualitativeQuestionIds.length;
-  const isLast = !final && index === qualitativeQuestionIds.length - 1;
+  const modules = final ? afterTopicModules() : beforeTopicModules();
+  const indexKey = final ? 'afterTopicsIndex' : 'qualitativeIndex';
+  const index = Math.min(state[indexKey], Math.max(0, modules.length - 1));
+  const module = modules[index] || null;
+  const isLast = index === modules.length - 1;
+  const position = module ? (final ? moduleGlobalPosition(module) : index + 1) : questionModules.length;
+  const total = final ? questionModules.length : modules.length;
   const formIdAttribute = final ? 'id="final-submit-form"' : 'id="qualitative-form"';
   const pageClass = final ? 'complete-page final-question-page' : 'qualitative-page';
   const shellClass = final ? 'form-shell qualitative-shell complete-shell' : 'form-shell qualitative-shell';
   const eyebrow = final ? t('completeEyebrow') : t('qualitativeEyebrow');
   const title = final ? t('completeTitle') : t('qualitativeTitle');
-  const previousAction = final ? 'back-to-survey' : 'qualitative-previous';
+  const previousAction = final ? 'after-question-previous' : 'qualitative-previous';
   const previousLabel = final ? t('backToSurvey') : (index === 0 ? t('back') : t('qualitativePrevious'));
   const primaryLabel = final
-    ? (state.submitState === 'submitting' ? t('submitting') : t('submitResponse'))
+    ? (isLast ? (state.submitState === 'submitting' ? t('submitting') : t('submitResponse')) : t('qualitativeNext'))
     : (isLast ? t('qualitativeFinish') : t('qualitativeNext'));
   const intro = final ? '' : t('qualitativeIntro');
   const error = final && state.submitState === 'error'
@@ -836,9 +988,9 @@ function renderWrittenQuestionScreen({ final = false } = {}) {
 
       <p class="qualitative-privacy">${escapeHtml(t('qualitativePrivacy'))}</p>
 
-      <form class="qualitative-form written-question-form ${final ? 'final-submit-form' : ''}" ${formIdAttribute}>
-        <div class="qualitative-progress" aria-live="polite">${escapeHtml(t('qualitativePosition', { i: index + 1, total }))}</div>
-        <div class="qualitative-fields">${renderWrittenQuestionField(id, index + 1)}</div>
+      <form class="qualitative-form written-question-form ${final ? 'final-submit-form' : ''}" ${formIdAttribute} novalidate>
+        ${module ? `<div class="qualitative-progress" aria-live="polite">${escapeHtml(t('qualitativePosition', { i: position, total }))}</div>` : ''}
+        <div class="qualitative-fields">${module ? renderModuleField(module, position) : `<p>${escapeHtml(t('noAfterQuestions'))}</p>`}</div>
         <div class="form-actions">
           <button class="text-button" type="button" data-action="${previousAction}"><span aria-hidden="true">←</span>${escapeHtml(previousLabel)}</button>
           <button class="primary-button" type="submit" ${final && state.submitState === 'submitting' ? 'disabled' : ''}>${escapeHtml(primaryLabel)}<span aria-hidden="true">→</span></button>
@@ -965,6 +1117,7 @@ function confirmCurrentTopic() {
   if (!state.reviewedFactors.includes(sourceId)) state.reviewedFactors.push(sourceId);
   state.reviewedFactors = factorIds.filter((id) => state.reviewedFactors.includes(id));
   if (allTopicsReviewed()) {
+    state.afterTopicsIndex = Math.min(state.afterTopicsIndex, Math.max(0, afterTopicModules().length - 1));
     persist({ immediate: true });
     goTo('complete');
     return;
@@ -1000,10 +1153,11 @@ function buildCurrentSubmission() {
     status: 'complete',
     collectionMethod: 'source-topic-multi-select-plus-qualitative-v2',
     qualitativeSectionComplete: true,
-    qualitativeAnswers: Object.fromEntries(qualitativeAnswerIds.map((id) => [
-      id,
-      state.qualitativeAnswers[id].trim(),
-    ])),
+    qualitativeAnswers: legacyQualitativeAnswers(questionModules, state.moduleAnswers),
+    questionnaireConfigRevision: questionnaireConfig.revision,
+    moduleAnswers: questionModules.map((module) => (
+      serializeModuleAnswer(module, state.moduleAnswers[module.id])
+    )),
     confirmedTopics: {
       ids: [...state.reviewedFactors],
       total: factors.length,
@@ -1024,6 +1178,36 @@ function buildCurrentSubmission() {
   };
 }
 
+function showModuleValidation(module, errorCode) {
+  state.questionValidationId = module?.id || '';
+  state.questionValidationError = errorCode || '';
+  if (!module || !errorCode) return true;
+  const stageModules = modulesForStage(module.stage);
+  const index = stageModules.findIndex(({ id }) => id === module.id);
+  if (module.stage === 'before_topics') {
+    state.qualitativeIndex = Math.max(0, index);
+    state.qualitativeSectionComplete = false;
+    goTo('qualitative');
+  } else {
+    state.afterTopicsIndex = Math.max(0, index);
+    goTo('complete');
+  }
+  requestAnimationFrame(() => {
+    document.querySelector('[aria-invalid="true"]')?.focus?.({ preventScroll: true });
+  });
+  return false;
+}
+
+function validateModule(module) {
+  if (!module) return true;
+  return showModuleValidation(module, moduleAnswerError(module, state.moduleAnswers[module.id]));
+}
+
+function validateAllModules() {
+  const invalid = questionModules.find((module) => moduleAnswerError(module, state.moduleAnswers[module.id]));
+  return invalid ? showModuleValidation(invalid, moduleAnswerError(invalid, state.moduleAnswers[invalid.id])) : true;
+}
+
 function isResultCard(value, submissionId = '') {
   return value && typeof value === 'object'
     && value.version === 'm1-direct-structure-card-v1'
@@ -1037,6 +1221,7 @@ function isResultCard(value, submissionId = '') {
 
 async function submitResponse() {
   if (!allTopicsReviewed() || !state.qualitativeSectionComplete || state.submitState === 'submitting') return;
+  if (!validateAllModules()) return;
   let clientSubmissionId = state.clientSubmissionId;
   state.submitState = 'submitting';
   render();
@@ -1117,7 +1302,12 @@ window.addEventListener('beforeunload', flushPersist);
 app.addEventListener('submit', (event) => {
   if (event.target.id === 'qualitative-form') {
     event.preventDefault();
-    if (state.qualitativeIndex < qualitativeQuestionIds.length - 1) {
+    const modules = beforeTopicModules();
+    const module = modules[state.qualitativeIndex];
+    if (!validateModule(module)) return;
+    state.questionValidationId = '';
+    state.questionValidationError = '';
+    if (state.qualitativeIndex < modules.length - 1) {
       state.qualitativeIndex += 1;
       persist({ immediate: true });
       render();
@@ -1133,6 +1323,19 @@ app.addEventListener('submit', (event) => {
   }
   if (event.target.id === 'final-submit-form') {
     event.preventDefault();
+    const modules = afterTopicModules();
+    const module = modules[state.afterTopicsIndex];
+    if (module && !validateModule(module)) return;
+    state.questionValidationId = '';
+    state.questionValidationError = '';
+    if (state.afterTopicsIndex < modules.length - 1) {
+      state.afterTopicsIndex += 1;
+      persist({ immediate: true });
+      render();
+      pageTop();
+      focusPageHeading();
+      return;
+    }
     void submitResponse();
     return;
   }
@@ -1146,9 +1349,15 @@ app.addEventListener('submit', (event) => {
   }
 
   state.showValidation = false;
-  state.qualitativeIndex = Math.min(state.qualitativeIndex, qualitativeQuestionIds.length - 1);
+  state.qualitativeIndex = Math.min(state.qualitativeIndex, Math.max(0, beforeTopicModules().length - 1));
   persist({ immediate: true });
-  goTo('qualitative');
+  if (beforeTopicModules().length) {
+    goTo('qualitative');
+  } else {
+    state.qualitativeSectionComplete = true;
+    state.currentIndex = firstUnreviewedIndex();
+    goTo('survey');
+  }
 });
 
 app.addEventListener('input', (event) => {
@@ -1158,12 +1367,17 @@ app.addEventListener('input', (event) => {
     persistSoon();
     return;
   }
-  if (event.target.name === 'qualitative-answer') {
-    const questionId = event.target.dataset.questionId;
-    if (!qualitativeAnswerIds.includes(questionId)) return;
-    state.qualitativeAnswers[questionId] = event.target.value.slice(0, maxQualitativeAnswerLength);
-    document.querySelector(`[data-char-count="${questionId}"]`)?.replaceChildren(
-      document.createTextNode(t('qualitativeCharCount', { n: state.qualitativeAnswers[questionId].length })),
+  if (event.target.name === 'module-text-answer') {
+    const module = activeModuleById(event.target.dataset.moduleId);
+    if (!module || module.type !== 'subjective_text') return;
+    state.moduleAnswers[module.id] = normalizeModuleValue(module, event.target.value);
+    state.questionValidationId = '';
+    state.questionValidationError = '';
+    document.querySelector(`[data-char-count="${module.id}"]`)?.replaceChildren(
+      document.createTextNode(t('questionCharCount', {
+        n: state.moduleAnswers[module.id].length,
+        max: module.constraints.maxLength,
+      })),
     );
     persistSoon();
   }
@@ -1180,6 +1394,24 @@ app.addEventListener('change', (event) => {
   if (target.name === 'experience') {
     state.participant.experience = target.value;
     persistSoon();
+    return;
+  }
+  const moduleId = target.dataset.moduleId;
+  const module = activeModuleById(moduleId);
+  if (module && target.name === `module-answer-${moduleId}`) {
+    if (module.type === 'multiple_choice') {
+      const selected = new Set(state.moduleAnswers[module.id]);
+      if (target.checked) selected.add(target.value);
+      else selected.delete(target.value);
+      state.moduleAnswers[module.id] = normalizeModuleValue(module, [...selected]);
+    } else {
+      state.moduleAnswers[module.id] = normalizeModuleValue(module, target.value);
+    }
+    state.questionValidationId = '';
+    state.questionValidationError = '';
+    persistSoon();
+    render();
+    document.querySelector(`[data-module-id="${module.id}"][value="${target.value}"]`)?.focus({ preventScroll: true });
     return;
   }
   if (target.name !== 'direct-target') return;
@@ -1221,7 +1453,12 @@ app.addEventListener('click', (event) => {
       } else if (!profileIsReady()) {
         goTo('profile');
       } else if (!state.qualitativeSectionComplete) {
-        goTo('qualitative');
+        if (beforeTopicModules().length) goTo('qualitative');
+        else {
+          state.qualitativeSectionComplete = true;
+          state.currentIndex = firstUnreviewedIndex();
+          goTo('survey');
+        }
       } else if (!allTopicsReviewed()) {
         state.currentIndex = firstUnreviewedIndex();
         goTo('survey');
@@ -1246,6 +1483,8 @@ app.addEventListener('click', (event) => {
       confirmCurrentTopic();
       break;
     case 'qualitative-previous':
+      state.questionValidationId = '';
+      state.questionValidationError = '';
       if (state.qualitativeIndex > 0) {
         state.qualitativeIndex -= 1;
         persist({ immediate: true });
@@ -1257,20 +1496,39 @@ app.addEventListener('click', (event) => {
       }
       break;
     case 'qualitative-na': {
-      const questionId = button.dataset.questionId;
-      if (!qualitativeAnswerIds.includes(questionId)) break;
-      state.qualitativeAnswers[questionId] = 'NA';
-      const textarea = document.querySelector(`#qualitative-${questionId}`);
+      const module = activeModuleById(button.dataset.moduleId);
+      if (!module || module.type !== 'subjective_text') break;
+      state.moduleAnswers[module.id] = normalizeModuleValue(module, 'NA');
+      state.questionValidationId = '';
+      state.questionValidationError = '';
+      const textarea = document.querySelector(`#qualitative-${module.id}`);
       if (textarea) {
-        textarea.value = 'NA';
+        textarea.value = state.moduleAnswers[module.id];
         textarea.focus({ preventScroll: true });
       }
-      document.querySelector(`[data-char-count="${questionId}"]`)?.replaceChildren(
-        document.createTextNode(t('qualitativeCharCount', { n: 2 })),
+      document.querySelector(`[data-char-count="${module.id}"]`)?.replaceChildren(
+        document.createTextNode(t('questionCharCount', {
+          n: state.moduleAnswers[module.id].length,
+          max: module.constraints.maxLength,
+        })),
       );
       persistSoon();
       break;
     }
+    case 'after-question-previous':
+      if (state.afterTopicsIndex > 0) {
+        state.afterTopicsIndex -= 1;
+        state.questionValidationId = '';
+        state.questionValidationError = '';
+        persist({ immediate: true });
+        render();
+        pageTop();
+        focusPageHeading();
+      } else {
+        state.currentIndex = Math.min(state.currentIndex, factors.length - 1);
+        goTo('survey');
+      }
+      break;
     case 'back-to-survey':
       state.qualitativeSectionComplete = true;
       state.currentIndex = Math.min(state.currentIndex, factors.length - 1);
@@ -1316,4 +1574,18 @@ document.addEventListener('click', (event) => {
   closeTopicNotes();
 });
 
-render();
+async function initializeApp() {
+  const locale = preferredLocale();
+  app.innerHTML = `<p class="questionnaire-loading" role="status">${escapeHtml(copy[locale]?.loadingQuestions || copy.en.loadingQuestions)}</p>`;
+  questionnaireConfig = await loadPublicQuestionnaireConfig();
+  questionModules = [...questionnaireConfig.modules];
+  state = loadState();
+  state.questionnaireConfigRevision = questionnaireConfig.revision;
+  state.moduleAnswerVersions = moduleVersions();
+  if (!beforeTopicModules().length) state.qualitativeSectionComplete = true;
+  guideReturnScreen = state.screen;
+  guideSessionSteps = guideStepsForScreen(state.screen, { submitted: Boolean(state.submissionId) });
+  render();
+}
+
+await initializeApp();
