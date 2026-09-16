@@ -20,8 +20,8 @@ test('survey prompt uses positive promotion wording in every locale', () => {
       directOnly: '如果推进一个主题，请选择所有会因此得到促进的主题。',
       noneOption: '没有因此得到促进的主题',
       guideThenTitle: '再看 THEN：选择因此得到促进的主题',
-      guideThenText: '勾选所有会因当前主题推进而得到促进的主题，可以多选。',
-      guideNextText: '选好后点击“下一主题”。没有得到促进的主题时，选择“没有因此得到促进的主题”。',
+      guideThenText: '勾选所有会因当前主题推进而得到促进的主题，可以多选。如果没有因此得到促进的主题，则选择最后一项。',
+      guideNextText: '选好后点击“下一主题”。',
     },
   );
 
@@ -41,8 +41,8 @@ test('survey prompt uses positive promotion wording in every locale', () => {
       directOnly: '如果推動一個主題，請選擇所有會因此得到促進的主題。',
       noneOption: '沒有因此得到促進的主題',
       guideThenTitle: '再看 THEN：選擇因此得到促進的主題',
-      guideThenText: '勾選所有會因目前主題推動而得到促進的主題，可以多選。',
-      guideNextText: '選好後按「下一主題」。沒有得到促進的主題時，選擇「沒有因此得到促進的主題」。',
+      guideThenText: '勾選所有會因目前主題推動而得到促進的主題，可以多選。如果沒有因此得到促進的主題，則選擇最後一項。',
+      guideNextText: '選好後按「下一主題」。',
     },
   );
 
@@ -62,8 +62,8 @@ test('survey prompt uses positive promotion wording in every locale', () => {
       directOnly: 'If one topic is advanced, select all topics it will help advance.',
       noneOption: 'No topics will be advanced as a result.',
       guideThenTitle: 'Read THEN: choose topics this helps advance',
-      guideThenText: 'Select every topic the current topic will help advance. You can select more than one.',
-      guideNextText: 'Click “Next topic” when you are done. If no topics will be advanced, choose “No topics will be advanced as a result.”',
+      guideThenText: 'Select every topic the current topic will help advance. You can select more than one. If none will be advanced, choose the last option.',
+      guideNextText: 'Click “Next topic” when you are done.',
     },
   );
 });

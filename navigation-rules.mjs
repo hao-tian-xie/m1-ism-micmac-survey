@@ -6,10 +6,10 @@ export function stageIndex(screen) {
   return stageOrder.indexOf(screen);
 }
 
-export function canNavigateToStage(currentScreen, targetStage) {
+export function canNavigateToStage(currentScreen, targetStage, { allowComplete = false } = {}) {
   const currentIndex = stageIndex(currentScreen);
   const targetIndex = stageIndex(targetStage);
-  return currentScreen !== 'complete'
+  return (currentScreen !== 'complete' || allowComplete)
     && currentIndex >= 0
     && targetIndex >= 0
     && targetIndex < currentIndex;

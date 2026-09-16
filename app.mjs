@@ -6,10 +6,10 @@ import {
   tryWriteStorage,
 } from './survey-core.mjs';
 import { displayTopicName, localisedFactors, studyConfig } from './survey-config.mjs?v=topic-definitions-contains-20260908';
-import { copy, languageNames, locales } from './translations.mjs?v=subjective-m1-final-v5';
+import { copy, languageNames, locales } from './translations.mjs?v=subjective-m1-final-v6';
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
 import { resolveLocale } from './locale-state.mjs';
-import { guideStepsForScreen } from './guide-steps.mjs?v=guide-final-v2';
+import { guideStepsForScreen } from './guide-steps.mjs?v=guide-final-v3';
 import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs';
 import { attachTopicDefinitionHints } from './topic-definition-hints.mjs';
 
@@ -301,7 +301,7 @@ function goTo(screen, { scroll = true } = {}) {
 }
 
 function navigateToStage(targetStage) {
-  if (!canNavigateToStage(state.screen, targetStage)) return;
+  if (!canNavigateToStage(state.screen, targetStage, { allowComplete: !state.submissionId })) return;
 
   if (targetStage === 'profile') {
     state.showValidation = false;
@@ -477,12 +477,13 @@ function renderStepper() {
   }[state.screen] ?? 0;
   const steps = [t('stepProfile'), t('stepQualitative'), t('stepSurvey'), t('stepResult')];
   const stageIds = ['profile', 'qualitative', 'survey', 'complete'];
-  const stepNumbers = ['01', '02', '03', '05'];
+  const stepNumbers = ['01', '02', '03', '04'];
   const stageItems = steps.map((label, index) => {
     const stage = stageIds[index];
     const isActive = index === activeIndex;
     const isDone = index < activeIndex;
-    const canGoBack = canNavigateToStage(state.screen, stage);
+    const canGoBack = !state.submissionId
+      && canNavigateToStage(state.screen, stage, { allowComplete: true });
     const stepContent = `
       <span>${stepNumbers[index]}</span>
       <b>${escapeHtml(label)}</b>
@@ -696,6 +697,12 @@ function renderSurvey() {
   const topicNotes = targets.map((target) => `
     <li><b>${escapeHtml(target.id)} · ${escapeHtml(target.label)}</b><span>${escapeHtml(target.description)}</span></li>
   `).join('');
+  const topicReference = targets.map((target) => `
+    <article class="topic-reference-item">
+      <div class="topic-reference-heading"><span>${escapeHtml(target.id)}</span><b>${escapeHtml(target.label)}</b></div>
+      <p>${escapeHtml(target.description)}</p>
+    </article>
+  `).join('');
 
   return renderShell(`
     <div class="survey-page topic-survey">
@@ -718,6 +725,10 @@ function renderSurvey() {
                   <span class="pair-position">${escapeHtml(t('topicPosition', { i: state.currentIndex + 1, total: factors.length }))}</span>
                 </div>
                 <progress max="${factors.length}" value="${reviewedCount()}" aria-label="${escapeHtml(t('progressLabel'))}"></progress>
+                <section class="topic-reference" aria-label="${escapeHtml(t('candidateNotes'))}">
+                  <h3>${escapeHtml(t('candidateNotes'))}</h3>
+                  <div class="topic-reference-grid">${topicReference}</div>
+                </section>
               </div>
             </div>
           </div>
@@ -767,85 +778,101 @@ function renderSurvey() {
   `, 'survey-shell');
 }
 
-function renderQualitative() {
-  const index = Math.min(state.qualitativeIndex, qualitativeQuestionIds.length - 1);
-  const id = qualitativeQuestionIds[index];
+function renderWrittenQuestionField(id, number) {
   const countId = `qualitative-count-${id}`;
-  const isLast = index === qualitativeQuestionIds.length - 1;
-  const question = t(`qualitativeQ${index + 1}`);
-  const questionField = `
-    <label class="field-group note-field qualitative-field" for="qualitative-${id}">
-      <span class="qualitative-question-label"><i>${String(index + 1).padStart(2, '0')}</i><span>${escapeHtml(question)}</span></span>
+  const question = t(`qualitativeQ${number}`);
+  const value = state.qualitativeAnswers[id] || '';
+  const questionIdAttribute = id === 'q7' ? 'data-question-id="q7"' : `data-question-id="${id}"`;
+  return `
+    <div class="field-group note-field qualitative-field">
+      <div class="written-question-row">
+        <label class="qualitative-question-label" for="qualitative-${id}">
+          <i>${String(number).padStart(2, '0')}</i><span>${escapeHtml(question)}</span>
+        </label>
+        <button class="qualitative-na-button" type="button" data-action="qualitative-na" data-question-id="${id}">
+          ${escapeHtml(t('qualitativeNa'))}
+        </button>
+      </div>
       <textarea
         id="qualitative-${id}"
         name="qualitative-answer"
-        data-question-id="${id}"
+        ${questionIdAttribute}
         maxlength="${maxQualitativeAnswerLength}"
         rows="8"
         aria-describedby="${countId}"
-      >${escapeHtml(state.qualitativeAnswers[id])}</textarea>
-      <small id="${countId}" data-char-count="${id}">${escapeHtml(t('qualitativeCharCount', { n: state.qualitativeAnswers[id].length }))}</small>
-    </label>
+      >${escapeHtml(value)}</textarea>
+      <small id="${countId}" data-char-count="${id}">${escapeHtml(t('qualitativeCharCount', { n: value.length }))}</small>
+    </div>
   `;
+}
+
+function renderWrittenQuestionScreen({ final = false } = {}) {
+  const index = final ? qualitativeAnswerIds.length - 1 : Math.min(state.qualitativeIndex, qualitativeQuestionIds.length - 1);
+  const id = qualitativeAnswerIds[index];
+  const total = final ? qualitativeAnswerIds.length : qualitativeQuestionIds.length;
+  const isLast = !final && index === qualitativeQuestionIds.length - 1;
+  const formIdAttribute = final ? 'id="final-submit-form"' : 'id="qualitative-form"';
+  const pageClass = final ? 'complete-page final-question-page' : 'qualitative-page';
+  const shellClass = final ? 'form-shell qualitative-shell complete-shell' : 'form-shell qualitative-shell';
+  const eyebrow = final ? t('completeEyebrow') : t('qualitativeEyebrow');
+  const title = final ? t('completeTitle') : t('qualitativeTitle');
+  const previousAction = final ? 'back-to-survey' : 'qualitative-previous';
+  const previousLabel = final ? t('backToSurvey') : (index === 0 ? t('back') : t('qualitativePrevious'));
+  const primaryLabel = final
+    ? (state.submitState === 'submitting' ? t('submitting') : t('submitResponse'))
+    : (isLast ? t('qualitativeFinish') : t('qualitativeNext'));
+  const intro = final ? '' : t('qualitativeIntro');
+  const error = final && state.submitState === 'error'
+    ? `<div class="submit-error" role="alert"><span>${escapeHtml(t('submitError'))}</span><button type="button" data-action="submit-response">${escapeHtml(t('retrySubmit'))}</button></div>`
+    : '';
 
   return renderShell(`
-    <div class="form-page qualitative-page">
-      <header class="page-heading">
-        <p class="eyebrow">${escapeHtml(t('qualitativeEyebrow'))}</p>
-        <h1 data-page-title tabindex="-1">${escapeHtml(t('qualitativeTitle'))}</h1>
-        <p>${escapeHtml(t('qualitativeIntro'))}</p>
+    <div class="form-page ${pageClass}">
+      <header class="page-heading ${final ? 'complete-heading' : ''}">
+        <p class="eyebrow">${escapeHtml(eyebrow)}</p>
+        <h1 data-page-title tabindex="-1">${escapeHtml(title)}</h1>
+        ${intro ? `<p>${escapeHtml(intro)}</p>` : ''}
       </header>
 
       <p class="qualitative-privacy">${escapeHtml(t('qualitativePrivacy'))}</p>
 
-      <form class="qualitative-form" id="qualitative-form">
-        <div class="qualitative-progress" aria-live="polite">${escapeHtml(t('qualitativePosition', { i: index + 1, total: qualitativeQuestionIds.length }))}</div>
-        <div class="qualitative-fields">${questionField}</div>
+      <form class="qualitative-form written-question-form ${final ? 'final-submit-form' : ''}" ${formIdAttribute}>
+        <div class="qualitative-progress" aria-live="polite">${escapeHtml(t('qualitativePosition', { i: index + 1, total }))}</div>
+        <div class="qualitative-fields">${renderWrittenQuestionField(id, index + 1)}</div>
         <div class="form-actions">
-          <button class="text-button" type="button" data-action="qualitative-previous"><span aria-hidden="true">←</span>${escapeHtml(index === 0 ? t('back') : t('qualitativePrevious'))}</button>
-          <button class="primary-button" type="submit">${escapeHtml(isLast ? t('qualitativeFinish') : t('qualitativeNext'))}<span aria-hidden="true">→</span></button>
+          <button class="text-button" type="button" data-action="${previousAction}"><span aria-hidden="true">←</span>${escapeHtml(previousLabel)}</button>
+          <button class="primary-button" type="submit" ${final && state.submitState === 'submitting' ? 'disabled' : ''}>${escapeHtml(primaryLabel)}<span aria-hidden="true">→</span></button>
         </div>
+        ${error}
       </form>
     </div>
-  `, 'form-shell qualitative-shell');
+  `, shellClass);
+}
+
+function renderQualitative() {
+  return renderWrittenQuestionScreen();
 }
 
 function renderComplete() {
   const submitted = Boolean(state.submissionId);
-  const countId = 'qualitative-count-q7';
+  if (!submitted) return renderWrittenQuestionScreen({ final: true });
 
   return renderShell(`
     <div class="complete-page">
       <header class="page-heading complete-heading">
         <p class="eyebrow">${escapeHtml(t('completeEyebrow'))}</p>
-        <h1 data-page-title tabindex="-1">${escapeHtml(submitted ? t('completeSavedTitle') : t('completeTitle'))}</h1>
-        <p>${escapeHtml(submitted ? t('completeSavedText') : t('completeIntro'))}</p>
+        <h1 data-page-title tabindex="-1">${escapeHtml(t('completeSavedTitle'))}</h1>
+        <p>${escapeHtml(t('completeSavedText'))}</p>
       </header>
-      ${submitted ? `<div class="receipt-block">
+      <div class="receipt-block">
         <span>${escapeHtml(t('receiptLabel'))}</span>
         <strong>${escapeHtml(state.submissionId)}</strong>
-      </div>` : ''}
-      ${!submitted ? `
-        <p class="qualitative-privacy complete-privacy">${escapeHtml(t('qualitativePrivacy'))}</p>
-        <form class="final-answer-form final-submit-form" id="final-submit-form">
-          <label class="field-group note-field" for="qualitative-q7">
-            <span class="qualitative-question-label"><i>07</i><span>${escapeHtml(t('qualitativeQ7'))}</span></span>
-            <textarea id="qualitative-q7" name="qualitative-answer" data-question-id="q7" maxlength="${maxQualitativeAnswerLength}" rows="8" aria-describedby="${countId}">${escapeHtml(state.qualitativeAnswers.q7)}</textarea>
-            <small id="${countId}" data-char-count="q7">${escapeHtml(t('qualitativeCharCount', { n: state.qualitativeAnswers.q7.length }))}</small>
-          </label>
-          <div class="form-actions">
-            <button class="text-button" type="button" data-action="back-to-survey"><span aria-hidden="true">←</span>${escapeHtml(t('backToSurvey'))}</button>
-            <button class="primary-button" type="submit" ${state.submitState === 'submitting' ? 'disabled' : ''}>${escapeHtml(state.submitState === 'submitting' ? t('submitting') : t('submitResponse'))}<span aria-hidden="true">→</span></button>
-          </div>
-          ${state.submitState === 'error' ? `<div class="submit-error" role="alert"><span>${escapeHtml(t('submitError'))}</span><button type="button" data-action="submit-response">${escapeHtml(t('retrySubmit'))}</button></div>` : ''}
-        </form>
-      ` : `
-        <div class="complete-actions">
-          <button class="secondary-button ${state.confirmNewResponse ? 'confirm-reset' : ''}" type="button" data-action="new-response">
-            ${escapeHtml(state.confirmNewResponse ? t('confirmNewResponse') : t('newResponse'))}
-          </button>
-        </div>
-      `}
+      </div>
+      <div class="complete-actions">
+        <button class="secondary-button ${state.confirmNewResponse ? 'confirm-reset' : ''}" type="button" data-action="new-response">
+          ${escapeHtml(state.confirmNewResponse ? t('confirmNewResponse') : t('newResponse'))}
+        </button>
+      </div>
     </div>
   `, 'complete-shell');
 }
@@ -1229,6 +1256,21 @@ app.addEventListener('click', (event) => {
         goTo('profile');
       }
       break;
+    case 'qualitative-na': {
+      const questionId = button.dataset.questionId;
+      if (!qualitativeAnswerIds.includes(questionId)) break;
+      state.qualitativeAnswers[questionId] = 'NA';
+      const textarea = document.querySelector(`#qualitative-${questionId}`);
+      if (textarea) {
+        textarea.value = 'NA';
+        textarea.focus({ preventScroll: true });
+      }
+      document.querySelector(`[data-char-count="${questionId}"]`)?.replaceChildren(
+        document.createTextNode(t('qualitativeCharCount', { n: 2 })),
+      );
+      persistSoon();
+      break;
+    }
     case 'back-to-survey':
       state.qualitativeSectionComplete = true;
       state.currentIndex = Math.min(state.currentIndex, factors.length - 1);

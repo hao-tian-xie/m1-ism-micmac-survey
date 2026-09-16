@@ -4408,3 +4408,327 @@ body[data-screen="survey"] .target-copy {
     font-size: 9px;
   }
 }
+
+/* Final written-question and topic-reference layout. Keep the two written
+   question screens inside the viewport while allowing long copy to be read
+   inside its reserved slot. */
+body[data-screen="qualitative"],
+body[data-screen="complete"] {
+  overflow: hidden;
+}
+
+body[data-screen="qualitative"] .content-stage,
+body[data-screen="complete"] .content-stage {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.qualitative-shell .content-stage {
+  display: grid;
+  min-height: 0;
+}
+
+.qualitative-shell .form-page {
+  --written-question-height: clamp(104px, 19dvh, 190px);
+  --written-answer-height: clamp(118px, 24dvh, 210px);
+  display: grid;
+  width: min(860px, 100%);
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  align-content: start;
+}
+
+.qualitative-shell .page-heading {
+  min-height: 0;
+}
+
+.qualitative-shell .page-heading > p:last-child {
+  max-height: 4.7em;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+.qualitative-shell .qualitative-privacy {
+  max-height: 4.8em;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+.written-question-form {
+  display: grid;
+  min-height: 0;
+  margin-top: 10px;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  overflow: hidden;
+}
+
+.written-question-form .qualitative-progress {
+  margin: 8px 0 4px;
+}
+
+.written-question-form .qualitative-fields {
+  min-height: 0;
+  margin-top: 0;
+  overflow: hidden;
+}
+
+.written-question-form .qualitative-field {
+  min-height: 0;
+  padding-block: 8px 10px;
+  overflow: hidden;
+}
+
+.written-question-row {
+  display: grid;
+  min-height: var(--written-question-height);
+  max-height: var(--written-question-height);
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: start;
+  overflow: hidden;
+}
+
+.written-question-row .qualitative-question-label {
+  min-height: 0;
+  max-height: var(--written-question-height);
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+.qualitative-na-button {
+  min-width: 84px;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--line-strong);
+  background: var(--paper);
+  color: var(--muted);
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.qualitative-na-button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.written-question-form .qualitative-field textarea,
+.written-question-form .final-submit-form textarea,
+.final-submit-form textarea {
+  height: var(--written-answer-height);
+  min-height: var(--written-answer-height);
+  max-height: var(--written-answer-height);
+  resize: none;
+}
+
+.written-question-form .qualitative-field small {
+  min-height: 18px;
+}
+
+.written-question-form .form-actions {
+  margin-top: 6px;
+  padding-top: 10px;
+}
+
+.written-question-form .submit-error {
+  min-height: 42px;
+  margin-top: 8px;
+}
+
+.final-question-page {
+  max-width: 860px;
+}
+
+/* Topic 03: keep the source and progress slots stable, while making every
+   candidate title and definition available in a compact two-column reference
+   below the progress bar. */
+body[data-screen="survey"] .source-topic {
+  min-height: 0;
+}
+
+body[data-screen="survey"] .source-topic-body {
+  display: grid;
+  height: clamp(148px, 25vh, 200px);
+  grid-template-rows: 18px minmax(42px, 2.6em) minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+}
+
+body[data-screen="survey"] .source-topic-body h2,
+body[data-screen="survey"] .source-topic-body p {
+  min-height: 0;
+}
+
+body[data-screen="survey"] .source-topic-body h2 {
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+body[data-screen="survey"] .source-topic-body p {
+  max-height: none;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+body[data-screen="survey"] .target-copy strong {
+  font-size: clamp(11px, min(1.2vw, 1.7vh), 16px);
+  line-height: .98;
+}
+
+body[data-screen="survey"] .source-progress {
+  min-width: 0;
+  max-height: clamp(154px, 25vh, 250px);
+  overflow: hidden;
+}
+
+.topic-reference {
+  min-height: 0;
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.topic-reference h3 {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.topic-reference-grid {
+  display: grid;
+  max-height: clamp(84px, 16vh, 168px);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 14px;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+.topic-reference-item {
+  min-width: 0;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--line);
+}
+
+.topic-reference-heading {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 5px;
+  align-items: start;
+  color: var(--ink-strong);
+  font-size: 12px;
+  line-height: 1.15;
+}
+
+.topic-reference-heading span {
+  color: var(--accent);
+  font-family: "Space Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+}
+
+.topic-reference-heading b {
+  min-width: 0;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.topic-reference-item p {
+  max-height: 4.4em;
+  margin: 3px 0 0 33px;
+  overflow: auto;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.25;
+  white-space: pre-line;
+}
+
+@media (max-width: 767px), (max-width: 900px) and (max-height: 500px) {
+  .steps {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  body[data-screen="qualitative"] .content-stage,
+  body[data-screen="complete"] .content-stage {
+    /* The mobile header and the four-step rail are in normal flow. */
+    height: calc(100dvh - 120px);
+    padding-top: 18px;
+    padding-bottom: 16px;
+  }
+
+  .qualitative-shell .form-page {
+    --written-question-height: clamp(108px, 19dvh, 156px);
+    --written-answer-height: clamp(112px, 21dvh, 170px);
+  }
+
+  .qualitative-shell .page-heading > p:last-child {
+    max-height: 4.1em;
+  }
+
+  .qualitative-shell .qualitative-privacy {
+    max-height: 4.2em;
+    margin-top: 10px;
+    padding-block: 8px;
+  }
+
+  .written-question-form {
+    margin-top: 6px;
+  }
+
+  .written-question-row {
+    gap: 9px;
+  }
+
+  .written-question-row .qualitative-question-label {
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 7px;
+    font-size: 16px;
+    line-height: 1.35;
+  }
+
+  .qualitative-na-button {
+    min-width: 72px;
+    min-height: 38px;
+    padding-inline: 8px;
+    font-size: 14px;
+  }
+
+  .written-question-form .form-actions {
+    margin-top: 4px;
+    padding-top: 8px;
+  }
+
+  .written-question-form .form-actions .primary-button,
+  .written-question-form .form-actions .text-button {
+    min-height: 44px;
+  }
+
+  body[data-screen="survey"] .source-progress {
+    max-height: 176px;
+  }
+
+  .topic-reference-grid {
+    max-height: 116px;
+  }
+}
+
+@media (max-width: 767px) and (max-height: 680px) {
+  .qualitative-shell .form-page {
+    --written-question-height: 92px;
+    --written-answer-height: 108px;
+  }
+
+  .qualitative-shell .page-heading > p:last-child {
+    max-height: 3.1em;
+  }
+
+  .qualitative-shell .qualitative-privacy {
+    max-height: 3.1em;
+    font-size: 13px;
+  }
+
+  .topic-reference {
+    display: none;
+  }
+}

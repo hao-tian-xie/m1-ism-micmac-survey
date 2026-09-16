@@ -12,6 +12,20 @@ const finalSubmitStep = {
   text: 'guideFinalSubmitText',
 };
 
+const stageDirectoryStep = {
+  screen: 'complete',
+  target: '.steps',
+  title: 'guideStageDirectoryTitle',
+  text: 'guideStageDirectoryText',
+};
+
+const topicHoverStep = {
+  screen: 'survey',
+  target: '.target-list .target-option',
+  title: 'guideHoverTitle',
+  text: 'guideHoverText',
+};
+
 const welcomeSteps = [
   { screen: 'welcome', target: '.hero-button', title: 'guideWelcomeTitle', text: 'guideWelcomeText' },
   { screen: 'profile', target: '.profile-form [name="code"]', title: 'guideCodeTitle', text: 'guideCodeText' },
@@ -20,9 +34,11 @@ const welcomeSteps = [
   { screen: 'qualitative', target: '.qualitative-fields', title: 'guideQualitativeTitle', text: 'guideQualitativeText' },
   { screen: 'survey', target: '.source-topic', title: 'guideIfTitle', text: 'guideIfText' },
   { screen: 'survey', target: '.target-fieldset', title: 'guideThenTitle', text: 'guideThenText' },
-  { screen: 'survey', target: '.topic-notes', title: 'guideNotesTitle', text: 'guideNotesText' },
+  { screen: 'survey', target: '.topic-reference', title: 'guideNotesTitle', text: 'guideNotesText' },
+  topicHoverStep,
   { screen: 'survey', target: '.topic-actions .primary-button', title: 'guideNextTitle', text: 'guideNextText' },
   finalQuestionStep,
+  stageDirectoryStep,
   finalSubmitStep,
 ];
 
@@ -35,6 +51,7 @@ const submittedCompleteStep = {
 
 const completeSteps = [
   finalQuestionStep,
+  stageDirectoryStep,
   finalSubmitStep,
 ];
 

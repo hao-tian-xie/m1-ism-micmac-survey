@@ -105,3 +105,18 @@ test('IF label and current topic share one horizontal source row on desktop', ()
   assert.match(styles, /\.source-topic-main\s*\{[\s\S]*?min-width:\s*0/);
   assert.match(styles, /\.source-topic-head\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(220px,\s*360px\)/);
 });
+
+test('topic explanations are available in a two-column reference below progress', () => {
+  assert.match(app, /class="topic-reference"[\s\S]*?class="topic-reference-grid"/);
+  assert.match(app, /class="topic-reference-item"[\s\S]*?class="topic-reference-heading"/);
+  assert.match(styles, /\.topic-reference-grid\s*\{[\s\S]*?grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)/);
+  assert.match(styles, /\.topic-reference-item p\s*\{[\s\S]*?color:\s*var\(--muted\)/);
+});
+
+test('written and final question screens share fixed slots', () => {
+  assert.match(app, /function renderWrittenQuestionScreen\(\{ final = false \} = \{\}\)/);
+  assert.match(app, /if \(!submitted\) return renderWrittenQuestionScreen\(\{ final: true \}\)/);
+  assert.match(styles, /\.written-question-form\s*\{[\s\S]*?grid-template-rows:\s*auto\s+minmax\(0,\s*1fr\)\s+auto\s+auto/);
+  assert.match(styles, /\.written-question-row\s*\{[\s\S]*?min-height:\s*var\(--written-question-height\)/);
+  assert.match(styles, /\.written-question-form[\s\S]*?resize:\s*none/);
+});

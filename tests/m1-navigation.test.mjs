@@ -20,6 +20,7 @@ test('stage order only permits backward navigation', () => {
   assert.equal(canNavigateToStage('review', 'survey'), false);
   assert.equal(canNavigateToStage('review', 'profile'), false);
   assert.equal(canNavigateToStage('complete', 'survey'), false);
+  assert.equal(canNavigateToStage('complete', 'survey', { allowComplete: true }), true);
   assert.equal(canNavigateToStage('qualitative', 'survey'), false);
 });
 
