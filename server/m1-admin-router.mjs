@@ -117,17 +117,39 @@ async function readJson(request, maxBodyBytes) {
   }
 }
 
+function requestBodyProvided(request) {
+  const declared = Number(request.headers.get('content-length'));
+  if (Number.isFinite(declared)) return declared > 0;
+  return Boolean(request.headers.get('transfer-encoding'));
+}
+
 function revisionEtag(revision) {
   return `"m1-questionnaire-r${revision}"`;
 }
 
 function revisionFromRequest(request, body) {
-  if (Number.isSafeInteger(body?.expectedRevision) && body.expectedRevision >= 0) {
-    return body.expectedRevision;
+  const hasBodyRevision = Boolean(body && typeof body === 'object'
+    && Object.prototype.hasOwnProperty.call(body, 'expectedRevision'));
+  let bodyRevision = null;
+  if (hasBodyRevision) {
+    if (!Number.isSafeInteger(body.expectedRevision) || body.expectedRevision < 0) {
+      throw new QuestionConfigValidationError('expectedRevision must be a non-negative integer', {
+        code: 'invalid-revision',
+        path: 'expectedRevision',
+      });
+    }
+    bodyRevision = body.expectedRevision;
   }
   const header = request.headers.get('if-match') || '';
   const match = header.match(/^(?:W\/)?"(?:m1-questionnaire-r)?(\d+)"$/u);
-  return match ? Number(match[1]) : null;
+  const headerRevision = match ? Number(match[1]) : null;
+  if (bodyRevision !== null && headerRevision !== null && bodyRevision !== headerRevision) {
+    throw new QuestionConfigValidationError('expectedRevision and If-Match must match', {
+      code: 'revision-mismatch',
+      path: 'expectedRevision',
+    });
+  }
+  return bodyRevision !== null ? bodyRevision : headerRevision;
 }
 
 function moduleFromBody(body) {
@@ -135,6 +157,17 @@ function moduleFromBody(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) return body;
   const { expectedRevision: _revision, index: _index, ...module } = body;
   return module;
+}
+
+function topicFromBody(body) {
+  if (body?.topic && typeof body.topic === 'object') return body.topic;
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return body;
+  const {
+    expectedRevision: _revision,
+    index: _index,
+    ...topic
+  } = body;
+  return topic;
 }
 
 function questionError(error) {
@@ -266,13 +299,61 @@ export function createM1AdminRouter({
       const id = decodeURIComponent(pathname.slice(`${ADMIN_PREFIX}/questions/`.length));
       if (!['PUT', 'PATCH', 'DELETE'].includes(request.method)) return methodNotAllowed(['PUT', 'PATCH', 'DELETE']);
       let body = {};
-      if (request.method !== 'DELETE' || request.body) body = await readJson(request, maxBodyBytes);
+      if (request.method !== 'DELETE' || requestBodyProvided(request)) body = await readJson(request, maxBodyBytes);
       const expectedRevision = revisionFromRequest(request, body);
       if (expectedRevision === null) return json({ error: 'revision-required' }, 428);
       const snapshot = request.method === 'DELETE'
         ? await questionStore.remove(id, { expectedRevision })
         : await questionStore.update(id, moduleFromBody(body), { expectedRevision });
-      return questionResponse(snapshot);
+      return questionResponse(snapshot, request);
+    }
+
+    if (pathname === `${ADMIN_PREFIX}/topics` && request.method === 'GET') {
+      return readAdminQuestionSnapshot(request, questionStore);
+    }
+    if (pathname === `${ADMIN_PREFIX}/topics` && request.method === 'POST') {
+      const body = await readJson(request, maxBodyBytes);
+      const expectedRevision = revisionFromRequest(request, body);
+      if (expectedRevision === null) return json({ error: 'revision-required' }, 428);
+      return questionResponse(await questionStore.createTopic(topicFromBody(body), {
+        expectedRevision,
+        index: body?.index,
+      }), request);
+    }
+    if (pathname === `${ADMIN_PREFIX}/topics/reorder`) {
+      if (!['PUT', 'PATCH'].includes(request.method)) return methodNotAllowed(['PUT', 'PATCH']);
+      const body = await readJson(request, maxBodyBytes);
+      const expectedRevision = revisionFromRequest(request, body);
+      if (expectedRevision === null) return json({ error: 'revision-required' }, 428);
+      return questionResponse(await questionStore.reorderTopics(body?.ids, { expectedRevision }), request);
+    }
+    if (pathname.startsWith(`${ADMIN_PREFIX}/topics/`)) {
+      const remainder = pathname.slice(`${ADMIN_PREFIX}/topics/`.length);
+      const restoreMatch = remainder.match(/^(.+)\/restore$/u);
+      const archiveMatch = remainder.match(/^(.+)\/archive$/u);
+      if (restoreMatch) {
+        if (request.method !== 'POST') return methodNotAllowed(['POST']);
+        const id = decodeURIComponent(restoreMatch[1]);
+        const body = requestBodyProvided(request) ? await readJson(request, maxBodyBytes) : {};
+        const expectedRevision = revisionFromRequest(request, body);
+        if (expectedRevision === null) return json({ error: 'revision-required' }, 428);
+        return questionResponse(await questionStore.restoreTopic(id, { expectedRevision }), request);
+      }
+      if (archiveMatch) {
+        if (!['PATCH', 'DELETE'].includes(request.method)) return methodNotAllowed(['PATCH', 'DELETE']);
+        let body = {};
+        if (requestBodyProvided(request)) body = await readJson(request, maxBodyBytes);
+        const expectedRevision = revisionFromRequest(request, body);
+        if (expectedRevision === null) return json({ error: 'revision-required' }, 428);
+        const id = decodeURIComponent(archiveMatch[1]);
+        return questionResponse(await questionStore.archiveTopic(id, { expectedRevision }), request);
+      }
+      const id = decodeURIComponent(remainder);
+      if (!['PUT', 'PATCH'].includes(request.method)) return methodNotAllowed(['PUT', 'PATCH']);
+      const body = await readJson(request, maxBodyBytes);
+      const expectedRevision = revisionFromRequest(request, body);
+      if (expectedRevision === null) return json({ error: 'revision-required' }, 428);
+      return questionResponse(await questionStore.updateTopic(id, topicFromBody(body), { expectedRevision }), request);
     }
     return json({ error: 'not-found' }, 404);
   }

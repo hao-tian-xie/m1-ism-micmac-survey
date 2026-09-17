@@ -75,7 +75,7 @@ test('survey keeps progress with one complete IF explanation and exposes the ESR
   assert.match(styles, /body\[data-screen="survey"\]\s+\.source-topic-body\s*\{[\s\S]*?height:\s*clamp\(190px/);
   assert.match(styles, /body\[data-screen="survey"\]\s+\.source-topic-body p\s*\{[\s\S]*?display:\s*block/);
   assert.match(styles, /body\[data-screen="survey"\]\s+\.source-topic-body p\s*\{[\s\S]*?columns:\s*2/);
-  assert.match(styles, /body\[data-screen="survey"\]\s+\.source-topic-body p\s*\{[\s\S]*?overflow:\s*hidden/);
+  assert.match(styles, /body\[data-screen="survey"\]\s+\.source-topic-body p\s*\{[\s\S]*?overflow:\s*visible/);
   assert.match(translations, /ifLabel:\s*'IF · Advance'/);
   assert.match(styles, /\.topic-actions\s*\{[\s\S]*?margin-inline:\s*1px/);
   assert.match(styles, /body\[data-screen="survey"\]\s+\.target-copy strong\s*\{[\s\S]*?font-size:\s*clamp\(16px,\s*min\(1\.6vw,\s*2\.1vh\),\s*21px\)/);

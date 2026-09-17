@@ -17,8 +17,8 @@ test('ESG copy, grouped welcome topics, and survey candidate grid match the inte
     assert.match(copy[locale].eyebrow, /ESG/i);
     assert.doesNotMatch(copy[locale].brand, /M1|ISM|MICMAC/i);
     assert.equal(copy[locale].confirmedProgress, undefined);
-    assert.match(copy[locale].minutesUnit, /38/);
-    assert.match(copy[locale].pairListTitle, /703/);
+    assert.match(copy[locale].minutesUnit, /\{topicCount\}/);
+    assert.match(copy[locale].pairListTitle, /\{pairCount\}/);
     assert.ok(copy[locale].categoryEnvironment);
     assert.ok(copy[locale].categorySocial);
     assert.ok(copy[locale].categoryGovernance);

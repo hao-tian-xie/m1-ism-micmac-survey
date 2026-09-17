@@ -139,6 +139,32 @@ test('D1 store uses revision CAS and preserves immutable revision history', asyn
   );
 });
 
+test('D1 modules-only current and historical rows hydrate revision-0 topics', async () => {
+  const db = new FakeD1();
+  const legacyConfig = {
+    schemaVersion: M1_DEFAULT_QUESTIONNAIRE_CONFIG.schemaVersion,
+    questionnaireId: M1_DEFAULT_QUESTIONNAIRE_CONFIG.questionnaireId,
+    modules: M1_DEFAULT_QUESTIONNAIRE_CONFIG.modules,
+  };
+  db.current.set('M1-ESG-ISM-MICMAC', {
+    revision: 1,
+    config_json: JSON.stringify(legacyConfig),
+    updated_at: '2026-09-17T00:00:00.000Z',
+  });
+  db.versions.set('M1-ESG-ISM-MICMAC:0', {
+    config_json: JSON.stringify(legacyConfig),
+    created_at: '2026-09-16T00:00:00.000Z',
+  });
+  db.versions.set('M1-ESG-ISM-MICMAC:1', {
+    config_json: JSON.stringify(legacyConfig),
+    created_at: '2026-09-17T00:00:00.000Z',
+  });
+  const store = createD1QuestionConfigStore({ db, defaultConfig: legacyConfig });
+  assert.equal((await store.read()).topics.length, 38);
+  assert.equal((await store.readRevision(0)).topics.length, 38);
+  assert.equal((await store.readRevision(1)).topics.length, 38);
+});
+
 test('the additive D1 migration leaves submissions untouched and creates current plus history tables', async () => {
   const sql = await readFile(new URL('../cloudflare/question-config-schema.sql', import.meta.url), 'utf8');
   const migration = await readFile(new URL('../cloudflare/migrations/0003_question_config.sql', import.meta.url), 'utf8');

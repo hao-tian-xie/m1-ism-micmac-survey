@@ -2,19 +2,19 @@ import { buildM1ResultCard } from '../survey-core.mjs';
 import { createM1AdminRouter } from '../server/m1-admin-router.mjs';
 import { M1_DEFAULT_QUESTIONNAIRE_CONFIG } from '../server/m1-default-question-config.mjs';
 import { validateVersionedModuleAnswers, versionedModuleAnswersMode } from '../server/m1-module-answer-validation.mjs';
+import {
+  M1_FACTOR_VERSION,
+  canonicalizeM1TopicFields,
+  directMatrixForM1Submission,
+  resolveM1TopicContext,
+  topicFactorIdsMatch,
+  validateM1TopicSubmission,
+} from '../server/m1-topic-validation.mjs';
 import { createD1AdminAuthStore, createCloudflareAdminAuth } from './admin-auth.mjs';
 import { createM1D1AdminRepository } from './m1-admin-submissions.mjs';
 import { createD1QuestionConfigStore } from './question-config-store.mjs';
 
 const STUDY_ID = 'M1-ESG-ISM-MICMAC';
-const FACTOR_VERSION = 'esrs-set1-subtopics-v2-38-verified';
-const FACTOR_IDS = Array.from({ length: 38 }, (_, index) => `F${index + 1}`);
-const FACTOR_COUNT = FACTOR_IDS.length;
-const RELATION_DIRECTIONS = { V: [1, 0], A: [0, 1], X: [1, 1], O: [0, 0] };
-const PAIRS = FACTOR_IDS.flatMap((leftId, leftIndex) => (
-  FACTOR_IDS.slice(leftIndex + 1).map((rightId) => ({ pairId: `${leftId}__${rightId}`, leftId, rightId }))
-));
-const PAIR_COUNT = PAIRS.length;
 const MAX_BODY_BYTES = 256 * 1024;
 const MAX_QUALITATIVE_ANSWER_LENGTH = 3000;
 const QUALITATIVE_QUESTION_IDS = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7'];
@@ -202,14 +202,6 @@ function isIsoDate(value) {
   return typeof value === 'string' && value.length >= 20 && !Number.isNaN(Date.parse(value));
 }
 
-function matrixMatches(actual, expected) {
-  return Array.isArray(actual)
-    && actual.length === expected.length
-    && actual.every((row, rowIndex) => Array.isArray(row)
-      && row.length === expected[rowIndex].length
-      && row.every((value, columnIndex) => value === expected[rowIndex][columnIndex]));
-}
-
 function qualitativeAnswersAreValid(value) {
   return isObject(value)
     && Object.keys(value).length === QUALITATIVE_QUESTION_IDS.length
@@ -229,21 +221,23 @@ function stableJson(value) {
 
 function sameM1Submission(left, right) {
   const fields = [
-    'schemaVersion', 'studyId', 'locale', 'participant', 'study', 'factors', 'responses',
+    'schemaVersion', 'studyId', 'locale', 'participant', 'study', 'responses',
     'initialReachabilityMatrix', 'directInfluenceMatrix', 'progress',
     'status', 'collectionMethod', 'qualitativeSectionComplete', 'qualitativeAnswers',
     'confirmedTopics', 'sourceSelections', 'questionnaireConfigRevision', 'moduleAnswers',
   ];
-  return fields.every((field) => stableJson(left?.[field]) === stableJson(right?.[field]));
+  return topicFactorIdsMatch(left?.factors, right?.factors)
+    && fields.every((field) => stableJson(left?.[field]) === stableJson(right?.[field]));
 }
 
 function sameM1Core(left, right) {
   const fields = [
-    'schemaVersion', 'studyId', 'locale', 'participant', 'study', 'factors', 'responses',
+    'schemaVersion', 'studyId', 'locale', 'participant', 'study', 'responses',
     'initialReachabilityMatrix', 'directInfluenceMatrix', 'progress', 'status',
     'confirmedTopics', 'sourceSelections', 'questionnaireConfigRevision', 'moduleAnswers',
   ];
-  return fields.every((field) => stableJson(left?.[field]) === stableJson(right?.[field]));
+  return topicFactorIdsMatch(left?.factors, right?.factors)
+    && fields.every((field) => stableJson(left?.[field]) === stableJson(right?.[field]));
 }
 
 function legacyWrittenAnswersMatch(existing, incoming) {
@@ -253,83 +247,41 @@ function legacyWrittenAnswersMatch(existing, incoming) {
     && existing[key] === incoming?.[key]);
 }
 
-function validateSubmission(record) {
-  if (!isObject(record)) return 'invalid-record';
-  if (SERVER_OWNED_FIELDS.some((key) => Object.hasOwn(record, key))) return 'invalid-server-fields';
-  if (record.schemaVersion !== 1 || record.studyId !== STUDY_ID) return 'wrong-study';
-  if (!isObject(record.study) || record.study.factorVersion !== FACTOR_VERSION) return 'wrong-factor-version';
-  if (!['zh-CN', 'zh-HK', 'en'].includes(record.locale)) return 'invalid-locale';
-  if (record.status !== 'complete' || !isIsoDate(record.submittedAt)) return 'incomplete';
+export async function validateSubmission(record, questionStore) {
+  if (!isObject(record)) return { error: 'invalid-record' };
+  if (SERVER_OWNED_FIELDS.some((key) => Object.hasOwn(record, key))) return { error: 'invalid-server-fields' };
+  if (record.schemaVersion !== 1 || record.studyId !== STUDY_ID) return { error: 'wrong-study' };
+  if (!isObject(record.study) || record.study.factorVersion !== M1_FACTOR_VERSION) return { error: 'wrong-factor-version' };
+  if (!['zh-CN', 'zh-HK', 'en'].includes(record.locale)) return { error: 'invalid-locale' };
+  if (record.status !== 'complete' || !isIsoDate(record.submittedAt)) return { error: 'incomplete' };
   if (typeof record.clientSubmissionId !== 'string'
     || record.clientSubmissionId.trim().length < 8
-    || record.clientSubmissionId.trim().length > 128) return 'invalid-client-id';
+    || record.clientSubmissionId.trim().length > 128) return { error: 'invalid-client-id' };
   if (!isObject(record.participant)
     || typeof record.participant.code !== 'string'
     || !record.participant.code.trim()
     || typeof record.participant.roleCode !== 'string'
     || (record.participant.experienceCode !== undefined
-      && typeof record.participant.experienceCode !== 'string')) return 'invalid-participant';
-  if (!Array.isArray(record.factors)
-    || record.factors.length !== FACTOR_COUNT
-    || !record.factors.every((factor, index) => factor?.id === FACTOR_IDS[index])) return 'invalid-factors';
+      && typeof record.participant.experienceCode !== 'string')) return { error: 'invalid-participant' };
+  const topicContext = await resolveM1TopicContext(record, questionStore);
+  const topicError = validateM1TopicSubmission(record, topicContext);
+  if (topicError) return { error: topicError };
   const moduleAnswersMode = versionedModuleAnswersMode(record);
   if (moduleAnswersMode === 'legacy'
     && (record.qualitativeSectionComplete !== true
-      || !qualitativeAnswersAreValid(record.qualitativeAnswers))) return 'invalid-qualitative-answers';
+      || !qualitativeAnswersAreValid(record.qualitativeAnswers))) return { error: 'invalid-qualitative-answers' };
   if (moduleAnswersMode !== 'legacy'
     && record.qualitativeAnswers !== undefined
-    && !qualitativeAnswersAreValid(record.qualitativeAnswers)) return 'invalid-qualitative-answers';
-  if (!isObject(record.confirmedTopics)
-    || !Array.isArray(record.confirmedTopics.ids)
-    || record.confirmedTopics.ids.length !== FACTOR_COUNT
-    || record.confirmedTopics.total !== FACTOR_COUNT
-    || record.confirmedTopics.complete !== true) return 'invalid-topics';
-  if (!Array.isArray(record.sourceSelections) || record.sourceSelections.length !== FACTOR_COUNT) return 'invalid-selections';
-  if (!Array.isArray(record.responses) || record.responses.length !== PAIR_COUNT) return 'incomplete-responses';
-  if (!Array.isArray(record.initialReachabilityMatrix)
-    || !Array.isArray(record.directInfluenceMatrix)
-    || record.initialReachabilityMatrix.length !== FACTOR_COUNT
-    || record.directInfluenceMatrix.length !== FACTOR_COUNT) return 'invalid-matrix';
-
-  const responsesByPairId = new Map(record.responses.map((response) => [response?.pairId, response]));
-  if (responsesByPairId.size !== PAIR_COUNT) return 'invalid-response';
-  const directMatrix = FACTOR_IDS.map(() => FACTOR_IDS.map(() => 0));
-  const factorIndex = new Map(FACTOR_IDS.map((id, index) => [id, index]));
-  for (const pair of PAIRS) {
-    const response = responsesByPairId.get(pair.pairId);
-    const directions = RELATION_DIRECTIONS[response?.relation];
-    if (!isObject(response)
-      || response.leftId !== pair.leftId
-      || response.rightId !== pair.rightId
-      || !directions
-      || response.leftToRight !== directions[0]
-      || response.rightToLeft !== directions[1]) return 'invalid-response';
-    directMatrix[factorIndex.get(pair.leftId)][factorIndex.get(pair.rightId)] = directions[0];
-    directMatrix[factorIndex.get(pair.rightId)][factorIndex.get(pair.leftId)] = directions[1];
-  }
-  if (record.confirmedTopics.ids.some((id, index) => id !== FACTOR_IDS[index])) return 'invalid-topics';
-  if (record.sourceSelections.some((selection, index) => selection?.sourceId !== FACTOR_IDS[index])) return 'invalid-selections';
-  const expectedReachabilityMatrix = directMatrix.map((row, rowIndex) => (
-    row.map((value, columnIndex) => (rowIndex === columnIndex ? 1 : value))
-  ));
-  if (!matrixMatches(record.directInfluenceMatrix, directMatrix)
-    || !matrixMatches(record.initialReachabilityMatrix, expectedReachabilityMatrix)) return 'invalid-matrix';
-  for (const [index, selection] of record.sourceSelections.entries()) {
-    const expectedTargets = FACTOR_IDS.filter((_, targetIndex) => (
-      targetIndex !== index && directMatrix[index][targetIndex] === 1
-    ));
-    if (!isObject(selection)
-      || typeof selection.noDirectInfluence !== 'boolean'
-      || !Array.isArray(selection.targetIds)
-      || selection.targetIds.length !== expectedTargets.length
-      || expectedTargets.some((id, targetIndex) => selection.targetIds[targetIndex] !== id)
-      || selection.noDirectInfluence !== (expectedTargets.length === 0)) return 'invalid-selections';
-  }
-  return null;
+    && !qualitativeAnswersAreValid(record.qualitativeAnswers)) return { error: 'invalid-qualitative-answers' };
+  return { error: null, topicContext };
 }
 
-function resultCardFor(record, submissionId, receivedAt) {
+function resultCardFor(record, submissionId, receivedAt, topicContext) {
   const submission = record.submission || record;
+  const factors = topicContext?.factors || submission.factors;
+  const directInfluenceMatrix = topicContext
+    ? directMatrixForM1Submission(submission, topicContext)
+    : submission.directInfluenceMatrix;
   return record.resultCard
     || record.m1FrozenResult
     || submission.resultCard
@@ -337,8 +289,8 @@ function resultCardFor(record, submissionId, receivedAt) {
     || buildM1ResultCard({
       submissionId,
       frozenAt: receivedAt,
-      factors: submission.factors,
-      directInfluenceMatrix: submission.directInfluenceMatrix,
+      factors,
+      directInfluenceMatrix,
   });
 }
 
@@ -392,26 +344,29 @@ async function submit(request, env) {
   } catch {
     return json(request, env, { error: 'invalid-json' }, 400);
   }
-  const validationError = validateSubmission(record);
-  if (validationError) return json(request, env, { error: validationError }, 422);
-  if (!await validateVersionedModuleAnswers(record, adminRuntime(env).questionStore)) {
+  const questionStore = adminRuntime(env).questionStore;
+  const validation = await validateSubmission(record, questionStore);
+  if (validation.error) return json(request, env, { error: validation.error }, 422);
+  if (!await validateVersionedModuleAnswers(record, questionStore)) {
     return json(request, env, { error: 'invalid-module-answers' }, 422);
   }
+  const topicContext = validation.topicContext;
+  const canonicalRecord = canonicalizeM1TopicFields(record, topicContext);
 
   const candidateId = `M1-${crypto.randomUUID()}`;
   const candidateReceivedAt = new Date().toISOString();
   const candidateResultCard = buildM1ResultCard({
     submissionId: candidateId,
     frozenAt: candidateReceivedAt,
-    factors: record.factors,
-    directInfluenceMatrix: record.directInfluenceMatrix,
+    factors: topicContext.factors,
+    directInfluenceMatrix: directMatrixForM1Submission(canonicalRecord, topicContext),
   });
   await env.DB.prepare(
     `INSERT OR IGNORE INTO submissions
       (client_submission_id, submission_id, received_at, record_json)
      VALUES (?, ?, ?, ?)`,
-  ).bind(record.clientSubmissionId.trim(), candidateId, candidateReceivedAt,
-    JSON.stringify({ ...record, resultCard: candidateResultCard })).run();
+  ).bind(canonicalRecord.clientSubmissionId.trim(), candidateId, candidateReceivedAt,
+    JSON.stringify({ ...canonicalRecord, resultCard: candidateResultCard })).run();
 
   const stored = await env.DB.prepare(
     'SELECT submission_id, received_at, record_json FROM submissions WHERE client_submission_id = ?',
@@ -424,22 +379,22 @@ async function submit(request, env) {
     return json(request, env, { error: 'store-failed' }, 500);
   }
   const storedSubmission = storedRecord.submission || storedRecord;
-  const exactMatch = sameM1Submission(storedSubmission, record);
+  const exactMatch = sameM1Submission(storedSubmission, canonicalRecord);
   const legacyMatch = !exactMatch
-    && sameM1Core(storedSubmission, record)
-    && legacyWrittenAnswersMatch(storedSubmission.qualitativeAnswers, record.qualitativeAnswers);
+    && sameM1Core(storedSubmission, canonicalRecord)
+    && legacyWrittenAnswersMatch(storedSubmission.qualitativeAnswers, canonicalRecord.qualitativeAnswers);
   if (!exactMatch && !legacyMatch) {
     return json(request, env, { error: 'submission-conflict' }, 409);
   }
 
-  const resultCard = resultCardFor(storedRecord, stored.submission_id, stored.received_at);
+  const resultCard = resultCardFor(storedRecord, stored.submission_id, stored.received_at, topicContext);
   const nestedSubmission = isObject(storedRecord.submission) ? storedRecord.submission : null;
   const hasLegacyFields = LEGACY_RECORD_FIELDS.some((key) => (
     Object.hasOwn(storedRecord, key) || Boolean(nestedSubmission && Object.hasOwn(nestedSubmission, key))
   )) || Boolean(nestedSubmission && Object.hasOwn(nestedSubmission, 'resultCard'));
   if (legacyMatch || !storedRecord.resultCard || hasLegacyFields) {
     const nextRecord = stripLegacyRecordFields({
-      ...(legacyMatch ? { ...storedSubmission, ...record } : storedSubmission),
+      ...(legacyMatch ? canonicalizeM1TopicFields({ ...storedSubmission, ...canonicalRecord }, topicContext) : storedSubmission),
       resultCard,
     });
     await env.DB.prepare('UPDATE submissions SET record_json = ? WHERE submission_id = ?')

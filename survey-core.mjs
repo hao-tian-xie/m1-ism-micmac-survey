@@ -183,6 +183,7 @@ export function buildSubmission({
   participant,
   factors,
   answers = {},
+  includeResponseLabels = true,
   submittedAt = new Date().toISOString(),
 }) {
   const factorsById = new Map(factors.map((factor) => [factorId(factor), factor]));
@@ -194,13 +195,15 @@ export function buildSubmission({
     return {
       pairId: pair.id,
       leftId: pair.leftId,
-      leftLabel: factorLabel(factorsById.get(pair.leftId)),
       rightId: pair.rightId,
-      rightLabel: factorLabel(factorsById.get(pair.rightId)),
       relation: RELATION_DIRECTIONS[answer.relation] ? answer.relation : null,
       leftToRight: answer.relation ? leftToRight : null,
       rightToLeft: answer.relation ? rightToLeft : null,
       note: String(answer.note || '').trim(),
+      ...(includeResponseLabels ? {
+        leftLabel: factorLabel(factorsById.get(pair.leftId)),
+        rightLabel: factorLabel(factorsById.get(pair.rightId)),
+      } : {}),
     };
   });
   const answered = responses.filter((response) => response.relation !== null).length;

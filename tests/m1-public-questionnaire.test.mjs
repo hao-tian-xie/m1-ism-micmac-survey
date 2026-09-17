@@ -8,6 +8,7 @@ import {
   loadPublicQuestionnaireConfig,
   moduleAnswerError,
   normalizeModuleValue,
+  normalizePublicTopics,
   normalizePublicQuestionnaireConfig,
   serializeModuleAnswer,
 } from '../public-questionnaire.mjs';
@@ -20,6 +21,22 @@ const translations = (prompt) => Object.fromEntries(['zh-CN', 'zh-HK', 'en'].map
 const option = (id) => ({
   id,
   translations: Object.fromEntries(['zh-CN', 'zh-HK', 'en'].map((locale) => [locale, { label: `${id}-${locale}` }])),
+});
+
+const topic = (id, index = 0, { long = false, enabled = true } = {}) => ({
+  id,
+  order: index,
+  enabled,
+  name: {
+    'zh-CN': `主题 ${id}`,
+    'zh-HK': `主題 ${id}`,
+    en: `Topic ${id}`,
+  },
+  description: {
+    'zh-CN': long ? `${id} 中文说明。\n包含：${'中文长文本。'.repeat(18)}` : `${id} 中文说明。`,
+    'zh-HK': long ? `${id} 繁中說明。\n包含：${'繁中長文本。'.repeat(18)}` : `${id} 繁中說明。`,
+    en: long ? `${id} English explanation.\nContains: ${'a long English explanation. '.repeat(18)}` : `${id} English explanation.`,
+  },
 });
 
 function config(modules) {
@@ -108,4 +125,52 @@ test('loading uses a valid live response and safely falls back on errors', async
     fetchImpl: async () => { throw new Error('offline'); },
   });
   assert.equal(fallback.revision, 0);
+});
+
+test('public topic parser supports 2, 3, 38, and more than 38 ordered topics', () => {
+  for (const count of [2, 3, 38, 40]) {
+    const topics = Array.from({ length: count }, (_, index) => topic(`T${index + 1}`, index));
+    const normalized = normalizePublicTopics({ topics });
+    assert.equal(normalized.length, count);
+    assert.deepEqual(normalized.map(({ id }) => id), topics.map(({ id }) => id));
+  }
+});
+
+test('topic parser retains complete trilingual long explanations and stable topic ids', () => {
+  const normalized = normalizePublicTopics({ topics: [topic('stable_a', 0, { long: true }), topic('stable_b', 1)] });
+  assert.equal(normalized[0].topicId, 'stable_a');
+  assert.match(normalized[0].description.en, /Contains:/);
+  assert.match(normalized[0].description['zh-CN'], /包含：/);
+  assert.match(normalized[0].description['zh-HK'], /包含：/);
+});
+
+test('topic text limits match the fixed readable Section 03 slot', () => {
+  const tooLong = topic('too_long', 0);
+  tooLong.description.en = 'x'.repeat(601);
+  assert.throws(() => normalizePublicTopics({ topics: [tooLong, topic('other')] }), /too long/);
+  const longName = topic('long_name', 0);
+  longName.name.en = 'N'.repeat(80);
+  assert.equal(normalizePublicTopics({ topics: [longName, topic('other')] })[0].name.en.length, 80);
+  longName.name.en = 'N'.repeat(81);
+  assert.throws(() => normalizePublicTopics({ topics: [longName, topic('other')] }), /too long/);
+});
+
+test('explicitly invalid or fewer-than-two active topics are rejected for revision fallback', () => {
+  assert.throws(() => normalizePublicTopics({ topics: [] }), /Invalid public topics/);
+  assert.throws(() => normalizePublicTopics({ topics: [topic('only')] }), /Invalid public topics/);
+  assert.throws(() => normalizePublicTopics({ topics: [topic('bad__pair'), topic('other')] }), /Invalid public topic id/);
+  assert.throws(() => normalizePublicTopics({ topics: [topic('abcdefghijklmnopq'), topic('other')] }), /Invalid public topic id/);
+  assert.throws(() => normalizePublicTopics({ topics: [{ ...topic('bad'), topicId: 'different' }, topic('other')] }), /Mismatched public topic ids/);
+  assert.throws(() => normalizePublicTopics({ topics: [topic('bad', 0, { enabled: true }), { ...topic('bad2'), name: { en: 'English only' } }] }), /trilingual topic name/);
+});
+
+test('invalid public topic cardinality falls back to revision zero instead of rendering an empty survey', async () => {
+  for (const topics of [[], [topic('only')]]) {
+    const loaded = await loadPublicQuestionnaireConfig({
+      endpoint: 'https://example.test/api/m1-questionnaire',
+      fetchImpl: async () => Response.json({ ...config([]), topics }),
+    });
+    assert.equal(loaded.revision, 0);
+    assert.equal(Object.hasOwn(loaded, 'topics'), false);
+  }
 });

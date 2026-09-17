@@ -6,6 +6,7 @@ import {
   defaultQuestionnaireConfig,
   validateQuestionnaireConfig,
 } from '../server/question-config-model.mjs';
+import { M1_DEFAULT_TOPICS } from '../server/m1-default-question-config.mjs';
 
 const CREATE_TABLE_SQL = `CREATE TABLE IF NOT EXISTS questionnaire_configs (
   questionnaire_id TEXT PRIMARY KEY,
@@ -61,6 +62,15 @@ export function createD1QuestionConfigStore({
     throw new TypeError('A Cloudflare D1 database binding is required');
   }
   const fallback = validateQuestionnaireConfig(defaultConfig, { questionnaireId });
+  const legacyTopics = fallback.topics.length || questionnaireId !== 'M1-ESG-ISM-MICMAC'
+    ? fallback.topics
+    : M1_DEFAULT_TOPICS;
+  const withLegacyTopics = (value) => validateQuestionnaireConfig({
+    ...value,
+    // Rows created before topic administration omit `topics`. Hydrate them
+    // from the immutable released catalogue so old revisions remain usable.
+    topics: value?.topics === undefined ? legacyTopics : value.topics,
+  }, { questionnaireId });
   let schemaPromise;
 
   async function ensureSchema() {
@@ -94,7 +104,7 @@ export function createD1QuestionConfigStore({
     }
     if (!row) return snapshot(fallback, { revision: 0, updatedAt: null, persisted: false });
     try {
-      const config = validateQuestionnaireConfig(JSON.parse(row.config_json), { questionnaireId });
+      const config = withLegacyTopics(JSON.parse(row.config_json));
       if (!Number.isSafeInteger(row.revision) || row.revision < 1) throw new Error('Invalid stored revision');
       return snapshot(config, { revision: row.revision, updatedAt: row.updated_at, persisted: true });
     } catch (error) {
@@ -126,7 +136,7 @@ export function createD1QuestionConfigStore({
         : null;
     }
     try {
-      const config = validateQuestionnaireConfig(JSON.parse(row.config_json), { questionnaireId });
+      const config = withLegacyTopics(JSON.parse(row.config_json));
       return snapshot(config, { revision, updatedAt: row.created_at, persisted: true });
     } catch (error) {
       throw new QuestionConfigStorageError('Stored question configuration revision is invalid', { cause: error });
@@ -226,6 +236,21 @@ export function createD1QuestionConfigStore({
     },
     reorder(ids, options = {}) {
       return mutate({ type: 'reorder', ids }, options);
+    },
+    createTopic(topic, options = {}) {
+      return mutate({ type: 'topic-create', topic, index: options.index }, options);
+    },
+    updateTopic(id, topic, options = {}) {
+      return mutate({ type: 'topic-update', id, topic }, options);
+    },
+    archiveTopic(id, options = {}) {
+      return mutate({ type: 'topic-archive', id }, options);
+    },
+    restoreTopic(id, options = {}) {
+      return mutate({ type: 'topic-restore', id }, options);
+    },
+    reorderTopics(ids, options = {}) {
+      return mutate({ type: 'topic-reorder', ids }, options);
     },
     replace(config, options = {}) {
       return mutate({ type: 'replace', config }, options);

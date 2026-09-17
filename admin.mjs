@@ -27,6 +27,24 @@ const BACKEND_TYPE_BY_UI = {
   multiple: 'multiple_choice',
   judgement: 'judgement_boolean',
 };
+const TOPIC_LIMITS = Object.freeze({
+  maxIdLength: 16,
+  maxActive: 40,
+  maxTotal: 200,
+  maxNameLength: 80,
+  maxDescriptionLength: 600,
+});
+const TOPIC_NAME_NEWLINE_PATTERN = /[\r\n]/u;
+
+function topicCharacterLength(value) {
+  return Array.from(String(value ?? '')).length;
+}
+const PREVIEW_SAMPLE_KEYS = {
+  subjective: 'previewSampleSubjective',
+  single: 'previewSampleSingle',
+  multiple: 'previewSampleMultiple',
+  judgement: 'previewSampleJudgement',
+};
 const UI_TYPE_BY_BACKEND = Object.fromEntries(Object.entries(BACKEND_TYPE_BY_UI).map(([ui, backend]) => [backend, ui]));
 const JUDGEMENT_PRESET = [
   {
@@ -72,6 +90,11 @@ const state = {
   questionsLoading: false,
   questionsError: '',
   editor: null,
+  topics: [],
+  topicsLoading: false,
+  topicsError: '',
+  topicEditor: null,
+  conflictResource: '',
   toast: null,
 };
 
@@ -226,6 +249,53 @@ function normaliseQuestion(question, index = 0) {
   };
 }
 
+function topicIdOf(topic) {
+  return String(topic?.id || topic?.topicId || topic?.key || '');
+}
+
+function topicLocalisedField(raw, field) {
+  const direct = raw?.[field];
+  if (direct && typeof direct === 'object' && !Array.isArray(direct)) return localisedRecord(direct);
+  const translations = raw?.translations;
+  if (translations && typeof translations === 'object') {
+    // Accept both `{ name: { locale: text } }` and
+    // `{ locale: { name, description } }` response shapes.
+    if (translations[field] && typeof translations[field] === 'object' && !Array.isArray(translations[field])) {
+      return localisedRecord(translations[field]);
+    }
+    return Object.fromEntries(adminLocales.map((locale) => {
+      const item = translations[locale];
+      if (typeof item === 'string') return [locale, item];
+      return [locale, String(item?.[field] || item?.[field === 'name' ? 'title' : 'helpText'] || '')];
+    }));
+  }
+  return localisedRecord(typeof direct === 'string' ? direct : '');
+}
+
+function normaliseTopic(topic, index = 0) {
+  const raw = topic && typeof topic === 'object' ? topic : {};
+  const archived = raw.archived === true || raw.status === 'archived' || raw.state === 'archived';
+  const enabled = !archived && raw.enabled !== false && raw.active !== false;
+  const sourceIds = Array.isArray(raw.sourceIds)
+    ? raw.sourceIds.map((item) => String(item)).filter(Boolean)
+    : typeof raw.sourceIds === 'string'
+      ? raw.sourceIds.split(',').map((item) => item.trim()).filter(Boolean)
+      : [];
+  return {
+    ...raw,
+    id: topicIdOf(raw) || `topic-${index + 1}`,
+    order: Number(raw.order ?? raw.sortOrder ?? raw.position ?? index + 1) || index + 1,
+    version: Number.isSafeInteger(raw.version) ? raw.version : null,
+    name: topicLocalisedField(raw, 'name'),
+    description: topicLocalisedField(raw, 'description'),
+    category: typeof raw.category === 'string' ? raw.category : String(raw.category?.code || raw.category?.id || ''),
+    sourceIds,
+    esrs: raw.esrs ?? null,
+    enabled,
+    archived,
+  };
+}
+
 function blankQuestion() {
   return {
     id: '',
@@ -236,6 +306,19 @@ function blankQuestion() {
     title: Object.fromEntries(adminLocales.map((locale) => [locale, ''])),
     description: Object.fromEntries(adminLocales.map((locale) => [locale, ''])),
     options: [],
+  };
+}
+
+function blankTopic() {
+  return {
+    id: '',
+    name: Object.fromEntries(adminLocales.map((locale) => [locale, ''])),
+    description: Object.fromEntries(adminLocales.map((locale) => [locale, ''])),
+    category: '',
+    sourceIds: '',
+    esrs: '',
+    enabled: true,
+    archived: false,
   };
 }
 
@@ -257,8 +340,28 @@ function draftFromQuestion(question) {
   };
 }
 
+function draftFromTopic(topic) {
+  const normalized = normaliseTopic(topic);
+  return {
+    id: normalized.id,
+    name: { ...normalized.name },
+    description: { ...normalized.description },
+    category: normalized.category || '',
+    sourceIds: normalized.sourceIds.join(', '),
+    esrs: normalized.esrs && typeof normalized.esrs === 'object'
+      ? jsonPreview(normalized.esrs)
+      : String(normalized.esrs || ''),
+    enabled: normalized.enabled,
+    archived: normalized.archived,
+  };
+}
+
 function questionTypeLabel(type) {
   return t(QUESTION_TYPE_COPY[type] || QUESTION_TYPE_COPY.subjective);
+}
+
+function copyForLocale(locale, key) {
+  return adminCopy[locale]?.[key] || adminCopy.en?.[key] || key;
 }
 
 function questionTitle(question) {
@@ -379,7 +482,8 @@ function renderSidebar() {
   const nav = [
     { id: 'overview', label: t('navOverview'), number: '01', group: 'study' },
     { id: 'submissions', label: t('navSubmissions'), number: '02', group: 'study' },
-    { id: 'questions', label: t('navQuestions'), number: '03', group: 'configure' },
+    { id: 'topics', label: t('navTopics'), number: '03', group: 'configure' },
+    { id: 'questions', label: t('navQuestions'), number: '04', group: 'configure' },
   ];
   return `<aside class="admin-sidebar" aria-label="${escapeAttribute(t('adminLabel'))}">
     ${renderBrand()}
@@ -392,7 +496,10 @@ function renderSidebar() {
 }
 
 function renderNavItem(item) {
-  const active = state.view === item.id || (item.id === 'questions' && state.view === 'question-editor') || (item.id === 'submissions' && state.view === 'submission-detail');
+  const active = state.view === item.id
+    || (item.id === 'questions' && state.view === 'question-editor')
+    || (item.id === 'topics' && state.view === 'topic-editor')
+    || (item.id === 'submissions' && state.view === 'submission-detail');
   return `<li><button class="nav-link ${active ? 'is-active' : ''}" type="button" data-action="navigate" data-view="${item.id}" aria-current="${active ? 'page' : 'false'}"><span class="nav-index">${item.number}</span><b>${escapeHtml(item.label)}</b></button></li>`;
 }
 
@@ -506,6 +613,58 @@ function renderQuestions() {
   return `<section class="admin-page" aria-labelledby="admin-page-title"><header class="admin-page-heading"><div class="admin-page-heading-copy"><p class="eyebrow">${escapeHtml(t('questionsEyebrow'))}</p><h1 id="admin-page-title">${escapeHtml(t('questionsTitle'))}</h1><p>${escapeHtml(t('questionsLead'))}</p></div><div class="question-tools"><span class="question-count">${escapeHtml(t('questionCount', { n: state.questions.length }))}</span><button class="primary-button" type="button" data-action="new-question">${escapeHtml(t('createQuestion'))}<span aria-hidden="true">＋</span></button></div></header><section class="admin-panel"><div class="panel-heading"><div><h2>${escapeHtml(t('questionsTitle'))}</h2><p>${escapeHtml(t('reorderInstructions'))}</p></div></div>${renderQuestionList(enabled)}</section></section>`;
 }
 
+function topicTitle(topic) {
+  return localise(topic?.name, topic?.id || t('unknown')) || topic?.id || t('unknown');
+}
+
+function renderTopics() {
+  const active = state.topics.filter((topic) => !topic.archived);
+  const archived = state.topics.filter((topic) => topic.archived);
+  return `<section class="admin-page topic-management" aria-labelledby="admin-page-title">
+    <header class="admin-page-heading"><div class="admin-page-heading-copy"><p class="eyebrow">${escapeHtml(t('topicsEyebrow'))}</p><h1 id="admin-page-title">${escapeHtml(t('topicsTitle'))}</h1><p>${escapeHtml(t('topicsLead'))}</p></div><div class="question-tools"><span class="question-count">${escapeHtml(t('topicCount', { n: state.topics.length }))}</span><button class="primary-button" type="button" data-action="new-topic">${escapeHtml(t('createTopic'))}<span aria-hidden="true">＋</span></button></div></header>
+    <section class="admin-panel"><div class="panel-heading"><div><h2>${escapeHtml(t('topicActiveGroup'))}</h2><p>${escapeHtml(t('topicReorderInstructions'))}</p></div></div>${renderTopicList(active, false)}</section>
+    <section class="admin-panel topic-archived-panel"><div class="panel-heading"><div><h2>${escapeHtml(t('topicArchivedGroup'))}</h2><p>${escapeHtml(t('archiveMessage'))}</p></div></div>${renderTopicList(archived, true)}</section>
+  </section>`;
+}
+
+function renderTopicList(topics, archived) {
+  if (state.topicsLoading && !state.topics.length) return `<div class="loading-state" role="status">${escapeHtml(t('loading'))}</div>`;
+  if (state.topicsError && !state.topics.length) return `<div class="error-state" role="alert"><span>${escapeHtml(state.topicsError || t('topicLoadError'))}</span><button class="text-button" type="button" data-action="load-topics">${escapeHtml(t('retry'))}</button></div>`;
+  if (!topics.length) return `<p class="empty-state">${escapeHtml(archived ? t('noArchivedTopics') : t('noTopics'))}</p>`;
+  return `<div class="topic-list ${archived ? 'is-archived' : ''}" aria-label="${escapeAttribute(archived ? t('topicArchivedGroup') : t('topicActiveGroup'))}">${topics.map((topic, index) => `<article class="topic-row ${topic.archived ? 'is-archived' : ''}">
+    <span class="topic-order">${String(index + 1).padStart(2, '0')}</span>
+    <div class="topic-copy"><div class="topic-title-line"><h3>${escapeHtml(topicTitle(topic))}</h3><span class="topic-id">${escapeHtml(topic.id)}</span></div><p>${escapeHtml(localise(topic.description, ''))}</p></div>
+    <div class="topic-tags"><span class="question-tag ${topic.archived ? '' : 'is-active'}">${escapeHtml(topic.archived ? t('archivedLabel') : t('activeLabel'))}</span>${topic.category ? `<span class="question-tag">${escapeHtml(topic.category)}</span>` : ''}</div>
+    <div class="topic-actions">${topic.archived ? `<button class="text-button" type="button" data-action="restore-topic" data-id="${escapeAttribute(topic.id)}">${escapeHtml(t('restoreTopic'))}</button>` : `<button class="text-button" type="button" data-action="edit-topic" data-id="${escapeAttribute(topic.id)}">${escapeHtml(t('edit'))}</button><button class="text-button danger-button" type="button" data-action="archive-topic" data-id="${escapeAttribute(topic.id)}">${escapeHtml(t('archiveTopic'))}</button><span class="question-reorder"><button class="icon-button" type="button" data-action="move-topic" data-id="${escapeAttribute(topic.id)}" data-direction="up" aria-label="${escapeAttribute(t('moveUp'))}" ${index === 0 ? 'disabled' : ''}>↑</button><button class="icon-button" type="button" data-action="move-topic" data-id="${escapeAttribute(topic.id)}" data-direction="down" aria-label="${escapeAttribute(t('moveDown'))}" ${index === topics.length - 1 ? 'disabled' : ''}>↓</button></span>`}</div>
+  </article>`).join('')}</div>`;
+}
+
+function topicCounterText(field, locale) {
+  const value = state.topicEditor?.draft?.[field]?.[locale] || '';
+  const max = field === 'name' ? TOPIC_LIMITS.maxNameLength : TOPIC_LIMITS.maxDescriptionLength;
+  return t(field === 'name' ? 'topicNameCounter' : 'topicDescriptionCounter', { n: topicCharacterLength(value), max });
+}
+
+function renderTopicEditor() {
+  const editor = state.topicEditor;
+  const draft = editor.draft;
+  return `<section class="admin-page topic-editor" aria-labelledby="admin-page-title">
+    <button class="back-link" type="button" data-action="cancel-topic-editor"><span aria-hidden="true">←</span>${escapeHtml(t('topicsTitle'))}</button>
+    <header class="admin-page-heading"><div class="admin-page-heading-copy"><p class="eyebrow">${escapeHtml(t('topicEditorEyebrow'))}</p><h1 id="admin-page-title">${escapeHtml(editor.mode === 'new' ? t('newTopic') : t('editTopic'))}</h1><p>${escapeHtml(t('topicEditorLead'))}</p><p class="topic-limit-note">${escapeHtml(t('topicLimitsHint', { idMax: TOPIC_LIMITS.maxIdLength, nameMax: TOPIC_LIMITS.maxNameLength, descriptionMax: TOPIC_LIMITS.maxDescriptionLength, activeMax: TOPIC_LIMITS.maxActive, totalMax: TOPIC_LIMITS.maxTotal }))}</p></div></header>
+    <form class="editor-form topic-editor-form" data-form="topic-editor" novalidate>
+      <div class="editor-grid topic-meta-grid">
+        <label class="field-group"><span>${escapeHtml(t('topicIdLabel'))}<em aria-hidden="true">*</em></span><input data-topic-field="id" type="text" maxlength="${TOPIC_LIMITS.maxIdLength}" value="${escapeAttribute(draft.id)}" placeholder="${escapeAttribute(t('topicIdPlaceholder'))}" required ${editor.mode === 'edit' ? 'readonly' : ''} /></label>
+        <label class="field-group"><span>${escapeHtml(t('topicCategoryLabel'))}</span><input data-topic-field="category" type="text" value="${escapeAttribute(draft.category)}" placeholder="${escapeAttribute(t('topicCategoryPlaceholder'))}" /></label>
+        <label class="field-group"><span>${escapeHtml(t('topicSourceIdsLabel'))}</span><input data-topic-field="sourceIds" type="text" value="${escapeAttribute(draft.sourceIds)}" placeholder="${escapeAttribute(t('topicSourceIdsPlaceholder'))}" /></label>
+        <label class="field-group"><span>${escapeHtml(t('topicEsrsLabel'))}</span><textarea data-topic-field="esrs" placeholder="${escapeAttribute(t('topicEsrsPlaceholder'))}">${escapeHtml(draft.esrs)}</textarea></label>
+      </div>
+      <section class="topic-language-grid" aria-labelledby="topic-language-heading"><div class="topic-language-heading"><h2 id="topic-language-heading">${escapeHtml(t('topicLanguageLabel'))}</h2><p>${escapeHtml(t('topicEditorLead'))}</p></div>${adminLocales.map((locale) => `<article class="topic-locale-card"><h3>${escapeHtml(adminLanguageNames[locale])}</h3><label class="field-group"><span class="topic-field-heading"><span>${escapeHtml(t('topicNameLabel'))}<em aria-hidden="true">*</em></span><small id="topic-name-count-${locale}" data-topic-counter="name" data-locale="${locale}">${escapeHtml(topicCounterText('name', locale))}</small></span><input data-topic-field="name" data-locale="${locale}" type="text" maxlength="${TOPIC_LIMITS.maxNameLength}" aria-describedby="topic-name-count-${locale}" value="${escapeAttribute(draft.name[locale])}" placeholder="${escapeAttribute(t('topicNamePlaceholder'))}" required /></label><label class="field-group"><span class="topic-field-heading"><span>${escapeHtml(t('topicDescriptionLabel'))}<em aria-hidden="true">*</em></span><small id="topic-description-count-${locale}" data-topic-counter="description" data-locale="${locale}">${escapeHtml(topicCounterText('description', locale))}</small></span><textarea data-topic-field="description" data-locale="${locale}" maxlength="${TOPIC_LIMITS.maxDescriptionLength}" aria-describedby="topic-description-count-${locale}" rows="6" placeholder="${escapeAttribute(t('topicDescriptionPlaceholder'))}" required>${escapeHtml(draft.description[locale])}</textarea></label></article>`).join('')}</section>
+      ${editor.error ? `<p class="inline-error" role="alert">${escapeHtml(editor.error)}</p>` : ''}
+      <div class="editor-actions"><button class="text-button" type="button" data-action="cancel-topic-editor">${escapeHtml(t('cancel'))}</button><div><button class="primary-button" type="submit" ${editor.saving ? 'disabled' : ''}>${escapeHtml(editor.saving ? t('saving') : t('saveTopic'))}<span aria-hidden="true">→</span></button></div></div>
+    </form>
+  </section>`;
+}
+
 function renderQuestionList(enabledCount) {
   if (state.questionsLoading && !state.questions.length) return `<div class="loading-state" role="status">${escapeHtml(t('loading'))}</div>`;
   if (state.questionsError && !state.questions.length) return `<div class="error-state" role="alert"><span>${escapeHtml(state.questionsError || t('questionLoadError'))}</span><button class="text-button" type="button" data-action="load-questions">${escapeHtml(t('retry'))}</button></div>`;
@@ -525,13 +684,14 @@ function renderEditor() {
     <form class="editor-form" data-form="question-editor" novalidate>
       <div class="editor-grid">
         <label class="field-group"><span>${escapeHtml(t('moduleIdLabel'))}<em aria-hidden="true">*</em></span><input data-editor-field="id" type="text" value="${escapeAttribute(draft.id)}" placeholder="${escapeAttribute(t('moduleIdPlaceholder'))}" required ${editor.mode === 'edit' ? 'readonly' : ''} /></label>
-        <label class="field-group"><span>${escapeHtml(t('typeLabel'))}</span><select data-editor-type>${QUESTION_TYPES.map((type) => `<option value="${type}" ${draft.type === type ? 'selected' : ''}>${escapeHtml(questionTypeLabel(type))}</option>`).join('')}</select></label>
+        <label class="field-group"><span>${escapeHtml(t('typeLabel'))}</span><select data-editor-type>${QUESTION_TYPES.map((type) => `<option value="${type}" data-backend-type="${BACKEND_TYPE_BY_UI[type]}" ${draft.type === type ? 'selected' : ''}>${escapeHtml(questionTypeLabel(type))}</option>`).join('')}</select></label>
         <label class="field-group"><span>${escapeHtml(t('stageLabel'))}</span><select data-editor-stage><option value="before_topics" ${draft.stage === 'before_topics' ? 'selected' : ''}>${escapeHtml(t('stageBefore'))}</option><option value="after_topics" ${draft.stage === 'after_topics' ? 'selected' : ''}>${escapeHtml(t('stageAfter'))}</option></select></label>
         <label class="field-group"><span>${escapeHtml(t('titleLabel'))}<em aria-hidden="true">*</em></span><input data-editor-field="title" type="text" value="${escapeAttribute(draft.title[locale])}" placeholder="${escapeAttribute(t('titlePlaceholder'))}" required /></label>
         <label class="field-group"><span>${escapeHtml(t('descriptionLabel'))}</span><textarea data-editor-field="description" placeholder="${escapeAttribute(t('descriptionPlaceholder'))}">${escapeHtml(draft.description[locale])}</textarea></label>
       </div>
       <div class="editor-toggles"><label class="check-label"><input data-editor-toggle="required" type="checkbox" ${draft.required ? 'checked' : ''} />${escapeHtml(t('requiredLabel'))}</label><label class="check-label"><input data-editor-toggle="enabled" type="checkbox" ${draft.enabled ? 'checked' : ''} />${escapeHtml(t('enabledLabel'))}</label></div>
       ${requiresOptions ? renderOptionsEditor() : ''}
+      ${renderQuestionPreview()}
       ${editor.error ? `<p class="inline-error" role="alert">${escapeHtml(editor.error)}</p>` : ''}
       <div class="editor-actions"><button class="text-button" type="button" data-action="cancel-editor">${escapeHtml(t('cancel'))}</button><div><button class="primary-button" type="submit" ${editor.saving ? 'disabled' : ''}>${escapeHtml(editor.saving ? t('saving') : t('save'))}<span aria-hidden="true">→</span></button></div></div>
     </form>
@@ -546,9 +706,35 @@ function renderOptionsEditor() {
   return `<section class="option-builder" aria-labelledby="options-heading"><div class="option-builder-heading"><div><h2 id="options-heading">${escapeHtml(t('optionsLabel'))}</h2><p>${escapeHtml(t('questionType'))}: ${escapeHtml(questionTypeLabel(draft.type))}</p></div>${judgementLocked ? '' : `<button class="secondary-button" type="button" data-action="add-option">${escapeHtml(t('addOption'))}<span aria-hidden="true">＋</span></button>`}</div><div class="options-list">${options.length ? options.map((option, index) => `<div class="option-row"><span class="option-index">${String(index + 1).padStart(2, '0')}</span><label><span class="visually-hidden">${escapeHtml(t('optionLabel', { n: index + 1 }))}</span><input data-option-field="value" data-option-index="${index}" type="text" value="${escapeAttribute(option.value[state.editor.locale] || '')}" placeholder="${escapeAttribute(t('optionValuePlaceholder'))}" /></label><div class="option-actions">${optionActions(option, index)}</div></div>`).join('') : `<p class="empty-state">${escapeHtml(t('noQuestions'))}</p>`}</div>${judgementLocked ? `<div class="preset-row"><button class="text-button" type="button" data-action="preset-judgement">${escapeHtml(t('presetJudgement'))}</button><small>${escapeHtml(t('presetApplied'))}</small></div>` : ''}</section>`;
 }
 
+function previewSampleOptions(type) {
+  if (type === 'judgement') return JUDGEMENT_PRESET.map((option) => option.label);
+  return [
+    Object.fromEntries(adminLocales.map((locale) => [locale, copyForLocale(locale, 'sampleOptionA')])),
+    Object.fromEntries(adminLocales.map((locale) => [locale, copyForLocale(locale, 'sampleOptionB')])),
+    Object.fromEntries(adminLocales.map((locale) => [locale, copyForLocale(locale, 'sampleOptionC')])),
+  ];
+}
+
+function renderQuestionPreview() {
+  const editor = state.editor;
+  const draft = editor.draft;
+  const locale = editor.previewLocale || editor.locale || state.locale;
+  const sampleKey = PREVIEW_SAMPLE_KEYS[draft.type] || PREVIEW_SAMPLE_KEYS.subjective;
+  const title = String(draft.title?.[locale] || '').trim() || copyForLocale(locale, sampleKey);
+  const description = String(draft.description?.[locale] || '').trim();
+  let options = (draft.options || []).map((option) => String(option.value?.[locale] || '').trim()).filter(Boolean);
+  if (!options.length && draft.type !== 'subjective') options = previewSampleOptions(draft.type).map((option) => typeof option === 'object' ? String(option[locale] || option.en || '') : String(option));
+  const controlType = draft.type === 'multiple' ? 'checkbox' : 'radio';
+  return `<section class="question-preview" aria-labelledby="question-preview-heading">
+    <div class="question-preview-heading"><div><p class="eyebrow">${escapeHtml(t('previewLabel'))}</p><h2 id="question-preview-heading">${escapeHtml(t('previewLabel'))}</h2><p>${escapeHtml(t('previewHint'))}</p></div><span class="preview-readonly">${escapeHtml(t('previewNoSubmit'))}</span></div>
+    <div class="preview-language-tabs" role="tablist" aria-label="${escapeAttribute(t('previewLanguage'))}">${adminLocales.map((item) => `<button type="button" role="tab" aria-selected="${locale === item}" class="${locale === item ? 'is-active' : ''}" data-action="preview-locale" data-locale="${item}">${escapeHtml(adminLanguageNames[item])}</button>`).join('')}</div>
+    <div class="survey-preview-card qualitative-page"><div class="qualitative-fields"><div class="qualitative-field preview-question-field"><div class="survey-preview-kicker">${escapeHtml(draft.id || 'Q8')}</div><div class="qualitative-question-label"><i>${escapeHtml(draft.id || 'Q8')}</i><span>${escapeHtml(title)}</span></div>${description ? `<p class="survey-preview-description">${escapeHtml(description)}</p>` : ''}${draft.type === 'subjective' ? `<textarea class="survey-preview-textarea" disabled placeholder="${escapeAttribute(title)}"></textarea>` : `<fieldset class="module-choice-group survey-preview-options"><legend class="visually-hidden">${escapeHtml(copyForLocale(locale, draft.type === 'multiple' ? 'previewSampleMultiple' : draft.type === 'judgement' ? 'previewSampleJudgement' : 'previewSampleSingle'))}</legend><div class="module-choice-grid">${options.map((option, index) => `<label class="module-option-card survey-preview-option"><input type="${controlType}" name="preview-${escapeAttribute(draft.id || 'question')}-${index}" disabled /><span>${escapeHtml(option)}</span></label>`).join('')}</div></fieldset>`}</div></div><div class="survey-preview-actions form-actions"><button type="button" class="primary-button" disabled>${escapeHtml(copyForLocale(locale, 'save'))}<span aria-hidden="true">→</span></button><small>${escapeHtml(copyForLocale(locale, 'previewNoSubmit'))}</small></div></div>
+  </section>`;
+}
+
 function renderToast() {
   if (!state.toast) return '';
-  return `<div class="toast ${state.toast.error ? 'is-error' : ''} is-visible" role="status">${escapeHtml(state.toast.message)}</div>`;
+  return `<div class="toast ${state.toast.error ? 'is-error' : ''} is-visible" role="status"><span>${escapeHtml(state.toast.message)}</span>${state.toast.action ? `<button type="button" class="text-button" data-action="${escapeAttribute(state.toast.action)}">${escapeHtml(t('refreshConflict'))}</button>` : ''}</div>`;
 }
 
 function render() {
@@ -569,6 +755,10 @@ function render() {
       ? renderSubmissions()
       : state.view === 'submission-detail'
         ? renderDetail()
+        : state.view === 'topics'
+          ? renderTopics()
+          : state.view === 'topic-editor'
+            ? renderTopicEditor()
         : state.view === 'questions'
           ? renderQuestions()
           : renderEditor();
@@ -593,6 +783,29 @@ function showToast(message, error = false) {
     state.toast = null;
     if (state.auth === 'signedIn') render();
   }, 3600);
+  render();
+}
+
+function revisionLabel(error) {
+  const revision = error?.revision ?? error?.payload?.actualRevision ?? error?.payload?.currentRevision ?? error?.payload?.revision;
+  return revision === undefined || revision === null || revision === ''
+    ? ''
+    : ` ${t('conflictRevision', { n: revision })}`;
+}
+
+function showConflict(error, resource) {
+  state.conflictResource = resource;
+  state.toast = {
+    message: `${t('conflictDetected')}${revisionLabel(error)}`,
+    error: true,
+    action: 'refresh-conflict',
+  };
+  window.clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => {
+    state.toast = null;
+    state.conflictResource = '';
+    if (state.auth === 'signedIn') render();
+  }, 9000);
   render();
 }
 
@@ -643,7 +856,7 @@ async function bootstrap() {
 }
 
 async function loadOverviewData() {
-  await Promise.all([loadSubmissions({ silent: true }), loadQuestions({ silent: true }), loadCounts()]);
+  await Promise.all([loadSubmissions({ silent: true }), loadQuestions({ silent: true }), loadTopics({ silent: true }), loadCounts()]);
   if (state.auth === 'signedIn') render();
 }
 
@@ -716,6 +929,24 @@ async function loadQuestions({ silent = false } = {}) {
   }
 }
 
+async function loadTopics({ silent = false } = {}) {
+  if (state.auth !== 'signedIn') return;
+  state.topicsLoading = true;
+  state.topicsError = '';
+  if (!silent) render();
+  try {
+    const payload = await api.topics();
+    const parsed = extractListPayload(payload, ['items', 'topics', 'factors', 'data', 'results']);
+    state.topics = parsed.items.map(normaliseTopic).sort((left, right) => left.order - right.order);
+  } catch (error) {
+    if (error instanceof AdminAuthError) return;
+    state.topicsError = error.message || t('topicLoadError');
+  } finally {
+    state.topicsLoading = false;
+    if (state.auth === 'signedIn' && (state.view === 'topics' || state.view === 'overview')) render();
+  }
+}
+
 async function loadDetailQuestionSnapshot(record) {
   state.detailQuestions = [];
   state.detailQuestionsError = '';
@@ -762,6 +993,7 @@ function startEditor(question = null) {
   state.editor = {
     mode: question ? 'edit' : 'new',
     locale: state.locale,
+    previewLocale: state.locale,
     draft: question ? draftFromQuestion(question) : blankQuestion(),
     saving: false,
     error: '',
@@ -769,12 +1001,25 @@ function startEditor(question = null) {
   render();
 }
 
+function startTopicEditor(topic = null) {
+  state.view = 'topic-editor';
+  state.topicEditor = {
+    mode: topic ? 'edit' : 'new',
+    draft: topic ? draftFromTopic(topic) : blankTopic(),
+    saving: false,
+    error: '',
+  };
+  render();
+}
+
 function setView(view) {
-  if (!['overview', 'submissions', 'questions'].includes(view)) return;
+  if (!['overview', 'submissions', 'topics', 'questions'].includes(view)) return;
   state.view = view;
   state.editor = null;
+  state.topicEditor = null;
   render();
   if (view === 'overview' || view === 'submissions') void loadSubmissions();
+  if (view === 'topics') void loadTopics();
   if (view === 'questions') void loadQuestions();
 }
 
@@ -828,6 +1073,70 @@ function questionPayload(draft) {
   };
 }
 
+function topicPayload(draft) {
+  let esrs = String(draft.esrs || '').trim();
+  if (esrs) {
+    try {
+      esrs = JSON.parse(esrs);
+    } catch {
+      // Validation blocks this path; never send an invalid string to the API.
+      esrs = null;
+    }
+  }
+  const name = Object.fromEntries(adminLocales.map((locale) => [locale, String(draft.name?.[locale] || '')]));
+  const description = Object.fromEntries(adminLocales.map((locale) => [locale, String(draft.description?.[locale] || '')]));
+  const payload = {
+    ...(draft.id ? { id: draft.id } : {}),
+    name,
+    description,
+    category: String(draft.category || '').trim(),
+    sourceIds: String(draft.sourceIds || '').split(',').map((item) => item.trim()).filter(Boolean),
+    // Active/archived is deliberately controlled by the dedicated archive and
+    // restore actions. The config model rejects a non-archived disabled topic.
+    enabled: true,
+    archived: false,
+  };
+  if (esrs && typeof esrs === 'object' && !Array.isArray(esrs)) payload.esrs = esrs;
+  return payload;
+}
+
+function topicCapacityError() {
+  if (state.topics.length >= TOPIC_LIMITS.maxTotal) {
+    return t('topicTotalLimit', { max: TOPIC_LIMITS.maxTotal });
+  }
+  if (state.topics.filter((topic) => !topic.archived).length >= TOPIC_LIMITS.maxActive) {
+    return t('topicActiveLimit', { max: TOPIC_LIMITS.maxActive });
+  }
+  return '';
+}
+
+function validateTopicDraft(draft) {
+  const id = String(draft.id || '').trim();
+  if (id.length > TOPIC_LIMITS.maxIdLength) return t('topicIdLimit', { max: TOPIC_LIMITS.maxIdLength });
+  if (!/^(?!.*__)[A-Za-z][A-Za-z0-9_-]{0,15}$/.test(id)) return t('topicIdLabel');
+  if (adminLocales.some((locale) => !String(draft.name?.[locale] || '').trim())) return t('topicNameLabel');
+  if (adminLocales.some((locale) => TOPIC_NAME_NEWLINE_PATTERN.test(String(draft.name?.[locale] || '')))) {
+    return t('topicNameSingleLine');
+  }
+  if (adminLocales.some((locale) => topicCharacterLength(draft.name?.[locale]) > TOPIC_LIMITS.maxNameLength)) {
+    return t('topicNameLimit', { max: TOPIC_LIMITS.maxNameLength });
+  }
+  if (adminLocales.some((locale) => !String(draft.description?.[locale] || '').trim())) return t('topicDescriptionLabel');
+  if (adminLocales.some((locale) => topicCharacterLength(draft.description?.[locale]) > TOPIC_LIMITS.maxDescriptionLength)) {
+    return t('topicDescriptionLimit', { max: TOPIC_LIMITS.maxDescriptionLength });
+  }
+  const esrs = String(draft.esrs || '').trim();
+  if (esrs) {
+    try {
+      const parsed = JSON.parse(esrs);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return t('topicEsrsLabel');
+    } catch {
+      return t('topicEsrsLabel');
+    }
+  }
+  return '';
+}
+
 async function saveQuestion() {
   if (!state.editor) return;
   const draft = state.editor.draft;
@@ -851,8 +1160,43 @@ async function saveQuestion() {
   } catch (error) {
     if (error instanceof AdminAuthError) return;
     state.editor.saving = false;
-    state.editor.error = error.message || t('saveError');
+    if (error.status === 409) showConflict(error, 'questions');
+    else {
+      state.editor.error = error.message || t('saveError');
+      render();
+    }
+  }
+}
+
+async function saveTopic() {
+  if (!state.topicEditor) return;
+  const draft = state.topicEditor.draft;
+  const error = validateTopicDraft(draft)
+    || (state.topicEditor.mode === 'new' ? topicCapacityError() : '');
+  if (error) {
+    state.topicEditor.error = error;
     render();
+    return;
+  }
+  state.topicEditor.saving = true;
+  state.topicEditor.error = '';
+  render();
+  try {
+    const payload = topicPayload(draft);
+    if (state.topicEditor.mode === 'new') await api.createTopic(payload);
+    else await api.updateTopic(draft.id, payload);
+    state.topicEditor = null;
+    state.view = 'topics';
+    await loadTopics({ silent: true });
+    showToast(t('topicSaveSuccess'));
+  } catch (error) {
+    if (error instanceof AdminAuthError) return;
+    state.topicEditor.saving = false;
+    if (error.status === 409) showConflict(error, 'topics');
+    else {
+      state.topicEditor.error = error.message || t('topicSaveError');
+      render();
+    }
   }
 }
 
@@ -866,7 +1210,40 @@ async function deleteQuestion(id) {
     showToast(t('deleteSuccess'));
   } catch (error) {
     if (error instanceof AdminAuthError) return;
-    showToast(error.message || t('saveError'), true);
+    if (error.status === 409) showConflict(error, 'questions');
+    else showToast(error.message || t('saveError'), true);
+  }
+}
+
+async function archiveTopic(id) {
+  const topic = state.topics.find((item) => item.id === id);
+  if (!topic || !window.confirm(`${t('confirmArchive')}\n\n${t('archiveMessage')}`)) return;
+  try {
+    await api.archiveTopic(id);
+    await loadTopics({ silent: true });
+    showToast(t('archiveSuccess'));
+  } catch (error) {
+    if (error instanceof AdminAuthError) return;
+    if (error.status === 409) showConflict(error, 'topics');
+    else showToast(error.message || t('archiveError'), true);
+  }
+}
+
+async function restoreTopic(id) {
+  const topic = state.topics.find((item) => item.id === id);
+  if (!topic) return;
+  if (state.topics.filter((item) => !item.archived).length >= TOPIC_LIMITS.maxActive) {
+    showToast(t('topicActiveLimit', { max: TOPIC_LIMITS.maxActive }), true);
+    return;
+  }
+  try {
+    await api.restoreTopic(id);
+    await loadTopics({ silent: true });
+    showToast(t('restoreSuccess'));
+  } catch (error) {
+    if (error instanceof AdminAuthError) return;
+    if (error.status === 409) showConflict(error, 'topics');
+    else showToast(error.message || t('archiveError'), true);
   }
 }
 
@@ -882,8 +1259,34 @@ async function moveQuestion(id, direction) {
     await api.reorderQuestions(state.questions.map((question) => question.id));
   } catch (error) {
     if (error instanceof AdminAuthError) return;
-    await loadQuestions({ silent: true });
-    showToast(error.message || t('reorderError'), true);
+    if (error.status === 409) showConflict(error, 'questions');
+    else {
+      await loadQuestions({ silent: true });
+      showToast(error.message || t('reorderError'), true);
+    }
+  }
+}
+
+async function moveTopic(id, direction) {
+  const active = state.topics.filter((topic) => !topic.archived);
+  const index = active.findIndex((topic) => topic.id === id);
+  const nextIndex = direction === 'up' ? index - 1 : index + 1;
+  if (index < 0 || nextIndex < 0 || nextIndex >= active.length) return;
+  [active[index], active[nextIndex]] = [active[nextIndex], active[index]];
+  const archived = state.topics.filter((topic) => topic.archived);
+  state.topics = [...active.map((topic, itemIndex) => ({ ...topic, order: itemIndex + 1 })), ...archived];
+  render();
+  try {
+    // The server must receive every active ID exactly once; archived IDs are
+    // intentionally excluded from this CAS mutation.
+    await api.reorderTopics(active.map((topic) => topic.id));
+  } catch (error) {
+    if (error instanceof AdminAuthError) return;
+    if (error.status === 409) showConflict(error, 'topics');
+    else {
+      await loadTopics({ silent: true });
+      showToast(error.message || t('reorderError'), true);
+    }
   }
 }
 
@@ -972,6 +1375,7 @@ async function handleSubmit(event) {
     await loadSubmissions();
   }
   if (form.dataset.form === 'question-editor') await saveQuestion();
+  if (form.dataset.form === 'topic-editor') await saveTopic();
 }
 
 function handleInput(event) {
@@ -993,6 +1397,19 @@ function handleInput(event) {
   if (target.matches('[data-option-field="value"]') && state.editor) {
     const index = Number(target.dataset.optionIndex);
     if (state.editor.draft.options[index]) state.editor.draft.options[index].value[state.editor.locale] = target.value;
+  }
+  if (target.matches('[data-topic-field="name"], [data-topic-field="description"]') && state.topicEditor) {
+    const field = target.dataset.topicField;
+    const locale = target.dataset.locale;
+    if (['name', 'description'].includes(field) && adminLocales.includes(locale)) {
+      state.topicEditor.draft[field][locale] = target.value;
+      const counter = app.querySelector(`[data-topic-counter="${field}"][data-locale="${locale}"]`);
+      if (counter) counter.textContent = topicCounterText(field, locale);
+    }
+    return;
+  }
+  if (target.matches('[data-topic-field="id"], [data-topic-field="category"], [data-topic-field="sourceIds"], [data-topic-field="esrs"]') && state.topicEditor) {
+    state.topicEditor.draft[target.dataset.topicField] = target.value;
   }
 }
 
@@ -1053,7 +1470,17 @@ async function handleClick(event) {
     return;
   }
   if (action === 'refresh') {
-    await loadSubmissions();
+    if (state.view === 'topics') await loadTopics();
+    else if (state.view === 'questions') await loadQuestions();
+    else await loadSubmissions();
+    return;
+  }
+  if (action === 'refresh-conflict') {
+    const resource = state.conflictResource;
+    state.toast = null;
+    state.conflictResource = '';
+    if (resource === 'topics') await loadTopics();
+    else await loadQuestions();
     return;
   }
   if (action === 'submission-detail') {
@@ -1087,6 +1514,10 @@ async function handleClick(event) {
     startEditor();
     return;
   }
+  if (action === 'new-topic') {
+    startTopicEditor();
+    return;
+  }
   if (action === 'edit-question') {
     startEditor(state.questions.find((question) => question.id === target.dataset.id));
     return;
@@ -1094,6 +1525,16 @@ async function handleClick(event) {
   if (action === 'cancel-editor') {
     state.editor = null;
     state.view = 'questions';
+    render();
+    return;
+  }
+  if (action === 'edit-topic') {
+    startTopicEditor(state.topics.find((topic) => topic.id === target.dataset.id));
+    return;
+  }
+  if (action === 'cancel-topic-editor') {
+    state.topicEditor = null;
+    state.view = 'topics';
     render();
     return;
   }
@@ -1105,13 +1546,32 @@ async function handleClick(event) {
     await deleteQuestion(target.dataset.id);
     return;
   }
+  if (action === 'archive-topic') {
+    await archiveTopic(target.dataset.id);
+    return;
+  }
+  if (action === 'restore-topic') {
+    await restoreTopic(target.dataset.id);
+    return;
+  }
   if (action === 'move-question') {
     await moveQuestion(target.dataset.id, target.dataset.direction);
+    return;
+  }
+  if (action === 'move-topic') {
+    await moveTopic(target.dataset.id, target.dataset.direction);
     return;
   }
   if (action === 'editor-locale') {
     if (state.editor && adminLocales.includes(target.dataset.locale)) {
       state.editor.locale = target.dataset.locale;
+      render();
+    }
+    return;
+  }
+  if (action === 'preview-locale') {
+    if (state.editor && adminLocales.includes(target.dataset.locale)) {
+      state.editor.previewLocale = target.dataset.locale;
       render();
     }
     return;

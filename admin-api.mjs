@@ -27,12 +27,15 @@ const CSRF_KEY = 'm1-admin-csrf';
 const REVISION_KEY = 'm1-admin-question-revision';
 
 export class AdminApiError extends Error {
-  constructor(message, { status = 0, code = 'request-failed', payload = null } = {}) {
+  constructor(message, { status = 0, code = 'request-failed', payload = null, revision = null } = {}) {
     super(message);
     this.name = 'AdminApiError';
     this.status = status;
     this.code = code;
     this.payload = payload;
+    this.revision = revision ?? (payload && typeof payload === 'object'
+      ? payload.actualRevision ?? payload.currentRevision ?? payload.revision ?? payload.meta?.revision ?? null
+      : null);
   }
 }
 
@@ -131,6 +134,12 @@ function revisionForBody(value) {
   return Number.isSafeInteger(numeric) && numeric >= 0 ? numeric : value;
 }
 
+function revisionFromEtag(value) {
+  const normalized = String(value || '').replace(/^W\//, '').replace(/^"|"$/g, '');
+  const match = normalized.match(/(?:m1-questionnaire-r|questionnaire-r|revision[-:]?)(\d+)$/iu) || normalized.match(/^(\d+)$/u);
+  return match ? Number(match[1]) : null;
+}
+
 async function readPayload(response) {
   const contentType = response.headers.get('content-type') || '';
   if (contentType.includes('application/json')) {
@@ -153,7 +162,9 @@ export class AdminApiClient {
     this.fetchImpl = options.fetchImpl || window.fetch.bind(window);
     this.token = options.token ?? readStoredToken();
     this.csrfToken = options.csrfToken ?? readStoredValue(CSRF_KEY);
-    this.revision = options.revision ?? readStoredValue(REVISION_KEY);
+    this.revision = options.revision === undefined || options.revision === null
+      ? readStoredValue(REVISION_KEY)
+      : String(options.revision);
     this.onAuthExpired = options.onAuthExpired || (() => {});
   }
 
@@ -233,10 +244,14 @@ export class AdminApiClient {
 
     const payload = raw ? response : await readPayload(response);
     if (!response.ok) {
+      const bodyRevision = payload && typeof payload === 'object'
+        ? payload.actualRevision ?? payload.currentRevision ?? payload.revision ?? payload.meta?.revision
+        : null;
       throw new AdminApiError(messageFromPayload(payload, response.status), {
         status: response.status,
         payload,
         code: payload?.error || 'request-failed',
+        revision: bodyRevision ?? revisionFromEtag(response.headers.get('etag')),
       });
     }
     let payloadRevision;
@@ -336,6 +351,42 @@ export class AdminApiClient {
 
   reorderQuestions(ids) {
     return this.request('/questions/reorder', { method: 'PATCH', body: { ids } });
+  }
+
+  topics({ revision } = {}) {
+    const hasRevision = revision !== undefined && revision !== null && String(revision) !== '';
+    return this.request('/topics', {
+      query: hasRevision ? { revision } : undefined,
+      // Historical snapshots are read-only and must not replace the current
+      // revision used by topic/question mutations.
+      trackRevision: !hasRevision,
+    });
+  }
+
+  createTopic(topic) {
+    return this.request('/topics', { method: 'POST', body: topic });
+  }
+
+  updateTopic(id, topic) {
+    return this.request(`/topics/${encodeURIComponent(id)}`, { method: 'PUT', body: topic });
+  }
+
+  archiveTopic(id) {
+    return this.request(`/topics/${encodeURIComponent(id)}/archive`, {
+      method: 'PATCH',
+      body: { archived: true },
+    });
+  }
+
+  restoreTopic(id) {
+    return this.request(`/topics/${encodeURIComponent(id)}/restore`, {
+      method: 'POST',
+      body: {},
+    });
+  }
+
+  reorderTopics(ids) {
+    return this.request('/topics/reorder', { method: 'PATCH', body: { ids } });
   }
 }
 

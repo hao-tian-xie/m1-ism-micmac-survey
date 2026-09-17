@@ -7,6 +7,14 @@ import { createInterface } from 'node:readline';
 import { buildM1ResultCard } from '../survey-core.mjs';
 import { M1_DEFAULT_QUESTIONNAIRE_CONFIG } from './m1-default-question-config.mjs';
 import { validateVersionedModuleAnswers, versionedModuleAnswersMode } from './m1-module-answer-validation.mjs';
+import {
+  M1_FACTOR_VERSION,
+  canonicalizeM1TopicFields,
+  directMatrixForM1Submission,
+  resolveM1TopicContext,
+  topicFactorIdsMatch,
+  validateM1TopicSubmission,
+} from './m1-topic-validation.mjs';
 import { createFileQuestionConfigStore } from './question-config-store.mjs';
 
 const API_PATH = '/api/m1-submissions';
@@ -34,22 +42,6 @@ const LEGACY_RECORD_FIELDS = [
   'feedbackToken',
   'editToken',
 ];
-const FACTOR_VERSION = 'esrs-set1-subtopics-v2-38-verified';
-const FACTOR_IDS = Array.from({ length: 38 }, (_, index) => `F${index + 1}`);
-const PAIRS = FACTOR_IDS.flatMap((leftId, leftIndex) => (
-  FACTOR_IDS.slice(leftIndex + 1).map((rightId) => ({
-    pairId: `${leftId}__${rightId}`,
-    leftId,
-    rightId,
-  }))
-));
-const PAIR_COUNT = PAIRS.length;
-const RELATION_DIRECTIONS = {
-  V: [1, 0],
-  A: [0, 1],
-  X: [1, 1],
-  O: [0, 0],
-};
 
 class ApiError extends Error {
   constructor(statusCode, message) {
@@ -83,21 +75,23 @@ function sameM1Submission(left, right) {
   // A browser may retry after a timeout with a newer client timestamp. The
   // client id is the idempotency key; substantive answers must be unchanged.
   const fields = [
-    'schemaVersion', 'studyId', 'locale', 'participant', 'study', 'factors', 'responses',
+    'schemaVersion', 'studyId', 'locale', 'participant', 'study', 'responses',
     'initialReachabilityMatrix', 'directInfluenceMatrix', 'progress',
     'status', 'collectionMethod', 'qualitativeSectionComplete', 'qualitativeAnswers',
     'confirmedTopics', 'sourceSelections', 'questionnaireConfigRevision', 'moduleAnswers',
   ];
-  return fields.every((field) => stableJson(left?.[field]) === stableJson(right?.[field]));
+  return topicFactorIdsMatch(left?.factors, right?.factors)
+    && fields.every((field) => stableJson(left?.[field]) === stableJson(right?.[field]));
 }
 
 function sameM1Core(left, right) {
   const fields = [
-    'schemaVersion', 'studyId', 'locale', 'participant', 'study', 'factors', 'responses',
+    'schemaVersion', 'studyId', 'locale', 'participant', 'study', 'responses',
     'initialReachabilityMatrix', 'directInfluenceMatrix', 'progress', 'status',
     'confirmedTopics', 'sourceSelections', 'questionnaireConfigRevision', 'moduleAnswers',
   ];
-  return fields.every((field) => stableJson(left?.[field]) === stableJson(right?.[field]));
+  return topicFactorIdsMatch(left?.factors, right?.factors)
+    && fields.every((field) => stableJson(left?.[field]) === stableJson(right?.[field]));
 }
 
 function legacyWrittenAnswersMatch(existing, incoming) {
@@ -122,22 +116,12 @@ function qualitativeAnswersAreValid(value) {
     ));
 }
 
-function matrixMatches(actual, expected) {
-  return Array.isArray(actual)
-    && actual.length === expected.length
-    && actual.every((row, rowIndex) => (
-      Array.isArray(row)
-      && row.length === expected[rowIndex].length
-      && row.every((value, columnIndex) => value === expected[rowIndex][columnIndex])
-    ));
-}
-
-function isCompleteM1Submission(submission) {
+async function validateCompleteM1Submission(submission, questionStore) {
   if (!submission || typeof submission !== 'object' || Array.isArray(submission)) return false;
   if (hasServerOwnedSubmissionFields(submission)) return false;
   if (submission.schemaVersion !== 1
     || submission.studyId !== 'M1-ESG-ISM-MICMAC'
-    || submission.study?.factorVersion !== FACTOR_VERSION) return false;
+    || submission.study?.factorVersion !== M1_FACTOR_VERSION) return false;
   if (submission.status !== 'complete') return false;
   if (!['zh-CN', 'zh-HK', 'en'].includes(submission.locale)) return false;
   if (typeof submission.clientSubmissionId !== 'string'
@@ -148,13 +132,8 @@ function isCompleteM1Submission(submission) {
   if (typeof submission.participant?.roleCode !== 'string' || !submission.participant.roleCode) return false;
   if (submission.participant?.experienceCode !== undefined
     && typeof submission.participant.experienceCode !== 'string') return false;
-  if (submission.progress?.answered !== PAIR_COUNT
-    || submission.progress?.total !== PAIR_COUNT
-    || submission.progress?.complete !== true) return false;
-  if (!Array.isArray(submission.factors)
-    || submission.factors.length !== FACTOR_IDS.length
-    || !submission.factors.every((factor, index) => factor?.id === FACTOR_IDS[index])) return false;
-  if (!Array.isArray(submission.responses) || submission.responses.length !== PAIRS.length) return false;
+  const topicContext = await resolveM1TopicContext(submission, questionStore);
+  if (!topicContext || validateM1TopicSubmission(submission, topicContext)) return false;
 
   // Legacy clients submit the fixed Q1-Q7 string map. Revisioned clients use
   // moduleAnswers as the canonical payload because an admin may change any of
@@ -166,65 +145,24 @@ function isCompleteM1Submission(submission) {
   if (moduleAnswersMode !== 'legacy'
     && submission.qualitativeAnswers !== undefined
     && !qualitativeAnswersAreValid(submission.qualitativeAnswers)) return false;
-  if (!submission.confirmedTopics || !Array.isArray(submission.confirmedTopics.ids)
-    || submission.confirmedTopics.ids.length !== FACTOR_IDS.length
-    || submission.confirmedTopics.total !== FACTOR_IDS.length
-    || submission.confirmedTopics.complete !== true) return false;
-  if (!Array.isArray(submission.sourceSelections)
-    || submission.sourceSelections.length !== FACTOR_IDS.length) return false;
-
-  const responses = new Map(submission.responses.map((response) => [response?.pairId, response]));
-  if (responses.size !== PAIRS.length) return false;
-  const directMatrix = FACTOR_IDS.map(() => FACTOR_IDS.map(() => 0));
-  const factorIndex = new Map(FACTOR_IDS.map((id, index) => [id, index]));
-
-  for (const pair of PAIRS) {
-    const response = responses.get(pair.pairId);
-    const directions = RELATION_DIRECTIONS[response?.relation];
-    if (!response
-      || response.leftId !== pair.leftId
-      || response.rightId !== pair.rightId
-      || !directions
-      || response.leftToRight !== directions[0]
-      || response.rightToLeft !== directions[1]) return false;
-    const leftIndex = factorIndex.get(pair.leftId);
-    const rightIndex = factorIndex.get(pair.rightId);
-    directMatrix[leftIndex][rightIndex] = directions[0];
-    directMatrix[rightIndex][leftIndex] = directions[1];
-  }
-
-  if (submission.confirmedTopics.ids.some((id, index) => id !== FACTOR_IDS[index])) return false;
-  if (submission.sourceSelections.some((selection, index) => selection?.sourceId !== FACTOR_IDS[index])) return false;
-  const reachabilityMatrix = directMatrix.map((row, rowIndex) => (
-    row.map((value, columnIndex) => (rowIndex === columnIndex ? 1 : value))
-  ));
-  if (!matrixMatches(submission.directInfluenceMatrix, directMatrix)
-    || !matrixMatches(submission.initialReachabilityMatrix, reachabilityMatrix)) return false;
-
-  for (const [index, selection] of submission.sourceSelections.entries()) {
-    const expectedTargets = FACTOR_IDS.filter((_, targetIndex) => (
-      targetIndex !== index && directMatrix[index][targetIndex] === 1
-    ));
-    if (typeof selection.noDirectInfluence !== 'boolean'
-      || !Array.isArray(selection.targetIds)
-      || selection.targetIds.length !== expectedTargets.length
-      || expectedTargets.some((id, targetIndex) => selection.targetIds[targetIndex] !== id)
-      || selection.noDirectInfluence !== (expectedTargets.length === 0)) return false;
-  }
-  return true;
+  return topicContext;
 }
 
-function serverResultCard(record, submissionId, receivedAt) {
+function serverResultCard(record, submissionId, receivedAt, topicContext) {
   if (record.resultCard || record.submission?.resultCard || record.submission?.m1FrozenResult) {
     return record.resultCard || record.submission.resultCard || record.submission.m1FrozenResult;
   }
-  if (!Array.isArray(record.submission?.factors)
-    || !Array.isArray(record.submission?.directInfluenceMatrix)) return null;
+  const submission = record.submission || record;
+  const factors = topicContext?.factors || submission.factors;
+  const directInfluenceMatrix = topicContext
+    ? directMatrixForM1Submission(submission, topicContext)
+    : submission.directInfluenceMatrix;
+  if (!Array.isArray(factors) || !Array.isArray(directInfluenceMatrix)) return null;
   return buildM1ResultCard({
     submissionId,
     frozenAt: receivedAt,
-    factors: record.submission.factors,
-    directInfluenceMatrix: record.submission.directInfluenceMatrix,
+    factors,
+    directInfluenceMatrix,
   });
 }
 
@@ -321,7 +259,7 @@ export function createM1SubmissionStore({ dataFile = defaultDataFile() } = {}) {
   }
 
   return {
-    async append(submission) {
+    async append(submission, { topicContext } = {}) {
       let record;
       const write = async () => {
         await loadExistingRecords();
@@ -338,7 +276,7 @@ export function createM1SubmissionStore({ dataFile = defaultDataFile() } = {}) {
             throw new ApiError(409, 'Submission ID was already used for a different M1 response');
           }
 
-          const resultCard = serverResultCard(entry.rawRecord, entry.submissionId, entry.receivedAt);
+          const resultCard = serverResultCard(entry.rawRecord, entry.submissionId, entry.receivedAt, topicContext);
           const hasLegacyFields = LEGACY_RECORD_FIELDS.some((key) => (
             Object.prototype.hasOwnProperty.call(entry.rawRecord, key)
             || Object.prototype.hasOwnProperty.call(entry.rawRecord.submission || {}, key)
@@ -364,8 +302,10 @@ export function createM1SubmissionStore({ dataFile = defaultDataFile() } = {}) {
           ? buildM1ResultCard({
             submissionId,
             frozenAt: receivedAt,
-            factors: submission.factors,
-            directInfluenceMatrix: submission.directInfluenceMatrix,
+            factors: topicContext?.factors || submission.factors,
+            directInfluenceMatrix: topicContext
+              ? directMatrixForM1Submission(submission, topicContext)
+              : submission.directInfluenceMatrix,
           })
           : null;
         record = { submissionId, receivedAt, resultCard, submission: { ...submission } };
@@ -504,7 +444,8 @@ export function createM1SubmissionHandler(options = {}) {
           sendJson(response, 400, { error: 'Invalid JSON' });
           return;
         }
-        if (!isCompleteM1Submission(submission)) {
+        const topicContext = await validateCompleteM1Submission(submission, questionStore);
+        if (!topicContext) {
           sendJson(response, 422, { error: 'Invalid M1 submission' });
           return;
         }
@@ -512,7 +453,10 @@ export function createM1SubmissionHandler(options = {}) {
           sendJson(response, 422, { error: 'Invalid M1 submission' });
           return;
         }
-        const stored = await store.append(submission);
+        const stored = await store.append(
+          canonicalizeM1TopicFields(submission, topicContext),
+          { topicContext },
+        );
         sendJson(response, 201, publicReceipt(stored));
       } catch (error) {
         if (error instanceof ApiError) {

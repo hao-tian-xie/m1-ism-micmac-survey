@@ -10,6 +10,7 @@ import {
   defaultQuestionnaireConfig,
   validateQuestionnaireConfig,
 } from './question-config-model.mjs';
+import { M1_DEFAULT_TOPICS } from './m1-default-question-config.mjs';
 
 function defaultDataFile() {
   return resolve(process.env.M1_QUESTION_CONFIG_FILE || 'data/m1-question-config.json');
@@ -36,6 +37,16 @@ export function createFileQuestionConfigStore({
 } = {}) {
   const configPath = resolve(dataFile);
   const fallback = validateQuestionnaireConfig(defaultConfig, { questionnaireId });
+  const legacyTopics = fallback.topics.length || questionnaireId !== 'M1-ESG-ISM-MICMAC'
+    ? fallback.topics
+    : M1_DEFAULT_TOPICS;
+  const withLegacyTopics = (value) => validateQuestionnaireConfig({
+    ...value,
+    // Configurations written before topic administration did not have a
+    // `topics` field. Hydrate those immutable revisions from revision 0's
+    // released 38-topic catalogue rather than exposing an empty survey.
+    topics: value?.topics === undefined ? legacyTopics : value.topics,
+  }, { questionnaireId });
   let writeQueue = Promise.resolve();
 
   async function load() {
@@ -51,7 +62,7 @@ export function createFileQuestionConfigStore({
       if (!Number.isSafeInteger(stored.revision) || stored.revision < 1 || typeof stored.updatedAt !== 'string') {
         throw new Error('Invalid storage envelope');
       }
-      const config = validateQuestionnaireConfig(stored.config, { questionnaireId });
+      const config = withLegacyTopics(stored.config);
       if (!Array.isArray(stored.versions) || stored.versions.length !== stored.revision + 1) {
         throw new Error('Invalid revision history');
       }
@@ -60,7 +71,7 @@ export function createFileQuestionConfigStore({
         if (version.revision !== index || typeof version.updatedAt !== 'string') {
           throw new Error('Invalid revision history entry');
         }
-        validateQuestionnaireConfig(version.config, { questionnaireId });
+        withLegacyTopics(version.config);
       }
       return snapshot(config, {
         revision: stored.revision,
@@ -123,7 +134,7 @@ export function createFileQuestionConfigStore({
         ? snapshot(fallback, { revision: 0, updatedAt: null, persisted: false })
         : null;
     }
-    const config = validateQuestionnaireConfig(version.config, { questionnaireId });
+    const config = withLegacyTopics(version.config);
     return snapshot(config, { revision, updatedAt: version.updatedAt, persisted: true });
   }
 
@@ -161,6 +172,21 @@ export function createFileQuestionConfigStore({
     },
     reorder(ids, options = {}) {
       return mutate({ type: 'reorder', ids }, options);
+    },
+    createTopic(topic, options = {}) {
+      return mutate({ type: 'topic-create', topic, index: options.index }, options);
+    },
+    updateTopic(id, topic, options = {}) {
+      return mutate({ type: 'topic-update', id, topic }, options);
+    },
+    archiveTopic(id, options = {}) {
+      return mutate({ type: 'topic-archive', id }, options);
+    },
+    restoreTopic(id, options = {}) {
+      return mutate({ type: 'topic-restore', id }, options);
+    },
+    reorderTopics(ids, options = {}) {
+      return mutate({ type: 'topic-reorder', ids }, options);
     },
     replace(config, options = {}) {
       return mutate({ type: 'replace', config }, options);

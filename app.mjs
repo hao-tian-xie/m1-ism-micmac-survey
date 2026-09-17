@@ -5,12 +5,13 @@ import {
   selectedTargetsForSource,
   tryWriteStorage,
 } from './survey-core.mjs';
-import { displayTopicName, localisedFactors, studyConfig } from './survey-config.mjs?v=topic-definitions-contains-20260908';
+import { displayTopicName, studyConfig } from './survey-config.mjs?v=topic-definitions-contains-20260908';
 import { copy, languageNames, locales } from './translations.mjs?v=live-question-config-v1';
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
 import { resolveLocale } from './locale-state.mjs';
 import { guideStepsForScreen } from './guide-steps.mjs?v=live-question-config-v1';
 import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs';
+import { joinTopicTextPages, splitTopicTextByFit, topicNodeFits } from './topic-pagination.mjs';
 import {
   FALLBACK_PUBLIC_QUESTIONNAIRE,
   blankModuleValue,
@@ -21,11 +22,11 @@ import {
   serializeModuleAnswer,
 } from './public-questionnaire.mjs';
 
-const STORAGE_KEY = `bextools:${studyConfig.id}:${studyConfig.version}`;
+const STORAGE_KEY_BASE = `bextools:${studyConfig.id}:${studyConfig.version}`;
 const NONE_VALUE = '__none__';
-const factors = studyConfig.factors;
-const factorIds = factors.map((factor) => factor.id);
-const pairs = createPairs(factors);
+let factors = studyConfig.factors;
+let factorIds = factors.map((factor) => factor.id);
+let pairs = createPairs(factors);
 const app = document.querySelector('#app');
 const languageSwitch = document.querySelector('#language-switch');
 const guideButton = document.querySelector('#guide-button');
@@ -47,6 +48,85 @@ const experienceKeys = ['exp1', 'exp2', 'exp3', 'exp4'];
 let storageAvailable = true;
 let questionnaireConfig = FALLBACK_PUBLIC_QUESTIONNAIRE;
 let questionModules = [...questionnaireConfig.modules];
+
+function storageKeyForRevision(revision = questionnaireConfig.revision) {
+  const questionnaireRevision = Number.isSafeInteger(revision) ? revision : 0;
+  const topicRevision = Number.isSafeInteger(questionnaireConfig.topicRevision)
+    ? questionnaireConfig.topicRevision
+    : questionnaireRevision;
+  const snapshotId = typeof questionnaireConfig.topicSnapshotId === 'string'
+    ? questionnaireConfig.topicSnapshotId
+    : '';
+  let hash = 2166136261;
+  for (const character of `${snapshotId}\u0000${factorIds.join('\u0000')}`) {
+    hash ^= character.codePointAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `${STORAGE_KEY_BASE}:q${questionnaireRevision}:t${topicRevision}:s${(hash >>> 0).toString(36)}`;
+}
+
+function activeFactorsFromConfig(config) {
+  if (!Array.isArray(config?.topics)) return studyConfig.factors;
+  return config.topics.map((topic) => ({
+    id: topic.topicId || topic.id,
+    name: topic.name,
+    description: topic.description,
+    category: topic.category || '',
+    sourceIds: Array.isArray(topic.sourceIds) ? [...topic.sourceIds] : [topic.topicId || topic.id],
+    ...(topic.esrs ? { esrs: topic.esrs } : {}),
+  }));
+}
+
+function applyTopicConfig(config) {
+  factors = activeFactorsFromConfig(config);
+  factorIds = factors.map((factor) => factor.id);
+  pairs = createPairs(factors);
+}
+
+function activeFactorLabel(factor, locale) {
+  const raw = factor?.name ?? factor?.label ?? factor?.labels ?? factor?.id ?? '';
+  return typeof raw === 'string' ? raw : displayTopicName(raw, locale);
+}
+
+function activeFactorDescription(factor, locale) {
+  const raw = factor?.description ?? factor?.descriptions ?? '';
+  return typeof raw === 'string' ? raw : (raw?.[locale] || raw?.en || '');
+}
+
+function localisedActiveFactors(locale) {
+  return factors.map((factor) => ({
+    id: factor.id,
+    ...(Array.isArray(factor.sourceIds) ? { sourceIds: [...factor.sourceIds] } : {}),
+    ...(factor.category ? { category: factor.category } : {}),
+    label: activeFactorLabel(factor, locale),
+    description: activeFactorDescription(factor, locale),
+  }));
+}
+
+function topicSnapshot() {
+  const revision = Number.isSafeInteger(questionnaireConfig.topicRevision)
+    ? questionnaireConfig.topicRevision
+    : questionnaireConfig.revision;
+  let hash = 2166136261;
+  for (const id of factorIds) {
+    for (const character of id) {
+      hash ^= character.codePointAt(0);
+      hash = Math.imul(hash, 16777619);
+    }
+    hash ^= 0;
+    hash = Math.imul(hash, 16777619);
+  }
+  const snapshotId = questionnaireConfig.topicSnapshotId
+    || `${questionnaireConfig.questionnaireId}:topics:${revision}:${(hash >>> 0).toString(36)}`;
+  return {
+    snapshotId,
+    revision,
+    questionnaireConfigRevision: questionnaireConfig.revision,
+    ids: [...factorIds],
+    topicIds: [...factorIds],
+    count: factorIds.length,
+  };
+}
 
 function modulesForStage(stage) {
   return questionModules.filter((module) => module.stage === stage);
@@ -101,6 +181,7 @@ function blankState(locale = preferredLocale()) {
     moduleAnswers: blankModuleAnswers(),
     moduleAnswerVersions: moduleVersions(),
     questionnaireConfigRevision: questionnaireConfig.revision,
+    topicSnapshot: topicSnapshot(),
     qualitativeSectionComplete: false,
     resultCard: null,
     submitState: 'idle',
@@ -116,8 +197,23 @@ function validTargetIds(sourceId, values) {
 
 function loadState() {
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    // Read the revision-scoped draft first, then the pre-topic-config key so
+    // revision-0 drafts remain resumable after the endpoint starts publishing
+    // a topic snapshot.
+    const serialized = localStorage.getItem(storageKeyForRevision())
+      || localStorage.getItem(STORAGE_KEY_BASE);
+    const saved = JSON.parse(serialized);
     if (!saved || typeof saved !== 'object') return blankState();
+    const savedRevision = saved.questionnaireConfigRevision;
+    const savedTopicIds = saved.topicSnapshot?.ids || saved.topicSnapshot?.topicIds || saved.topicIds;
+    const revisionMatches = Number.isSafeInteger(savedRevision)
+      ? savedRevision === questionnaireConfig.revision
+      : questionnaireConfig.revision === 0;
+    const topicIdsMatch = savedTopicIds === undefined
+      || (Array.isArray(savedTopicIds)
+        && savedTopicIds.length === factorIds.length
+        && savedTopicIds.every((id, index) => id === factorIds[index]));
+    if (!revisionMatches || !topicIdsMatch) return blankState();
 
     const answers = saved.answers || {};
     const factorSelections = Object.fromEntries(factorIds.map((sourceId) => {
@@ -172,6 +268,7 @@ function loadState() {
     }));
     next.moduleAnswerVersions = moduleVersions();
     next.questionnaireConfigRevision = questionnaireConfig.revision;
+    next.topicSnapshot = topicSnapshot();
     next.qualitativeSectionComplete = saved.qualitativeSectionComplete === true
       && beforeTopicModules().every((module) => !moduleAnswerError(module, next.moduleAnswers[module.id]));
     next.completedAt = submissionId ? String(saved.completedAt || '') : '';
@@ -192,6 +289,8 @@ let guideIsOpen = false;
 let guideSessionSteps = guideStepsForScreen(state.screen, { submitted: Boolean(state.submissionId) });
 let persistTimer = null;
 let lastPersistedSnapshot = '';
+let sourceTopicPagination = null;
+const topicDescriptionCache = new Map();
 
 function t(key, values = {}) {
   const template = copy[state.locale][key] || copy.en[key] || key;
@@ -202,6 +301,7 @@ function t(key, values = {}) {
 }
 
 function localeText(value) {
+  if (typeof value === 'string') return value;
   return value?.[state.locale] || value?.en || '';
 }
 
@@ -252,6 +352,10 @@ function escapeHtml(value) {
     .replaceAll("'", '&#039;');
 }
 
+function escapeAttribute(value) {
+  return escapeHtml(value);
+}
+
 function reviewedCount() {
   return state.reviewedFactors.length;
 }
@@ -272,7 +376,7 @@ function factorFor(id) {
   const factor = factors.find((item) => item.id === id);
   return {
     id: factor.id,
-    label: displayTopicName(factor.name, state.locale),
+    label: activeFactorLabel(factor, state.locale),
     description: localeText(factor.description),
   };
 }
@@ -324,7 +428,7 @@ function writePersistedSnapshot() {
   const serialized = persistedSnapshot();
   if (serialized === lastPersistedSnapshot) return true;
   try {
-    storageAvailable = tryWriteStorage(window.localStorage, STORAGE_KEY, serialized);
+    storageAvailable = tryWriteStorage(window.localStorage, storageKeyForRevision(), serialized);
     if (storageAvailable) lastPersistedSnapshot = serialized;
   } catch {
     storageAvailable = false;
@@ -365,6 +469,147 @@ function pageTop() {
 
 function focusPageHeading() {
   document.querySelector('[data-page-title]')?.focus({ preventScroll: true });
+}
+
+// The topic screen has a fixed geometry so the THEN row and action bar do not
+// move when an admin adds a longer trilingual topic.  The explanation first
+// tries to fit as one complete DOM node. If that rendered measurement still
+// overflows, the fixed slot switches to lossless sequential pages instead of
+// clipping the explanation or adding a scrollbar.
+function fitTopicSourceSlot() {
+  const body = document.querySelector('[data-source-topic-body]');
+  const title = body?.querySelector('[data-source-topic-title]');
+  const descriptionRegion = body?.querySelector('[data-source-topic-description]');
+  const description = descriptionRegion?.querySelector('p');
+  if (!body || !title || !description) return;
+
+  const fitNode = (node, { minSize, columns = false, maxColumns = 4 } = {}) => {
+    const computed = window.getComputedStyle(node);
+    let size = Number.parseFloat(computed.fontSize) || 12;
+    const minimum = minSize || 10;
+    if (columns) node.style.columnCount = '2';
+    for (let columnCount = columns ? 2 : 1; columnCount <= (columns ? maxColumns : 1); columnCount += 1) {
+      if (columns) node.style.columnCount = String(columnCount);
+      for (let attempt = 0; attempt < 28; attempt += 1) {
+        if (topicNodeFits(node)) return true;
+        if (size <= minimum) break;
+        size = Math.max(minimum, size - 0.5);
+        node.style.fontSize = `${size}px`;
+      }
+    }
+    return topicNodeFits(node);
+  };
+
+  fitNode(title, { minSize: 10 });
+
+  const fullText = description.textContent || '';
+  const topicId = body.dataset.sourceTopicId || '';
+  const key = `${state.locale}:${topicId}`;
+  const previousKey = sourceTopicPagination?.key || '';
+  let cached = topicDescriptionCache.get(key);
+  if (!cached || cached.fullText !== fullText) {
+    cached = {
+      key,
+      topicId,
+      locale: state.locale,
+      fullText,
+      descriptionPages: null,
+      currentPage: 0,
+      descriptionFontSize: '',
+      descriptionColumnCount: '',
+    };
+    topicDescriptionCache.set(key, cached);
+  } else if (previousKey && previousKey !== key) {
+    // A new topic or locale always opens at its first explanation page.  The
+    // cache remains keyed by both values so descriptions can never cross-feed.
+    cached.currentPage = 0;
+  }
+
+  const pagination = descriptionRegion.querySelector('[data-topic-description-pagination]');
+  const pageLabel = pagination?.querySelector('[data-topic-description-page]');
+  cached.description = description;
+  cached.pagination = pagination;
+  cached.pageLabel = pageLabel;
+
+  if (Array.isArray(cached.descriptionPages)) {
+    description.style.fontSize = cached.descriptionFontSize || '';
+    description.style.columnCount = cached.descriptionColumnCount
+      || (cached.descriptionPages.length > 1 ? '1' : '');
+    paginationVisible(pagination, cached.descriptionPages.length > 1);
+    sourceTopicPagination = cached;
+    showTopicDescriptionPage(cached.currentPage);
+    return;
+  }
+
+  description.textContent = fullText;
+  const fitted = fitNode(description, { minSize: 10, columns: true, maxColumns: 6 });
+
+  if (fitted || !pagination || !pageLabel) {
+    // A single complete node is the preferred rendering.  The control stays
+    // in the DOM for a stable slot but is hidden until pagination is needed.
+    cached.descriptionPages = [fullText];
+    cached.currentPage = 0;
+    cached.descriptionFontSize = description.style.fontSize || '';
+    cached.descriptionColumnCount = description.style.columnCount || '';
+    sourceTopicPagination = cached;
+    // Keep the successful multi-column measurement in place. Clearing it here
+    // would make a second render overflow again even though the first fit was
+    // valid.
+    description.style.columnCount = cached.descriptionColumnCount;
+    paginationVisible(pagination, false);
+    showTopicDescriptionPage(0);
+    return;
+  }
+
+  // Pagination pages use one column so the measured node has a single,
+  // deterministic vertical budget.  The binary splitter retains every
+  // Unicode code point and every explicit newline in source order.
+  description.style.columnCount = '1';
+  // Reserve the button row before measuring candidates; otherwise a page
+  // could fit while the controls are hidden and become clipped when shown.
+  const pages = splitTopicTextByFit(fullText, (candidate) => {
+    description.textContent = candidate;
+    return topicNodeFits(description);
+  });
+  const losslessPages = joinTopicTextPages(pages) === fullText ? pages : [fullText];
+  cached.descriptionPages = losslessPages;
+  cached.currentPage = 0;
+  cached.descriptionFontSize = description.style.fontSize || '';
+  cached.descriptionColumnCount = '1';
+  sourceTopicPagination = cached;
+  paginationVisible(pagination, losslessPages.length > 1);
+  showTopicDescriptionPage(0);
+}
+
+function paginationVisible(pagination, visible) {
+  if (!pagination) return;
+  pagination.classList.toggle('is-visible', visible);
+  pagination.setAttribute('aria-hidden', String(!visible));
+  pagination.querySelectorAll('button').forEach((button) => {
+    button.tabIndex = visible ? 0 : -1;
+  });
+}
+
+function showTopicDescriptionPage(index) {
+  const model = sourceTopicPagination;
+  if (!model?.descriptionPages?.length || !model.description) return;
+  const pageIndex = Math.min(Math.max(Number(index) || 0, 0), model.descriptionPages.length - 1);
+  model.currentPage = pageIndex;
+  // Keep the older aliases available to any in-page diagnostics while the
+  // canonical state uses the explicit descriptionPages/currentPage names.
+  model.pages = model.descriptionPages;
+  model.index = pageIndex;
+  model.description.textContent = model.descriptionPages[pageIndex];
+  if (model.pageLabel) {
+    model.pageLabel.textContent = t('topicPagePosition', {
+      i: pageIndex + 1,
+      total: model.descriptionPages.length,
+    });
+  }
+  const previous = model.pagination?.querySelector('[data-action="previous-topic-page"]');
+  const next = model.pagination?.querySelector('[data-action="next-topic-page"]');
+  if (previous) previous.disabled = pageIndex === 0;
+  if (next) next.disabled = pageIndex === model.descriptionPages.length - 1;
 }
 
 function goTo(screen, { scroll = true } = {}) {
@@ -629,21 +874,31 @@ function renderWelcome() {
   const hasProgress = reviewedCount() > 0
     || factorIds.some((id) => selectedTargets(id).length || hasExplicitNone(id))
     || state.participant.code;
-  const factorCards = [
+  const knownCategories = [
     ['environment', 'categoryEnvironment'],
     ['social', 'categorySocial'],
     ['governance', 'categoryGovernance'],
-  ].map(([category, labelKey]) => {
-    const categoryFactors = factors.filter((factor) => factor.category === category);
+  ];
+  const extraCategories = [...new Set(factors.map((factor) => factor.category).filter(Boolean))]
+    .filter((category) => !knownCategories.some(([known]) => known === category))
+    .map((category) => [category, '']);
+  const categoryValues = factors.some((factor) => !factor.category)
+    ? [...knownCategories, ...extraCategories, ['__uncategorized__', 'categoryOther']]
+    : [...knownCategories, ...extraCategories];
+  const factorCards = categoryValues.map(([category, labelKey]) => {
+    const categoryFactors = category === '__uncategorized__'
+      ? factors.filter((factor) => !factor.category)
+      : factors.filter((factor) => factor.category === category);
+    if (!categoryFactors.length) return '';
     const cards = categoryFactors.map((factor) => `
       <details class="factor-preview">
-        <summary><span>${factor.id}</span><b>${escapeHtml(displayTopicName(factor.name, state.locale))}</b><i aria-hidden="true">+</i></summary>
-        <p>${escapeHtml(localeText(factor.description))}</p>
+        <summary><span>${escapeHtml(factor.id)}</span><b>${escapeHtml(activeFactorLabel(factor, state.locale))}</b><i aria-hidden="true">+</i></summary>
+        <p>${escapeHtml(activeFactorDescription(factor, state.locale))}</p>
       </details>
     `).join('');
     return `
-      <section class="topic-category" data-category="${category}">
-        <h3 class="topic-category-title">${escapeHtml(t(labelKey))}</h3>
+      <section class="topic-category" data-category="${escapeAttribute(category)}">
+        <h3 class="topic-category-title">${escapeHtml(labelKey ? t(labelKey) : category)}</h3>
         <div class="factor-preview-grid">${cards}</div>
       </section>
     `;
@@ -661,7 +916,10 @@ function renderWelcome() {
           </div>
 
           <div class="study-stats" aria-label="${escapeHtml(t('overviewLabel'))}">
-            <span class="study-summary">${escapeHtml(t('minutesUnit'))}</span>
+            <span class="study-summary">${escapeHtml(t('minutesUnit', {
+              topicCount: factors.length,
+              pairCount: pairs.length,
+            }))}</span>
           </div>
 
           <button class="primary-button hero-button" type="button" data-action="start">
@@ -744,6 +1002,22 @@ function targetOption(source, target) {
   `;
 }
 
+function topicGridStyle() {
+  const count = Math.max(1, factors.length);
+  // The final `none` choice occupies a real grid cell alongside all active
+  // topics, so include it when reserving rows. This avoids implicit rows for
+  // the small (2/3-topic) configurations as well as the 40-topic cap.
+  const cellCount = count + 1;
+  const desktopColumns = count >= 20 ? 10 : Math.max(2, count);
+  const mobileColumns = Math.min(5, Math.max(2, count));
+  return [
+    `--topic-choice-columns:${desktopColumns}`,
+    `--topic-choice-rows:${Math.ceil(cellCount / desktopColumns)}`,
+    `--topic-choice-columns-mobile:${mobileColumns}`,
+    `--topic-choice-rows-mobile:${Math.ceil(cellCount / mobileColumns)}`,
+  ].join(';');
+}
+
 function renderSurvey() {
   const source = factorFor(factors[state.currentIndex].id);
   const targets = factors
@@ -767,10 +1041,17 @@ function renderSurvey() {
           <span class="topic-kicker">${escapeHtml(t('ifLabel'))}</span>
           <div class="source-topic-main">
             <div class="source-topic-head">
-              <div class="source-topic-body">
+              <div class="source-topic-body" data-source-topic-body data-source-topic-id="${escapeAttribute(source.id)}">
                 <span class="source-code">${source.id}</span>
-                <h2 id="source-topic-name">${escapeHtml(source.label)}</h2>
-                <p>${escapeHtml(source.description)}</p>
+                <h2 id="source-topic-name" data-source-topic-title>${escapeHtml(source.label)}</h2>
+                <div class="source-topic-description" data-source-topic-description>
+                  <p>${escapeHtml(source.description)}</p>
+                  <div class="source-topic-pagination" data-topic-description-pagination aria-hidden="true">
+                    <button class="icon-button" type="button" data-action="previous-topic-page" aria-label="${escapeAttribute(t('topicPagePrevious'))}" title="${escapeAttribute(t('topicPagePrevious'))}" disabled>←</button>
+                    <span data-topic-description-page aria-live="polite">${escapeHtml(t('topicPagePosition', { i: 1, total: 1 }))}</span>
+                    <button class="icon-button" type="button" data-action="next-topic-page" aria-label="${escapeAttribute(t('topicPageNext'))}" title="${escapeAttribute(t('topicPageNext'))}" disabled>→</button>
+                  </div>
+                </div>
               </div>
               <div class="source-progress">
                 <div class="source-progress-copy">
@@ -793,7 +1074,7 @@ function renderSurvey() {
 
           <fieldset class="target-fieldset" aria-describedby="choice-help">
             <legend class="visually-hidden">${escapeHtml(t('targetLegend'))}</legend>
-            <div class="target-list">
+            <div class="target-list" style="${topicGridStyle()}">
               ${targets.map((target) => targetOption(source, target)).join('')}
               <label class="target-option none-option ${noneSelected ? 'is-selected' : ''}">
                 <input type="checkbox" name="direct-target" value="${NONE_VALUE}" data-source-id="${source.id}" ${noneSelected ? 'checked' : ''} />
@@ -1003,6 +1284,7 @@ function render() {
     complete: renderComplete,
   }[state.screen]();
   renderGuide();
+  if (state.screen === 'survey') requestAnimationFrame(fitTopicSourceSlot);
 }
 
 function profileIsReady() {
@@ -1091,23 +1373,51 @@ function buildCurrentSubmission() {
     experience: state.participant.experience ? t(state.participant.experience) : '',
     experienceCode: state.participant.experience,
   };
+  const compactPairRows = questionnaireConfig.revision !== 0
+    || Array.isArray(questionnaireConfig.topics);
   const submission = buildSubmission({
     studyId: studyConfig.id,
     locale: state.locale,
     participant,
-    factors: localisedFactors(state.locale),
+    factors: localisedActiveFactors(state.locale),
     answers: state.answers,
+    // Revision 0 retains the historical labelled pair rows. Once a public
+    // topic snapshot is loaded, the server can canonicalize labels from that
+    // immutable snapshot; omitting repeated names keeps the 40-topic body
+    // below the submission limit.
+    includeResponseLabels: !compactPairRows,
     submittedAt: new Date().toISOString(),
   });
+  const loadedTopicSnapshot = topicSnapshot();
+  const responses = compactPairRows
+    ? submission.responses.map((response) => ({
+      pairId: response.pairId,
+      leftId: response.leftId,
+      rightId: response.rightId,
+      relation: response.relation,
+      leftToRight: response.leftToRight,
+      rightToLeft: response.rightToLeft,
+      ...(response.note ? { note: response.note } : {}),
+    }))
+    : submission.responses;
 
   return {
     ...submission,
+    // The loaded revision and topic snapshot are the source of truth for
+    // labels/descriptions.  Sending only ordered stable ids keeps a 40-topic
+    // submission bounded and lets the server canonicalize historical text.
+    factors: factorIds.map((id) => ({ id })),
+    responses,
     clientSubmissionId: state.clientSubmissionId,
     status: 'complete',
     collectionMethod: 'source-topic-multi-select-plus-qualitative-v2',
     qualitativeSectionComplete: true,
     qualitativeAnswers: legacyQualitativeAnswers(questionModules, state.moduleAnswers),
     questionnaireConfigRevision: questionnaireConfig.revision,
+    topicSnapshot: loadedTopicSnapshot,
+    topicSnapshotId: loadedTopicSnapshot.snapshotId,
+    topicRevision: loadedTopicSnapshot.revision,
+    topicIds: [...loadedTopicSnapshot.ids],
     moduleAnswers: questionModules.map((module) => (
       serializeModuleAnswer(module, state.moduleAnswers[module.id])
     )),
@@ -1432,6 +1742,12 @@ app.addEventListener('click', (event) => {
     case 'confirm-topic':
       confirmCurrentTopic();
       break;
+    case 'previous-topic-page':
+      showTopicDescriptionPage((sourceTopicPagination?.currentPage || 0) - 1);
+      break;
+    case 'next-topic-page':
+      showTopicDescriptionPage((sourceTopicPagination?.currentPage || 0) + 1);
+      break;
     case 'qualitative-previous':
       state.questionValidationId = '';
       state.questionValidationError = '';
@@ -1501,7 +1817,11 @@ app.addEventListener('click', (event) => {
       {
         const locale = state.locale;
         try {
-          if (storageAvailable) window.localStorage.removeItem(STORAGE_KEY);
+          if (storageAvailable) {
+            window.localStorage.removeItem(storageKeyForRevision());
+            // This is the legacy key used before topic revisions were scoped.
+            window.localStorage.removeItem(STORAGE_KEY_BASE);
+          }
         } catch {
           storageAvailable = false;
         }
@@ -1520,6 +1840,7 @@ async function initializeApp() {
   const locale = preferredLocale();
   app.innerHTML = `<p class="questionnaire-loading" role="status">${escapeHtml(copy[locale]?.loadingQuestions || copy.en.loadingQuestions)}</p>`;
   questionnaireConfig = await loadPublicQuestionnaireConfig();
+  applyTopicConfig(questionnaireConfig);
   questionModules = [...questionnaireConfig.modules];
   state = loadState();
   state.questionnaireConfigRevision = questionnaireConfig.revision;
