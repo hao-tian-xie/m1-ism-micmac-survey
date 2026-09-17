@@ -71,10 +71,12 @@ test('survey keeps progress with one complete IF explanation and exposes the ESR
   assert.match(app, /<section class="source-topic"[\s\S]*?class="topic-kicker"[\s\S]*?class="source-topic-main"[\s\S]*?class="source-topic-head"[\s\S]*?class="source-topic-body"[\s\S]*?class="source-progress"/);
   assert.doesNotMatch(app, /<div class="topic-progress">/);
   assert.match(app, /<p>\$\{escapeHtml\(source\.description\)\}<\/p>/);
-  assert.doesNotMatch(app, /topic-reference|topic-reference-item|topic-notes|target-definition|toggle-topic-notes/);
-  assert.match(styles, /body\[data-screen="survey"\]\s+\.source-topic-body\s*\{[\s\S]*?height:\s*clamp\(190px/);
+  assert.match(app, /<div class="source-topic-description" data-source-topic-description>[\s\S]*?data-topic-description-pagination/);
+  assert.match(styles, /body\[data-screen="survey"\]\s+\.source-topic\s*\{[^}]*--if-source-slot-height:\s*clamp\(216px,\s*30vh,\s*300px\)/);
+  assert.match(styles, /body\[data-screen="survey"\]\s+\.source-topic-body\s*\{[^}]*height:\s*var\(--if-source-slot-height\)/);
   assert.match(styles, /body\[data-screen="survey"\]\s+\.source-topic-body p\s*\{[\s\S]*?display:\s*block/);
   assert.match(styles, /body\[data-screen="survey"\]\s+\.source-topic-body p\s*\{[\s\S]*?columns:\s*2/);
+  assert.match(styles, /body\[data-screen="survey"\]\s+\.source-topic-description p\s*\{[^}]*font-size:\s*clamp\(14px,\s*1\.05vw,\s*16px\)/);
   assert.match(styles, /body\[data-screen="survey"\]\s+\.source-topic-body p\s*\{[\s\S]*?overflow:\s*visible/);
   assert.match(translations, /ifLabel:\s*'IF · Advance'/);
   assert.match(styles, /\.topic-actions\s*\{[\s\S]*?margin-inline:\s*1px/);
@@ -116,11 +118,17 @@ test('IF label and current topic share one horizontal source row on desktop', ()
   assert.match(styles, /\.source-topic-head\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(220px,\s*360px\)/);
 });
 
-test('candidate choices do not duplicate the current IF explanation', () => {
+test('candidate choices keep labels in flow and expose accessible fixed hints', () => {
   assert.match(app, /targets\.map\(\(target\) => targetOption\(source, target\)\)/);
   assert.match(app, /<strong>\$\{escapeHtml\(target\.label\)\}<\/strong>/);
-  assert.doesNotMatch(app, /topic-reference|topic-reference-item|target-definition|topic-notes/);
-  assert.doesNotMatch(styles, /topic-reference|topic-reference-item|target-definition|topic-notes/);
+  assert.match(app, /const descriptionId = `topic-description-\$\{source\.id\}-\$\{target\.id\}`/);
+  assert.match(app, /aria-describedby="\$\{escapeAttribute\(descriptionId\)\}"/);
+  assert.match(app, /<span class="target-definition" id="\$\{escapeAttribute\(descriptionId\)\}" role="tooltip" aria-hidden="true" hidden>/);
+  const definitionRule = styles.match(/body\[data-screen="survey"\]\s+\.target-definition\s*\{[^}]*\}/)?.[0] || '';
+  assert.match(definitionRule, /display:\s*none/);
+  assert.match(definitionRule, /position:\s*fixed/);
+  assert.match(definitionRule, /z-index:\s*1000/);
+  assert.match(styles, /body\[data-screen="survey"\]\s+\.target-definition\[aria-hidden="false"\]\s*\{[\s\S]*?display:\s*block/);
 });
 
 test('written and final question screens share fixed slots', () => {
@@ -128,6 +136,9 @@ test('written and final question screens share fixed slots', () => {
   assert.match(app, /if \(!submitted\) return renderWrittenQuestionScreen\(\{ final: true \}\)/);
   assert.match(app, /const pageClass = final \? 'complete-page qualitative-page final-question-page' : 'qualitative-page'/);
   assert.match(app, /const intro = t\('qualitativeIntro'\)/);
+  const writtenSlotVariables = styles.match(/\.qualitative-shell \.form-page\s*\{[^}]*--written-question-lift:\s*24px[^}]*\}/)?.[0] || '';
+  assert.match(writtenSlotVariables, /--written-question-height:\s*clamp\(108px,\s*calc\(18dvh\s*-\s*var\(--written-question-lift\)\),\s*150px\)/);
+  assert.match(writtenSlotVariables, /--written-answer-height:\s*clamp\(204px,\s*calc\(28dvh\s*\+\s*var\(--written-question-lift\)\),\s*284px\)/);
   assert.match(styles, /\.written-question-form\s*\{[\s\S]*?grid-template-rows:\s*auto\s+minmax\(0,\s*1fr\)\s+auto\s+auto/);
   assert.match(styles, /\.written-question-form \.qualitative-field\s*\{[\s\S]*?grid-template-rows:\s*var\(--written-question-height\)\s+auto\s+var\(--written-answer-height\)\s+18px/);
   assert.match(styles, /\.written-question-form \.qualitative-field\s*\{[\s\S]*?gap:\s*2px/);

@@ -62,7 +62,8 @@ test('public topic and fixed-layout contracts cap the supported payload', () => 
   assert.equal(MAX_PUBLIC_TOPIC_NAME_LENGTH, 80);
   assert.equal(MAX_PUBLIC_TOPIC_DESCRIPTION_LENGTH, 600);
   assert.match(app, /fitNode\(title, \{ minSize: 10 \}\)/);
-  assert.match(app, /fitNode\(description, \{ minSize: 10, columns: true, maxColumns: 6 \}\)/);
+  assert.match(app, /const isCompactViewport = window\.matchMedia\('\(max-width: 767px\)'\)\.matches/);
+  assert.match(app, /const fitted = fitNode\(description, \{\s*minSize: 14,\s*columns: !isCompactViewport,\s*maxColumns: 2,\s*\}\)/);
 
   const titleRules = [...styles.matchAll(/body\[data-screen="survey"\] \.source-topic-body h2\s*\{[^}]*\}/g)]
     .map(([rule]) => rule);
@@ -117,11 +118,13 @@ test('the 40-topic worst-case submission remains below the JSON body budget', ()
   assert.ok(Buffer.byteLength(JSON.stringify(submission)) < 256 * 1024);
 });
 
-test('Section 03 keeps one complete IF explanation and no explanation scrollbar', () => {
+test('Section 03 keeps one complete IF explanation and separates candidate hints', () => {
   assert.match(app, /class="source-topic-body"[^>]*data-source-topic-body/);
   assert.match(app, /<h2 id="source-topic-name"[^>]*data-source-topic-title/);
   assert.match(app, /<p>\$\{escapeHtml\(source\.description\)\}<\/p>/);
-  assert.doesNotMatch(app, /targetOption[\s\S]{0,300}description/);
+  assert.match(app, /const descriptionId = `topic-description-\$\{source\.id\}-\$\{target\.id\}`/);
+  assert.match(app, /aria-describedby="\$\{escapeAttribute\(descriptionId\)\}"/);
+  assert.match(app, /class="target-definition"[^>]*role="tooltip"/);
   const descriptionRules = [...styles.matchAll(/body\[data-screen="survey"\]\s+\.source-topic-body p\s*\{[^}]*\}/g)]
     .map(([rule]) => rule);
   assert.ok(descriptionRules.length >= 2, 'desktop and mobile explanation rules should be explicit');

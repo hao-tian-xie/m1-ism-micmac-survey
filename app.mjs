@@ -6,7 +6,7 @@ import {
   tryWriteStorage,
 } from './survey-core.mjs';
 import { displayTopicName, studyConfig } from './survey-config.mjs?v=topic-definitions-contains-20260908';
-import { copy, languageNames, locales } from './translations.mjs?v=live-question-config-v1';
+import { copy, languageNames, locales } from './translations.mjs?v=live-question-config-v2';
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
 import { resolveLocale } from './locale-state.mjs';
 import { guideStepsForScreen } from './guide-steps.mjs?v=live-question-config-v1';
@@ -21,6 +21,7 @@ import {
   normalizeModuleValue,
   serializeModuleAnswer,
 } from './public-questionnaire.mjs';
+import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=live-question-config-v2';
 
 const STORAGE_KEY_BASE = `bextools:${studyConfig.id}:${studyConfig.version}`;
 const NONE_VALUE = '__none__';
@@ -48,6 +49,7 @@ const experienceKeys = ['exp1', 'exp2', 'exp3', 'exp4'];
 let storageAvailable = true;
 let questionnaireConfig = FALLBACK_PUBLIC_QUESTIONNAIRE;
 let questionModules = [...questionnaireConfig.modules];
+let detachTopicDefinitionHints = () => {};
 
 function storageKeyForRevision(revision = questionnaireConfig.revision) {
   const questionnaireRevision = Number.isSafeInteger(revision) ? revision : 0;
@@ -485,8 +487,9 @@ function fitTopicSourceSlot() {
 
   const fitNode = (node, { minSize, columns = false, maxColumns = 4 } = {}) => {
     const computed = window.getComputedStyle(node);
-    let size = Number.parseFloat(computed.fontSize) || 12;
     const minimum = minSize || 10;
+    let size = Math.max(minimum, Number.parseFloat(computed.fontSize) || minimum);
+    node.style.fontSize = `${size}px`;
     if (columns) node.style.columnCount = '2';
     for (let columnCount = columns ? 2 : 1; columnCount <= (columns ? maxColumns : 1); columnCount += 1) {
       if (columns) node.style.columnCount = String(columnCount);
@@ -507,7 +510,10 @@ function fitTopicSourceSlot() {
   const key = `${state.locale}:${topicId}`;
   const previousKey = sourceTopicPagination?.key || '';
   let cached = topicDescriptionCache.get(key);
-  if (!cached || cached.fullText !== fullText) {
+  const layoutSignature = `${descriptionRegion.clientWidth}:${descriptionRegion.clientHeight}:${window.innerWidth}:${window.innerHeight}`;
+  if (!cached || cached.fullText !== fullText || cached.layoutSignature !== layoutSignature) {
+    description.style.fontSize = '';
+    description.style.columnCount = '';
     cached = {
       key,
       topicId,
@@ -517,6 +523,7 @@ function fitTopicSourceSlot() {
       currentPage: 0,
       descriptionFontSize: '',
       descriptionColumnCount: '',
+      layoutSignature,
     };
     topicDescriptionCache.set(key, cached);
   } else if (previousKey && previousKey !== key) {
@@ -542,7 +549,12 @@ function fitTopicSourceSlot() {
   }
 
   description.textContent = fullText;
-  const fitted = fitNode(description, { minSize: 10, columns: true, maxColumns: 6 });
+  const isCompactViewport = window.matchMedia('(max-width: 767px)').matches;
+  const fitted = fitNode(description, {
+    minSize: 14,
+    columns: !isCompactViewport,
+    maxColumns: 2,
+  });
 
   if (fitted || !pagination || !pageLabel) {
     // A single complete node is the preferred rendering.  The control stays
@@ -991,13 +1003,15 @@ function renderProfile() {
 
 function targetOption(source, target) {
   const selected = selectedTargets(source.id).includes(target.id);
+  const descriptionId = `topic-description-${source.id}-${target.id}`;
   return `
     <label class="target-option ${selected ? 'is-selected' : ''}" aria-expanded="false">
-      <input type="checkbox" name="direct-target" value="${target.id}" data-source-id="${source.id}" ${selected ? 'checked' : ''} />
+      <input type="checkbox" name="direct-target" value="${target.id}" data-source-id="${source.id}" aria-describedby="${escapeAttribute(descriptionId)}" ${selected ? 'checked' : ''} />
       <span class="target-code">${target.id}</span>
       <span class="target-copy">
         <strong>${escapeHtml(target.label)}</strong>
       </span>
+      <span class="target-definition" id="${escapeAttribute(descriptionId)}" role="tooltip" aria-hidden="true" hidden>${escapeHtml(target.description)}</span>
     </label>
   `;
 }
@@ -1276,6 +1290,7 @@ function render() {
   renderHomeLink();
   renderLanguages();
 
+  detachTopicDefinitionHints();
   app.innerHTML = {
     welcome: renderWelcome,
     profile: renderProfile,
@@ -1283,6 +1298,9 @@ function render() {
     survey: renderSurvey,
     complete: renderComplete,
   }[state.screen]();
+  detachTopicDefinitionHints = state.screen === 'survey'
+    ? attachTopicDefinitionHints(document.querySelector('.target-list'))
+    : () => {};
   renderGuide();
   if (state.screen === 'survey') requestAnimationFrame(fitTopicSourceSlot);
 }
@@ -1557,7 +1575,10 @@ guideOverlay?.addEventListener('keydown', (event) => {
     closeGuide();
   }
 });
-window.addEventListener('resize', positionGuide);
+window.addEventListener('resize', () => {
+  positionGuide();
+  if (state.screen === 'survey') requestAnimationFrame(fitTopicSourceSlot);
+});
 window.addEventListener('scroll', positionGuide, { passive: true });
 window.addEventListener('pagehide', flushPersist);
 window.addEventListener('beforeunload', flushPersist);
