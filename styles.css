@@ -2588,10 +2588,6 @@ body[data-screen="welcome"] .save-status {
   transition: color 130ms ease, background-color 130ms ease;
 }
 
-.target-option.is-definition-visible {
-  z-index: 5;
-}
-
 .target-option::before {
   position: absolute;
   inset: 0 auto 0 0;
@@ -2641,39 +2637,6 @@ body[data-screen="welcome"] .save-status {
   hyphens: auto;
   overflow-wrap: normal;
   word-break: normal;
-}
-
-.target-definition {
-  position: absolute;
-  z-index: 30;
-  top: 50%;
-  inset-inline-start: calc(100% + 10px);
-  display: none;
-  width: min(300px, 30vw);
-  transform: translateY(-50%);
-  padding: 11px 13px;
-  border: 1px solid var(--line-strong);
-  border-inline-start: 3px solid var(--accent);
-  background: var(--paper);
-  color: var(--ink);
-  font-size: 15px;
-  font-weight: 400;
-  line-height: 1.36;
-  pointer-events: none;
-  overflow-wrap: anywhere;
-}
-
-.target-definition[hidden] {
-  display: none !important;
-}
-
-.target-option.is-definition-visible .target-definition {
-  display: block;
-}
-
-.target-option.definition-left .target-definition {
-  inset-inline-start: auto;
-  inset-inline-end: calc(100% + 10px);
 }
 
 .target-option.is-selected .target-copy strong {
@@ -2911,10 +2874,6 @@ body[data-screen="welcome"] .save-status {
     font-size: 22px;
   }
 
-  .source-topic p {
-    display: none;
-  }
-
   .topic-question {
     margin-top: 15px;
   }
@@ -2957,18 +2916,6 @@ body[data-screen="welcome"] .save-status {
   .target-copy strong {
     font-size: 14.5px;
     line-height: 1.14;
-  }
-
-  .target-definition,
-  .target-option.definition-left .target-definition {
-    top: calc(100% + 6px);
-    inset-inline-start: 8px;
-    inset-inline-end: 8px;
-    width: auto;
-    transform: none;
-    padding: 9px 10px;
-    font-size: 14px;
-    line-height: 1.32;
   }
 
   .topic-actions {
@@ -3403,73 +3350,9 @@ body[data-screen="welcome"] .save-status {
   font-weight: 600;
 }
 
-.topic-notes {
-  margin-top: 18px;
-  border-top: 1px solid var(--line, rgba(0, 0, 0, .14));
-  padding-top: 12px;
-}
-
-.topic-notes h2 {
-  margin: 0 0 8px;
-  font-size: .88rem;
-  font-weight: 600;
-  letter-spacing: .04em;
-  text-transform: uppercase;
-  color: var(--muted, #666);
-}
-
-.topic-notes ul {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: repeat(13, minmax(0, auto));
-  grid-auto-flow: column;
-  gap: 8px 24px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.topic-notes li {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-  font-size: .88rem;
-  line-height: 1.35;
-}
-
-.topic-notes li b {
-  font-weight: 600;
-}
-
-.topic-notes li span {
-  color: var(--muted, #666);
-}
-
 .factor-preview p,
-.source-topic p,
-.target-definition,
-.topic-notes li span {
+.source-topic p {
   white-space: pre-line;
-}
-
-@media (max-width: 767px) {
-  .topic-notes {
-    margin-top: 12px;
-    padding-top: 9px;
-  }
-
-  .topic-notes ul {
-    grid-template-columns: 1fr;
-    grid-template-rows: none;
-    grid-auto-flow: row;
-    gap: 5px;
-  }
-
-  .topic-notes li {
-    grid-template-columns: auto 1fr;
-    gap: 7px;
-    font-size: .78rem;
-  }
 }
 
 /* Current flow: profile → written questions → M1 topics → final Q7/submit. */
@@ -3801,10 +3684,6 @@ body[data-screen="welcome"] .save-status {
     margin: 3px 0 0;
   }
 
-  .source-topic p {
-    display: none;
-  }
-
   .target-list {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
@@ -4015,9 +3894,6 @@ body[data-screen="welcome"] .save-status {
     margin-top: clamp(4px, .7vh, 8px);
   }
 
-  body[data-screen="survey"] .topic-notes {
-    display: none;
-  }
 }
 
 @media (min-width: 768px) and (max-height: 680px) {
@@ -4038,6 +3914,120 @@ body[data-screen="welcome"] .save-status {
   body[data-screen="survey"] .target-copy strong {
     font-size: clamp(10px, min(1.1vw, 1.5vh), 14px);
     line-height: 1;
+  }
+}
+
+/* The compact mobile survey uses the same fixed-slot model as desktop. Keep
+   the IF copy visible, and keep the 38 candidate cells inside the viewport so
+   the page itself never becomes a vertical drag surface. */
+@media (max-width: 767px) {
+  body[data-screen="survey"] {
+    overflow: hidden;
+  }
+
+  body[data-screen="survey"] .content-stage {
+    height: calc(100dvh - 54px);
+    min-height: 0;
+    padding-top: 16px;
+    padding-bottom: 76px;
+    overflow: hidden;
+  }
+
+  body[data-screen="survey"] .topic-survey {
+    display: grid;
+    height: 100%;
+    min-height: 0;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+
+  body[data-screen="survey"] .topic-workspace {
+    display: grid;
+    height: 100%;
+    min-height: 0;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  body[data-screen="survey"] .source-topic {
+    min-height: 0;
+    height: clamp(220px, 32vh, 280px);
+    overflow: hidden;
+  }
+
+  body[data-screen="survey"] .source-topic-body {
+    height: 100%;
+  }
+
+  body[data-screen="survey"] .source-topic-body h2 {
+    font-size: 20px;
+    line-height: 1.08;
+  }
+
+  body[data-screen="survey"] .source-topic-body p {
+    display: block;
+    columns: 1;
+    font-size: clamp(9px, 2.5vw, 11px);
+    line-height: 1.1;
+  }
+
+  body[data-screen="survey"] .topic-decision {
+    display: grid;
+    min-height: 0;
+    grid-template-rows: auto minmax(0, 1fr);
+    padding-top: 8px;
+  }
+
+  body[data-screen="survey"] .target-fieldset {
+    height: 100%;
+    min-height: 0;
+    margin-top: 8px;
+  }
+
+  body[data-screen="survey"] .target-list {
+    height: 100%;
+    min-height: 0;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-rows: repeat(8, minmax(0, 1fr));
+    gap: 1px;
+    overflow: visible;
+  }
+
+  body[data-screen="survey"] .target-option {
+    min-height: 0;
+    height: 100%;
+    padding: 3px;
+    grid-template-columns: 14px minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    gap: 2px;
+    overflow: visible;
+  }
+
+  body[data-screen="survey"] .target-option input {
+    width: 13px;
+    height: 13px;
+  }
+
+  body[data-screen="survey"] .target-code {
+    font-size: 9px;
+  }
+
+  body[data-screen="survey"] .target-copy {
+    grid-column: 1 / -1;
+    align-self: start;
+  }
+
+  body[data-screen="survey"] .target-copy strong {
+    font-size: clamp(8px, 2.3vw, 11px);
+    line-height: 1;
+    overflow-wrap: anywhere;
+  }
+
+  body[data-screen="survey"] .topic-actions {
+    position: static;
+    width: 100%;
+    margin: 8px 0 0;
+    padding: 8px 0 calc(2px + env(safe-area-inset-bottom));
   }
 }
 
@@ -4158,51 +4148,8 @@ body[data-screen="welcome"] .save-status {
   justify-self: start;
 }
 
-.topic-actions .topic-notes-toggle {
-  justify-self: center;
-}
-
 .topic-actions .primary-button {
   justify-self: end;
-}
-
-.topic-notes[hidden] {
-  display: none !important;
-}
-
-.topic-survey {
-  position: relative;
-}
-
-.topic-notes {
-  position: absolute;
-  z-index: 18;
-  inset-inline: 1px;
-  bottom: clamp(76px, 10vh, 94px);
-  display: none;
-  max-height: min(54vh, 440px);
-  margin: 0;
-  overflow: auto;
-  padding: 18px;
-  border: 1px solid var(--line-strong);
-  background: var(--paper);
-}
-
-.topic-notes.is-open {
-  display: block;
-}
-
-body[data-screen="survey"] .topic-notes.is-open {
-  display: block;
-}
-
-.topic-notes:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: -3px;
-}
-
-.topic-notes h2 {
-  margin-bottom: 14px;
 }
 
 @media (max-width: 767px) {
@@ -4230,7 +4177,7 @@ body[data-screen="survey"] .topic-notes.is-open {
   }
 
   .topic-actions {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
 
@@ -4242,23 +4189,6 @@ body[data-screen="survey"] .topic-notes.is-open {
     white-space: nowrap;
   }
 
-  .topic-actions .topic-notes-toggle {
-    justify-self: stretch;
-  }
-
-  .topic-notes {
-    position: fixed;
-    z-index: 70;
-    inset: 68px 12px calc(72px + env(safe-area-inset-bottom));
-    max-height: none;
-    padding: 14px;
-  }
-
-  .topic-notes ul {
-    grid-template-columns: 1fr;
-    grid-template-rows: none;
-    grid-auto-flow: row;
-  }
 }
 
 /* Final survey polish: clear the rail directory and keep candidate labels top-aligned. */
@@ -4409,9 +4339,8 @@ body[data-screen="survey"] .target-copy {
   }
 }
 
-/* Final written-question and topic-reference layout. Keep the two written
-   question screens inside the viewport while allowing long copy to be read
-   inside its reserved slot. */
+/* Final written-question layout. Step 2 and Step 4 share one fixed viewport
+   grammar: the prompt slot never moves the answer control or actions. */
 body[data-screen="qualitative"],
 body[data-screen="complete"] {
   overflow: hidden;
@@ -4430,8 +4359,8 @@ body[data-screen="complete"] .content-stage {
 }
 
 .qualitative-shell .form-page {
-  --written-question-height: clamp(104px, 19dvh, 190px);
-  --written-answer-height: clamp(118px, 24dvh, 210px);
+  --written-question-height: clamp(132px, 18dvh, 174px);
+  --written-answer-height: clamp(180px, 28dvh, 260px);
   display: grid;
   width: min(860px, 100%);
   height: 100%;
@@ -4446,14 +4375,12 @@ body[data-screen="complete"] .content-stage {
 
 .qualitative-shell .page-heading > p:last-child {
   max-height: 4.7em;
-  overflow: auto;
-  scrollbar-gutter: stable;
+  overflow: hidden;
 }
 
 .qualitative-shell .qualitative-privacy {
   max-height: 4.8em;
-  overflow: auto;
-  scrollbar-gutter: stable;
+  overflow: hidden;
 }
 
 .written-question-form {
@@ -4476,11 +4403,16 @@ body[data-screen="complete"] .content-stage {
 
 .written-question-form .qualitative-field {
   min-height: 0;
+  display: grid;
+  grid-template-rows: var(--written-question-height) auto var(--written-answer-height) 18px;
+  align-content: start;
+  gap: 2px;
   padding-block: 8px 10px;
   overflow: hidden;
 }
 
 .written-question-row {
+  height: var(--written-question-height);
   display: grid;
   min-height: var(--written-question-height);
   max-height: var(--written-question-height);
@@ -4492,9 +4424,9 @@ body[data-screen="complete"] .content-stage {
 
 .written-question-row .qualitative-question-label {
   min-height: 0;
+  height: var(--written-question-height);
   max-height: var(--written-question-height);
-  overflow: auto;
-  scrollbar-gutter: stable;
+  overflow: hidden;
 }
 
 .qualitative-na-button {
@@ -4520,9 +4452,10 @@ body[data-screen="complete"] .content-stage {
 }
 
 .module-help {
-  max-height: 3.2em;
-  margin: -4px 0 7px 48px;
-  overflow: auto;
+  height: 18px;
+  max-height: 18px;
+  margin: 0 0 0 48px;
+  overflow: hidden;
   color: var(--muted);
   font-size: 14px;
   line-height: 1.4;
@@ -4534,7 +4467,7 @@ body[data-screen="complete"] .content-stage {
   min-width: 0;
   margin: 0;
   padding: 1px;
-  overflow: auto;
+  overflow: hidden;
   border: 0;
   background: var(--line);
 }
@@ -4582,8 +4515,11 @@ body[data-screen="complete"] .content-stage {
 }
 
 .written-question-form .module-error {
+  height: 18px;
   min-height: 18px;
+  max-height: 18px;
   margin: 3px 0 0;
+  overflow: hidden;
 }
 
 .questionnaire-loading {
@@ -4621,17 +4557,18 @@ body[data-screen="complete"] .content-stage {
   max-width: 860px;
 }
 
-/* Topic 03: keep the source and progress slots stable, while making every
-   candidate title and definition available in a compact two-column reference
-   below the progress bar. */
+/* Topic 03: reserve one stable IF slot and keep the full explanation visible
+   exactly once while candidate choices remain names only. */
 body[data-screen="survey"] .source-topic {
   min-height: 0;
 }
 
 body[data-screen="survey"] .source-topic-body {
   display: grid;
-  height: clamp(148px, 25vh, 200px);
-  grid-template-rows: 18px minmax(42px, 2.6em) minmax(0, 1fr);
+  /* The full ESRS explanation is rendered once in this slot. Two compact
+     columns keep long F20/F23 definitions readable without a scrollbar. */
+  height: clamp(190px, 27vh, 250px);
+  grid-template-rows: auto auto minmax(0, 1fr);
   min-height: 0;
   overflow: hidden;
 }
@@ -4639,17 +4576,18 @@ body[data-screen="survey"] .source-topic-body {
 body[data-screen="survey"] .source-topic-body h2,
 body[data-screen="survey"] .source-topic-body p {
   min-height: 0;
-}
-
-body[data-screen="survey"] .source-topic-body h2 {
-  overflow: auto;
-  scrollbar-gutter: stable;
+  max-height: none;
+  overflow: hidden;
 }
 
 body[data-screen="survey"] .source-topic-body p {
-  max-height: none;
-  overflow: auto;
-  scrollbar-gutter: stable;
+  display: block;
+  margin-bottom: 0;
+  columns: 2;
+  column-gap: 18px;
+  font-size: clamp(10px, .95vw, 13px);
+  line-height: 1.15;
+  overflow: hidden;
 }
 
 body[data-screen="survey"] .target-copy strong {
@@ -4659,70 +4597,19 @@ body[data-screen="survey"] .target-copy strong {
 
 body[data-screen="survey"] .source-progress {
   min-width: 0;
-  max-height: clamp(154px, 25vh, 250px);
+  max-height: none;
   overflow: hidden;
 }
 
-.topic-reference {
-  min-height: 0;
-  margin-top: 9px;
-  padding-top: 8px;
-  border-top: 1px solid var(--line);
-}
+@media (min-width: 768px) and (max-height: 680px) {
+  body[data-screen="survey"] .source-topic-body {
+    height: 190px;
+  }
 
-.topic-reference h3 {
-  margin: 0 0 6px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.2;
-}
-
-.topic-reference-grid {
-  display: grid;
-  max-height: clamp(84px, 16vh, 168px);
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px 14px;
-  overflow: auto;
-  scrollbar-gutter: stable;
-}
-
-.topic-reference-item {
-  min-width: 0;
-  padding-bottom: 5px;
-  border-bottom: 1px solid var(--line);
-}
-
-.topic-reference-heading {
-  display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
-  gap: 5px;
-  align-items: start;
-  color: var(--ink-strong);
-  font-size: 12px;
-  line-height: 1.15;
-}
-
-.topic-reference-heading span {
-  color: var(--accent);
-  font-family: "Space Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 10px;
-}
-
-.topic-reference-heading b {
-  min-width: 0;
-  font-weight: 500;
-  overflow-wrap: anywhere;
-}
-
-.topic-reference-item p {
-  max-height: 4.4em;
-  margin: 3px 0 0 33px;
-  overflow: auto;
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.25;
-  white-space: pre-line;
+  body[data-screen="survey"] .source-topic-body p {
+    font-size: 10px;
+    line-height: 1.1;
+  }
 }
 
 @media (max-width: 767px), (max-width: 900px) and (max-height: 500px) {
@@ -4739,8 +4626,8 @@ body[data-screen="survey"] .source-progress {
   }
 
   .qualitative-shell .form-page {
-    --written-question-height: clamp(108px, 19dvh, 156px);
-    --written-answer-height: clamp(112px, 21dvh, 170px);
+    --written-question-height: clamp(132px, 21dvh, 190px);
+    --written-answer-height: clamp(174px, 29dvh, 240px);
   }
 
   .qualitative-shell .page-heading > p:last-child {
@@ -4795,18 +4682,14 @@ body[data-screen="survey"] .source-progress {
   }
 
   body[data-screen="survey"] .source-progress {
-    max-height: 176px;
-  }
-
-  .topic-reference-grid {
-    max-height: 116px;
+    max-height: none;
   }
 }
 
 @media (max-width: 767px) and (max-height: 680px) {
   .qualitative-shell .form-page {
-    --written-question-height: 92px;
-    --written-answer-height: 108px;
+    --written-question-height: 122px;
+    --written-answer-height: 174px;
   }
 
   .qualitative-shell .page-heading > p:last-child {
@@ -4818,7 +4701,78 @@ body[data-screen="survey"] .source-progress {
     font-size: 13px;
   }
 
-  .topic-reference {
-    display: none;
+}
+
+/* Short desktop/tablet viewports still keep the answer box and actions
+   visible. The prompt and answer slots remain stable, but use compact bounds
+   before the page reaches the mobile breakpoint. */
+@media (min-width: 768px) and (max-height: 640px) {
+  .qualitative-shell .form-page {
+    --written-question-height: clamp(96px, 16dvh, 124px);
+    --written-answer-height: clamp(160px, 27dvh, 190px);
+  }
+
+  .qualitative-shell .page-heading {
+    padding-bottom: 8px;
+  }
+
+  .qualitative-shell .page-heading h1 {
+    font-size: clamp(28px, 4vw, 36px);
+    line-height: 1.05;
+  }
+
+  .qualitative-shell .page-heading > p:last-child {
+    max-height: 2.4em;
+    margin-top: 4px;
+    font-size: 14px;
+    line-height: 1.2;
+  }
+
+  .qualitative-shell .qualitative-privacy {
+    max-height: 2.4em;
+    margin-top: 5px;
+    padding: 4px 8px;
+    font-size: 11px;
+    line-height: 1.2;
+  }
+
+  .written-question-form {
+    margin-top: 2px;
+  }
+
+  .written-question-form .qualitative-progress {
+    margin: 2px 0;
+    font-size: 12px;
+  }
+
+  .written-question-form .qualitative-field {
+    padding-block: 4px 6px;
+  }
+
+  .written-question-row {
+    gap: 8px;
+  }
+
+  .written-question-row .qualitative-question-label {
+    grid-template-columns: 24px minmax(0, 1fr);
+    gap: 6px;
+    font-size: 14px;
+    line-height: 1.2;
+  }
+
+  .qualitative-na-button {
+    min-height: 36px;
+    padding-block: 5px;
+    font-size: 13px;
+  }
+
+  .written-question-form .form-actions {
+    margin-top: 2px;
+    padding-top: 6px;
+  }
+
+  .written-question-form .form-actions .primary-button,
+  .written-question-form .form-actions .text-button {
+    min-height: 40px;
   }
 }

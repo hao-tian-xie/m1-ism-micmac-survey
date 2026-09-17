@@ -37,7 +37,12 @@ test('the guide covers the updated subjective-question and submission flow', () 
   assert.equal(copy['zh-CN'].guideFinalQuestionTitle, '主观问题');
   assert.match(copy['zh-CN'].guideFinalQuestionText, /继续作答/);
   assert.match(copy['zh-CN'].guideStageDirectoryText, /左侧的目录栏/);
-  assert.match(copy['zh-CN'].guideHoverText, /鼠标移动到对应的主题/);
+  assert.match(copy['zh-CN'].guideHoverText, /候选区只显示/);
+  assert.match(copy.en.guideHoverText, /full IF explanation/);
+  assert.deepEqual(
+    guideStepsForScreen('survey').map((step) => step.target),
+    ['.source-topic', '.target-fieldset', '.source-topic p', '.target-list', '.topic-actions .primary-button'],
+  );
   assert.equal(copy['zh-CN'].guideFinalSubmitTitle, '提交您的问卷');
   assert.match(copy.en.guideFinalQuestionText, /earlier judgements/);
 });

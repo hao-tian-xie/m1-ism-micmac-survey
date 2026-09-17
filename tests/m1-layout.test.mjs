@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
+import { studyConfig } from '../survey-config.mjs';
+
 const styles = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
 const app = await readFile(new URL('../app.mjs', import.meta.url), 'utf8');
 const index = await readFile(new URL('../index.html', import.meta.url), 'utf8');
@@ -31,11 +33,21 @@ test('desktop and tablet survey fit the complete topic choice page to the viewpo
   assert.match(fit, /body\[data-screen="survey"\]\s+\.content-stage\s*\{[\s\S]*?height:\s*100dvh/);
   assert.match(fit, /body\[data-screen="survey"\]\s+\.topic-survey\s*\{[\s\S]*?display:\s*grid/);
   assert.match(fit, /body\[data-screen="survey"\]\s+\.target-list\s*\{[\s\S]*?grid-template-rows:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
-  assert.match(fit, /body\[data-screen="survey"\]\s+\.topic-notes\s*\{[\s\S]*?display:\s*none/);
   assert.match(fit, /body\[data-screen="survey"\]\s+\.target-list\s*\{[\s\S]*?grid-template-columns:\s*repeat\(10,\s*minmax\(0,\s*1fr\)\)/);
   assert.doesNotMatch(fit, /body\[data-screen="survey"\]\s+\.target-list\s*\{\s*grid-template-columns:\s*repeat\(auto-fit/);
   assert.match(fit, /body\[data-screen="survey"\]\s+\.target-copy\s+strong\s*\{[\s\S]*?overflow-wrap:\s*anywhere/);
   assert.doesNotMatch(fit, /body\[data-screen="survey"\]\s+\.target-copy\s+strong\s*\{[\s\S]*?-webkit-line-clamp/);
+
+  const mobileStart = styles.indexOf('/* The compact mobile survey uses the same fixed-slot model');
+  assert.notEqual(mobileStart, -1, 'the compact mobile survey fit mode should be present');
+  const mobileFit = styles.slice(mobileStart);
+  assert.match(mobileFit, /body\[data-screen="survey"\]\s*\{[\s\S]*?overflow:\s*hidden/);
+  assert.match(mobileFit, /body\[data-screen="survey"\]\s+\.content-stage\s*\{[\s\S]*?overflow:\s*hidden/);
+  const mobileSourceStart = mobileFit.indexOf('body[data-screen="survey"] .source-topic-body p');
+  assert.notEqual(mobileSourceStart, -1, 'mobile IF explanation should have an explicit rule');
+  const mobileSourceRule = mobileFit.slice(mobileSourceStart).match(/\{[^}]*\}/)?.[0] || '';
+  assert.match(mobileSourceRule, /display:\s*block/);
+  assert.doesNotMatch(mobileSourceRule, /display:\s*none|overflow:\s*auto|max-height:\s*(?!none)/);
 });
 
 test('IF and THEN labels share the same readable type treatment', () => {
@@ -55,14 +67,16 @@ test('THEN and its question are presented as one decision label', () => {
   );
 });
 
-test('survey keeps progress with IF, centers topic notes, and exposes the ESRS PDF', () => {
+test('survey keeps progress with one complete IF explanation and exposes the ESRS PDF', () => {
   assert.match(app, /<section class="source-topic"[\s\S]*?class="topic-kicker"[\s\S]*?class="source-topic-main"[\s\S]*?class="source-topic-head"[\s\S]*?class="source-topic-body"[\s\S]*?class="source-progress"/);
   assert.doesNotMatch(app, /<div class="topic-progress">/);
-  assert.match(app, /data-action="toggle-topic-notes"[\s\S]*?aria-expanded="false"/);
-  assert.match(app, /<section class="topic-notes"[^>]*hidden/);
-  assert.match(styles, /\.topic-actions\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto\s+minmax\(0,\s*1fr\)/);
-  assert.match(styles, /\.topic-notes\.is-open\s*\{[\s\S]*?display:\s*block/);
-  assert.match(styles, /body\[data-screen="survey"\]\s+\.topic-notes\.is-open\s*\{[\s\S]*?display:\s*block/);
+  assert.match(app, /<p>\$\{escapeHtml\(source\.description\)\}<\/p>/);
+  assert.doesNotMatch(app, /topic-reference|topic-reference-item|topic-notes|target-definition|toggle-topic-notes/);
+  assert.match(styles, /body\[data-screen="survey"\]\s+\.source-topic-body\s*\{[\s\S]*?height:\s*clamp\(190px/);
+  assert.match(styles, /body\[data-screen="survey"\]\s+\.source-topic-body p\s*\{[\s\S]*?display:\s*block/);
+  assert.match(styles, /body\[data-screen="survey"\]\s+\.source-topic-body p\s*\{[\s\S]*?columns:\s*2/);
+  assert.match(styles, /body\[data-screen="survey"\]\s+\.source-topic-body p\s*\{[\s\S]*?overflow:\s*hidden/);
+  assert.match(translations, /ifLabel:\s*'IF · Advance'/);
   assert.match(styles, /\.topic-actions\s*\{[\s\S]*?margin-inline:\s*1px/);
   assert.match(styles, /body\[data-screen="survey"\]\s+\.target-copy strong\s*\{[\s\S]*?font-size:\s*clamp\(16px,\s*min\(1\.6vw,\s*2\.1vh\),\s*21px\)/);
   assert.match(styles, /body\[data-screen="survey"\]\s+\.target-option\s*\{[\s\S]*?align-items:\s*start/);
@@ -81,23 +95,19 @@ test('survey keeps progress with IF, centers topic notes, and exposes the ESRS P
   assert.match(app, /esrsPdfLink\.setAttribute\('aria-label',\s*t\('esrsPdfTitle'\)\)/);
   assert.match(styles, /@media\s*\(max-width:\s*767px\)[\s\S]*?\.header-actions\s*\{[\s\S]*?flex:\s*0\s+0\s+auto/);
   assert.match(styles, /@media\s*\(max-width:\s*767px\)[\s\S]*?\.guide-button\s+b\s*\{[\s\S]*?display:\s*none/);
-  assert.match(app, /function closeTopicNotes\(\)[\s\S]*?notes\.hidden = true/);
-  assert.match(app, /document\.addEventListener\('click'[\s\S]*?notes\.contains\(event\.target\)/);
 });
 
-test('topic notes preserve definition line breaks and fill columns top-to-bottom', () => {
-  const notesGridStart = styles.indexOf('.topic-notes ul');
-  assert.notEqual(notesGridStart, -1, 'the topic notes grid should be present');
-  const notesGrid = styles.slice(notesGridStart, notesGridStart + 420);
-  assert.match(notesGrid, /grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
-  assert.match(notesGrid, /grid-template-rows:\s*repeat\(13,\s*minmax\(0,\s*auto\)\)/);
-  assert.match(notesGrid, /grid-auto-flow:\s*column/);
-
-  assert.match(styles, /\.factor-preview p,\s*\.source-topic p,\s*\.target-definition,\s*\.topic-notes li span\s*\{[\s\S]*?white-space:\s*pre-line/);
-  assert.match(
-    styles,
-    /@media\s*\(max-width:\s*767px\)[\s\S]*?\.topic-notes ul\s*\{[\s\S]*?grid-template-columns:\s*1fr[\s\S]*?grid-template-rows:\s*none[\s\S]*?grid-auto-flow:\s*row/,
-  );
+test('full IF descriptions keep their ESRS subtopic lines and are not truncated in rendering', () => {
+  const longDescriptionIds = ['F11', 'F13', 'F20', 'F21', 'F23', 'F24'];
+  for (const id of longDescriptionIds) {
+    const factor = studyConfig.factors.find((item) => item.id === id);
+    assert.ok(factor, `missing ${id}`);
+    assert.match(factor.description.en, /\nContains:/, `${id} should retain its subtopic lines`);
+    assert.match(factor.description.en, /\n[^\n]+;/, `${id} should retain multiple description lines`);
+  }
+  assert.match(app, /description:\s*localeText\(factor\.description\)/);
+  assert.match(styles, /\.factor-preview p,\s*\.source-topic p\s*\{[\s\S]*?white-space:\s*pre-line/);
+  assert.doesNotMatch(app, /description\.split\(\/\\r\?\\n/);
 });
 
 test('IF label and current topic share one horizontal source row on desktop', () => {
@@ -106,17 +116,24 @@ test('IF label and current topic share one horizontal source row on desktop', ()
   assert.match(styles, /\.source-topic-head\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(220px,\s*360px\)/);
 });
 
-test('topic explanations are available in a two-column reference below progress', () => {
-  assert.match(app, /class="topic-reference"[\s\S]*?class="topic-reference-grid"/);
-  assert.match(app, /class="topic-reference-item"[\s\S]*?class="topic-reference-heading"/);
-  assert.match(styles, /\.topic-reference-grid\s*\{[\s\S]*?grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)/);
-  assert.match(styles, /\.topic-reference-item p\s*\{[\s\S]*?color:\s*var\(--muted\)/);
+test('candidate choices do not duplicate the current IF explanation', () => {
+  assert.match(app, /targets\.map\(\(target\) => targetOption\(source, target\)\)/);
+  assert.match(app, /<strong>\$\{escapeHtml\(target\.label\)\}<\/strong>/);
+  assert.doesNotMatch(app, /topic-reference|topic-reference-item|target-definition|topic-notes/);
+  assert.doesNotMatch(styles, /topic-reference|topic-reference-item|target-definition|topic-notes/);
 });
 
 test('written and final question screens share fixed slots', () => {
   assert.match(app, /function renderWrittenQuestionScreen\(\{ final = false \} = \{\}\)/);
   assert.match(app, /if \(!submitted\) return renderWrittenQuestionScreen\(\{ final: true \}\)/);
+  assert.match(app, /const pageClass = final \? 'complete-page qualitative-page final-question-page' : 'qualitative-page'/);
+  assert.match(app, /const intro = t\('qualitativeIntro'\)/);
   assert.match(styles, /\.written-question-form\s*\{[\s\S]*?grid-template-rows:\s*auto\s+minmax\(0,\s*1fr\)\s+auto\s+auto/);
-  assert.match(styles, /\.written-question-row\s*\{[\s\S]*?min-height:\s*var\(--written-question-height\)/);
+  assert.match(styles, /\.written-question-form \.qualitative-field\s*\{[\s\S]*?grid-template-rows:\s*var\(--written-question-height\)\s+auto\s+var\(--written-answer-height\)\s+18px/);
+  assert.match(styles, /\.written-question-form \.qualitative-field\s*\{[\s\S]*?gap:\s*2px/);
+  assert.match(styles, /\.written-question-row\s*\{[\s\S]*?height:\s*var\(--written-question-height\)/);
+  assert.match(styles, /--written-answer-height:\s*clamp\(180px/);
+  assert.match(styles, /@media\s*\(min-width:\s*768px\)\s+and\s+\(max-height:\s*640px\)[\s\S]*?--written-answer-height:\s*clamp\(160px/);
   assert.match(styles, /\.written-question-form[\s\S]*?resize:\s*none/);
+  assert.match(styles, /\.written-question-form \.module-error\s*\{[\s\S]*?height:\s*18px/);
 });

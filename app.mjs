@@ -20,7 +20,6 @@ import {
   normalizeModuleValue,
   serializeModuleAnswer,
 } from './public-questionnaire.mjs';
-import { attachTopicDefinitionHints } from './topic-definition-hints.mjs';
 
 const STORAGE_KEY = `bextools:${studyConfig.id}:${studyConfig.version}`;
 const NONE_VALUE = '__none__';
@@ -46,7 +45,6 @@ const guideClose = document.querySelector('#guide-close');
 const roleKeys = ['roleOperations', 'roleEsg', 'roleTechnology', 'roleManagement', 'roleAcademic', 'roleOther'];
 const experienceKeys = ['exp1', 'exp2', 'exp3', 'exp4'];
 let storageAvailable = true;
-let detachTopicDefinitionHints = () => {};
 let questionnaireConfig = FALLBACK_PUBLIC_QUESTIONNAIRE;
 let questionModules = [...questionnaireConfig.modules];
 
@@ -742,28 +740,8 @@ function targetOption(source, target) {
       <span class="target-copy">
         <strong>${escapeHtml(target.label)}</strong>
       </span>
-      <span class="target-definition" role="tooltip" hidden aria-hidden="true">${escapeHtml(target.description)}</span>
     </label>
   `;
-}
-
-function toggleTopicNotes(button) {
-  const notes = document.querySelector('.topic-notes');
-  if (!notes) return;
-  const isOpen = notes.hidden;
-  notes.hidden = !isOpen;
-  notes.classList.toggle('is-open', isOpen);
-  button.setAttribute('aria-expanded', String(isOpen));
-  if (isOpen) notes.focus({ preventScroll: true });
-}
-
-function closeTopicNotes() {
-  const notes = document.querySelector('.topic-notes');
-  const button = document.querySelector('[data-action="toggle-topic-notes"]');
-  if (!notes || notes.hidden) return;
-  notes.hidden = true;
-  notes.classList.remove('is-open');
-  button?.setAttribute('aria-expanded', 'false');
 }
 
 function renderSurvey() {
@@ -778,16 +756,6 @@ function renderSurvey() {
   const finishLabel = legacyQ7Finish
     ? t('confirmAndSubmit')
     : (afterTopicModules().length ? t('continueAfterTopics') : t('submitResponse'));
-  const topicNotes = targets.map((target) => `
-    <li><b>${escapeHtml(target.id)} · ${escapeHtml(target.label)}</b><span>${escapeHtml(target.description)}</span></li>
-  `).join('');
-  const topicReference = targets.map((target) => `
-    <article class="topic-reference-item">
-      <div class="topic-reference-heading"><span>${escapeHtml(target.id)}</span><b>${escapeHtml(target.label)}</b></div>
-      <p>${escapeHtml(target.description)}</p>
-    </article>
-  `).join('');
-
   return renderShell(`
     <div class="survey-page topic-survey">
       <header class="survey-topline">
@@ -809,10 +777,6 @@ function renderSurvey() {
                   <span class="pair-position">${escapeHtml(t('topicPosition', { i: state.currentIndex + 1, total: factors.length }))}</span>
                 </div>
                 <progress max="${factors.length}" value="${reviewedCount()}" aria-label="${escapeHtml(t('progressLabel'))}"></progress>
-                <section class="topic-reference" aria-label="${escapeHtml(t('candidateNotes'))}">
-                  <h3>${escapeHtml(t('candidateNotes'))}</h3>
-                  <div class="topic-reference-grid">${topicReference}</div>
-                </section>
               </div>
             </div>
           </div>
@@ -847,17 +811,10 @@ function renderSurvey() {
         <button class="text-button" type="button" data-action="previous-topic" ${state.currentIndex === 0 ? 'disabled' : ''}>
           <span aria-hidden="true">←</span>${escapeHtml(t('previousTopic'))}
         </button>
-        <button class="text-button topic-notes-toggle" type="button" data-action="toggle-topic-notes" aria-expanded="false">
-          <span aria-hidden="true">i</span>${escapeHtml(t('topicNotesButton'))}
-        </button>
         <button class="primary-button" type="button" data-action="confirm-topic" ${hasChoice ? '' : 'disabled'}>
           ${escapeHtml(isLast ? finishLabel : t('confirmAndNext'))}<span aria-hidden="true">→</span>
         </button>
       </div>
-      <section class="topic-notes" aria-label="${escapeHtml(t('candidateNotes'))}" hidden tabindex="-1">
-        <h2>${escapeHtml(t('candidateNotes'))}</h2>
-        <ul>${topicNotes}</ul>
-      </section>
     </div>
   `, 'survey-shell');
 }
@@ -964,7 +921,7 @@ function renderWrittenQuestionScreen({ final = false } = {}) {
   const position = module ? (final ? moduleGlobalPosition(module) : index + 1) : questionModules.length;
   const total = final ? questionModules.length : modules.length;
   const formIdAttribute = final ? 'id="final-submit-form"' : 'id="qualitative-form"';
-  const pageClass = final ? 'complete-page final-question-page' : 'qualitative-page';
+  const pageClass = final ? 'complete-page qualitative-page final-question-page' : 'qualitative-page';
   const shellClass = final ? 'form-shell qualitative-shell complete-shell' : 'form-shell qualitative-shell';
   const eyebrow = final ? t('completeEyebrow') : t('qualitativeEyebrow');
   const title = final ? t('completeTitle') : t('qualitativeTitle');
@@ -973,7 +930,7 @@ function renderWrittenQuestionScreen({ final = false } = {}) {
   const primaryLabel = final
     ? (isLast ? (state.submitState === 'submitting' ? t('submitting') : t('submitResponse')) : t('qualitativeNext'))
     : (isLast ? t('qualitativeFinish') : t('qualitativeNext'));
-  const intro = final ? '' : t('qualitativeIntro');
+  const intro = t('qualitativeIntro');
   const error = final && state.submitState === 'error'
     ? `<div class="submit-error" role="alert"><span>${escapeHtml(t('submitError'))}</span><button type="button" data-action="submit-response">${escapeHtml(t('retrySubmit'))}</button></div>`
     : '';
@@ -1038,7 +995,6 @@ function render() {
   renderHomeLink();
   renderLanguages();
 
-  detachTopicDefinitionHints();
   app.innerHTML = {
     welcome: renderWelcome,
     profile: renderProfile,
@@ -1046,9 +1002,6 @@ function render() {
     survey: renderSurvey,
     complete: renderComplete,
   }[state.screen]();
-  detachTopicDefinitionHints = state.screen === 'survey'
-    ? attachTopicDefinitionHints(document.querySelector('.target-list'))
-    : () => {};
   renderGuide();
 }
 
@@ -1476,9 +1429,6 @@ app.addEventListener('click', (event) => {
       pageTop();
       focusPageHeading();
       break;
-    case 'toggle-topic-notes':
-      toggleTopicNotes(button);
-      break;
     case 'confirm-topic':
       confirmCurrentTopic();
       break;
@@ -1564,14 +1514,6 @@ app.addEventListener('click', (event) => {
     default:
       break;
   }
-});
-
-document.addEventListener('click', (event) => {
-  if (state.screen !== 'survey') return;
-  const notes = document.querySelector('.topic-notes');
-  const toggle = event.target.closest?.('[data-action="toggle-topic-notes"]');
-  if (!notes || notes.hidden || toggle || notes.contains(event.target)) return;
-  closeTopicNotes();
 });
 
 async function initializeApp() {

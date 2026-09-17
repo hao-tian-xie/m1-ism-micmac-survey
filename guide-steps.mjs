@@ -19,13 +19,6 @@ const stageDirectoryStep = {
   text: 'guideStageDirectoryText',
 };
 
-const topicHoverStep = {
-  screen: 'survey',
-  target: '.target-list .target-option',
-  title: 'guideHoverTitle',
-  text: 'guideHoverText',
-};
-
 const welcomeSteps = [
   { screen: 'welcome', target: '.hero-button', title: 'guideWelcomeTitle', text: 'guideWelcomeText' },
   { screen: 'profile', target: '.profile-form [name="code"]', title: 'guideCodeTitle', text: 'guideCodeText' },
@@ -34,8 +27,8 @@ const welcomeSteps = [
   { screen: 'qualitative', target: '.qualitative-fields', title: 'guideQualitativeTitle', text: 'guideQualitativeText' },
   { screen: 'survey', target: '.source-topic', title: 'guideIfTitle', text: 'guideIfText' },
   { screen: 'survey', target: '.target-fieldset', title: 'guideThenTitle', text: 'guideThenText' },
-  { screen: 'survey', target: '.topic-reference', title: 'guideNotesTitle', text: 'guideNotesText' },
-  topicHoverStep,
+  { screen: 'survey', target: '.source-topic p', title: 'guideNotesTitle', text: 'guideNotesText' },
+  { screen: 'survey', target: '.target-list', title: 'guideHoverTitle', text: 'guideHoverText' },
   { screen: 'survey', target: '.topic-actions .primary-button', title: 'guideNextTitle', text: 'guideNextText' },
   finalQuestionStep,
   stageDirectoryStep,
