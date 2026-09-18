@@ -5141,3 +5141,125 @@ body[data-screen="survey"] .target-option:has(input:focus-visible) {
     --written-answer-height: 190px;
   }
 }
+
+/* The requested spacing correction is limited to the q2/q4 subjective modules.
+   The two tracks keep their combined height, so the prompt stays in place while
+   the textarea grows upward without moving its bottom edge or the action row. */
+.written-question-form .qualitative-field[data-module-type="subjective_text"][data-module-id="q2"],
+.written-question-form .qualitative-field[data-module-type="subjective_text"][data-module-id="q4"] {
+  --module-answer-lift: 16px;
+  grid-template-rows:
+    calc(var(--written-question-height) - var(--module-answer-lift))
+    auto
+    calc(var(--written-answer-height) + var(--module-answer-lift))
+    18px;
+}
+
+.written-question-form .qualitative-field[data-module-type="subjective_text"][data-module-id="q2"] .written-question-row,
+.written-question-form .qualitative-field[data-module-type="subjective_text"][data-module-id="q4"] .written-question-row,
+.written-question-form .qualitative-field[data-module-type="subjective_text"][data-module-id="q2"] .written-question-row .qualitative-question-label,
+.written-question-form .qualitative-field[data-module-type="subjective_text"][data-module-id="q4"] .written-question-row .qualitative-question-label {
+  height: calc(var(--written-question-height) - var(--module-answer-lift));
+  min-height: calc(var(--written-question-height) - var(--module-answer-lift));
+  max-height: calc(var(--written-question-height) - var(--module-answer-lift));
+}
+
+.written-question-form .qualitative-field[data-module-type="subjective_text"][data-module-id="q2"] textarea,
+.written-question-form .qualitative-field[data-module-type="subjective_text"][data-module-id="q4"] textarea {
+  height: calc(var(--written-answer-height) + var(--module-answer-lift));
+  min-height: calc(var(--written-answer-height) + var(--module-answer-lift));
+  max-height: calc(var(--written-answer-height) + var(--module-answer-lift));
+  margin: 0;
+  resize: none;
+}
+
+/* Restore the historical all-candidate topic-notes action without changing the
+   current paginated explanation or fixed candidate tooltips. */
+body[data-screen="survey"] .topic-actions .topic-notes-toggle {
+  justify-self: center;
+}
+
+body[data-screen="survey"] .topic-notes[hidden] {
+  display: none !important;
+}
+
+body[data-screen="survey"] .topic-survey {
+  position: relative;
+}
+
+body[data-screen="survey"] .topic-notes {
+  position: absolute;
+  z-index: 18;
+  inset-inline: 1px;
+  bottom: clamp(76px, 10vh, 94px);
+  display: none;
+  max-height: min(54vh, 440px);
+  margin: 0;
+  overflow: auto;
+  padding: 18px;
+  border: 1px solid var(--line-strong);
+  background: var(--paper);
+}
+
+body[data-screen="survey"] .topic-notes.is-open {
+  display: block;
+}
+
+body[data-screen="survey"] .topic-notes h2 {
+  margin: 0 0 14px;
+}
+
+body[data-screen="survey"] .topic-notes ul {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(13, minmax(0, auto));
+  grid-auto-flow: column;
+  gap: 8px 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+body[data-screen="survey"] .topic-notes li {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-size: .88rem;
+  line-height: 1.35;
+}
+
+body[data-screen="survey"] .topic-notes li b {
+  font-weight: 600;
+}
+
+body[data-screen="survey"] .topic-notes li span {
+  color: var(--muted);
+  white-space: pre-line;
+}
+
+@media (max-width: 767px) {
+  body[data-screen="survey"] .topic-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  body[data-screen="survey"] .topic-notes {
+    position: fixed;
+    z-index: 70;
+    inset: 68px 12px calc(72px + env(safe-area-inset-bottom));
+    max-height: none;
+    padding: 14px;
+  }
+
+  body[data-screen="survey"] .topic-notes ul {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    grid-auto-flow: row;
+    gap: 5px;
+  }
+
+  body[data-screen="survey"] .topic-notes li {
+    grid-template-columns: auto 1fr;
+    gap: 7px;
+    font-size: .78rem;
+  }
+}

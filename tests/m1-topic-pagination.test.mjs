@@ -45,6 +45,7 @@ test('Section 03 page controls are delegated, keyed by locale/topic, and tri-lin
   assert.match(translations, /topicPagePrevious:/u);
   assert.match(translations, /topicPageNext:/u);
   assert.match(styles, /source-topic-pagination\.is-visible/u);
-  assert.doesNotMatch(styles, /source-topic-description[\s\S]*?overflow:\s*(?:auto|scroll)/u);
-  assert.doesNotMatch(styles, /source-topic-body p[\s\S]*?-webkit-line-clamp/u);
+  assert.doesNotMatch(styles, /body\[data-screen="survey"\]\s+\.source-topic-description\s*\{[^}]*overflow:\s*(?:auto|scroll)/u);
+  assert.doesNotMatch(styles, /body\[data-screen="survey"\]\s+\.source-topic-description\s+p\s*\{[^}]*overflow:\s*(?:auto|scroll)/u);
+  assert.doesNotMatch(styles, /body\[data-screen="survey"\]\s+\.source-topic-body p\s*\{[^}]*-webkit-line-clamp/u);
 });

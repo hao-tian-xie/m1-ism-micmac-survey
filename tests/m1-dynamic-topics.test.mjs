@@ -132,8 +132,21 @@ test('Section 03 keeps one complete IF explanation and separates candidate hints
     assert.doesNotMatch(rule, /overflow:\s*(?:hidden|auto|scroll)/);
     assert.doesNotMatch(rule, /text-overflow\s*:/);
   }
-  assert.doesNotMatch(styles, /body\[data-screen="survey"\] \.source-topic-body p\s*\{[\s\S]*?overflow:\s*auto/);
-  assert.doesNotMatch(styles, /source-topic-body p[\s\S]*?-webkit-line-clamp/);
+  assert.doesNotMatch(styles, /body\[data-screen="survey"\]\s+\.source-topic-body p\s*\{[^}]*overflow:\s*auto/);
+  assert.doesNotMatch(styles, /body\[data-screen="survey"\]\s+\.source-topic-body p\s*\{[^}]*-webkit-line-clamp/);
+  assert.match(app, /const topicNotes = targets\.map\(\(target\) =>[\s\S]*?target\.description/);
+  assert.match(app, /data-action="toggle-topic-notes"/);
+  assert.match(app, /aria-controls="topic-notes"/);
+  assert.match(app, /t\('topicNotesButton'\)/);
+  assert.match(app, /<section class="topic-notes" id="topic-notes" aria-label="\$\{escapeAttribute\(t\('candidateNotes'\)\)\}" hidden/);
+  assert.match(app, /<h2>\$\{escapeHtml\(t\('candidateNotes'\)\)\}<\/h2>/);
+  assert.match(app, /<ul>\$\{topicNotes\}<\/ul>/);
+  assert.match(app, /<button class="primary-button" type="button" data-action="confirm-topic"/);
+  assert.match(app, /isLast \? finishLabel : t\('confirmAndNext'\)/);
+  assert.match(styles, /body\[data-screen="survey"\] \.topic-actions \.topic-notes-toggle\s*\{[^}]*justify-self:\s*center/);
+  assert.match(styles, /\.topic-actions\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto\s+minmax\(0,\s*1fr\)/);
+  assert.match(styles, /\.topic-actions \.primary-button\s*\{[^}]*justify-self:\s*end/);
+  assert.match(styles, /body\[data-screen="survey"\] \.topic-notes\s*\{[^}]*overflow:\s*auto/);
 });
 
 test('dynamic grid has a snapshot-sized row contract for counts above 38', () => {

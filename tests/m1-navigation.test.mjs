@@ -6,7 +6,7 @@ import {
   topicIsAvailable,
 } from '../navigation-rules.mjs';
 
-test('stage order only permits backward navigation', () => {
+test('stage order preserves backward navigation and blocks unrelated forward jumps', () => {
   assert.equal(stageIndex('profile'), 0);
   assert.equal(stageIndex('qualitative'), 1);
   assert.equal(stageIndex('survey'), 2);
@@ -21,7 +21,59 @@ test('stage order only permits backward navigation', () => {
   assert.equal(canNavigateToStage('review', 'profile'), false);
   assert.equal(canNavigateToStage('complete', 'survey'), false);
   assert.equal(canNavigateToStage('complete', 'survey', { allowComplete: true }), true);
-  assert.equal(canNavigateToStage('qualitative', 'survey'), false);
+  assert.equal(canNavigateToStage('qualitative', 'complete', { surveyComplete: false }), false);
+});
+
+test('Step 02 resumes only unfinished Step 03 or validated Step 04', () => {
+  assert.equal(
+    canNavigateToStage('qualitative', 'survey', {
+      surveyComplete: false,
+      qualitativeComplete: false,
+    }),
+    true,
+  );
+  assert.equal(
+    canNavigateToStage('qualitative', 'complete', {
+      surveyComplete: false,
+      qualitativeComplete: false,
+    }),
+    false,
+  );
+  assert.equal(
+    canNavigateToStage('qualitative', 'survey', {
+      surveyComplete: true,
+      qualitativeComplete: true,
+    }),
+    false,
+  );
+  assert.equal(
+    canNavigateToStage('qualitative', 'complete', {
+      surveyComplete: true,
+      qualitativeComplete: true,
+    }),
+    true,
+  );
+  assert.equal(
+    canNavigateToStage('qualitative', 'complete', {
+      surveyComplete: true,
+      qualitativeComplete: false,
+    }),
+    false,
+  );
+  assert.equal(
+    canNavigateToStage('qualitative', 'complete', {
+      surveyComplete: false,
+      qualitativeComplete: true,
+    }),
+    false,
+  );
+  assert.equal(
+    canNavigateToStage('qualitative', 'profile', {
+      surveyComplete: true,
+      qualitativeComplete: false,
+    }),
+    true,
+  );
 });
 
 test('topic directory exposes current and reviewed topics only', () => {

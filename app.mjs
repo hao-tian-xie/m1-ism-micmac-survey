@@ -6,7 +6,7 @@ import {
   tryWriteStorage,
 } from './survey-core.mjs';
 import { displayTopicName, studyConfig } from './survey-config.mjs?v=topic-definitions-contains-20260908';
-import { copy, languageNames, locales } from './translations.mjs?v=live-question-config-v2';
+import { copy, languageNames, locales } from './translations.mjs?v=live-question-config-v3';
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
 import { resolveLocale } from './locale-state.mjs';
 import { guideStepsForScreen } from './guide-steps.mjs?v=live-question-config-v1';
@@ -21,7 +21,7 @@ import {
   normalizeModuleValue,
   serializeModuleAnswer,
 } from './public-questionnaire.mjs';
-import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=live-question-config-v2';
+import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=live-question-config-v3';
 
 const STORAGE_KEY_BASE = `bextools:${studyConfig.id}:${studyConfig.version}`;
 const NONE_VALUE = '__none__';
@@ -366,6 +366,14 @@ function allTopicsReviewed() {
   return reviewedCount() === factors.length;
 }
 
+function firstInvalidBeforeTopicModule() {
+  return beforeTopicModules().find((module) => moduleAnswerError(module, state.moduleAnswers[module.id])) || null;
+}
+
+function beforeTopicModulesAreValid() {
+  return !firstInvalidBeforeTopicModule();
+}
+
 function progressPercent() {
   return factors.length ? Math.round((reviewedCount() / factors.length) * 100) : 0;
 }
@@ -632,7 +640,19 @@ function goTo(screen, { scroll = true } = {}) {
 }
 
 function navigateToStage(targetStage) {
-  if (!canNavigateToStage(state.screen, targetStage, { allowComplete: !state.submissionId })) return;
+  const surveyComplete = allTopicsReviewed();
+  const qualitativeComplete = beforeTopicModulesAreValid();
+  if (!canNavigateToStage(state.screen, targetStage, {
+    allowComplete: !state.submissionId,
+    surveyComplete,
+    qualitativeComplete,
+  })) {
+    if (state.screen === 'qualitative' && targetStage === 'complete' && surveyComplete) {
+      const invalid = firstInvalidBeforeTopicModule();
+      if (invalid) showModuleValidation(invalid, moduleAnswerError(invalid, state.moduleAnswers[invalid.id]));
+    }
+    return;
+  }
 
   if (targetStage === 'profile') {
     state.showValidation = false;
@@ -651,8 +671,23 @@ function navigateToStage(targetStage) {
   }
 
   if (targetStage === 'survey') {
-    state.currentIndex = Math.min(state.currentIndex, factors.length - 1);
+    state.currentIndex = surveyComplete
+      ? Math.min(state.currentIndex, factors.length - 1)
+      : firstUnreviewedIndex();
     goTo('survey');
+    return;
+  }
+
+  if (targetStage === 'complete') {
+    // Re-check the written answers at the forward boundary so a sidebar click
+    // cannot turn an incomplete Step 02 into a submittable Step 04.
+    if (!beforeTopicModulesAreValid()) {
+      const invalid = firstInvalidBeforeTopicModule();
+      if (invalid) showModuleValidation(invalid, moduleAnswerError(invalid, state.moduleAnswers[invalid.id]));
+      return;
+    }
+    state.qualitativeSectionComplete = true;
+    goTo('complete');
   }
 }
 
@@ -818,7 +853,11 @@ function renderStepper() {
     const isActive = index === activeIndex;
     const isDone = index < activeIndex;
     const canGoBack = !state.submissionId
-      && canNavigateToStage(state.screen, stage, { allowComplete: true });
+      && canNavigateToStage(state.screen, stage, {
+        allowComplete: true,
+        surveyComplete: allTopicsReviewed(),
+        qualitativeComplete: beforeTopicModulesAreValid(),
+      });
     const stepContent = `
       <span>${stepNumbers[index]}</span>
       <b>${escapeHtml(label)}</b>
@@ -1016,6 +1055,25 @@ function targetOption(source, target) {
   `;
 }
 
+function toggleTopicNotes(button) {
+  const notes = document.querySelector('.topic-notes');
+  if (!notes) return;
+  const isOpen = notes.hidden;
+  notes.hidden = !isOpen;
+  notes.classList.toggle('is-open', isOpen);
+  button.setAttribute('aria-expanded', String(isOpen));
+  if (isOpen) notes.focus({ preventScroll: true });
+}
+
+function closeTopicNotes() {
+  const notes = document.querySelector('.topic-notes');
+  const button = document.querySelector('[data-action="toggle-topic-notes"]');
+  if (!notes || notes.hidden) return;
+  notes.hidden = true;
+  notes.classList.remove('is-open');
+  button?.setAttribute('aria-expanded', 'false');
+}
+
 function topicGridStyle() {
   const count = Math.max(1, factors.length);
   // The final `none` choice occupies a real grid cell alongside all active
@@ -1044,6 +1102,9 @@ function renderSurvey() {
   const finishLabel = legacyQ7Finish
     ? t('confirmAndSubmit')
     : (afterTopicModules().length ? t('continueAfterTopics') : t('submitResponse'));
+  const topicNotes = targets.map((target) => `
+    <li><b>${escapeHtml(target.id)} · ${escapeHtml(target.label)}</b><span>${escapeHtml(target.description)}</span></li>
+  `).join('');
   return renderShell(`
     <div class="survey-page topic-survey">
       <header class="survey-topline">
@@ -1106,10 +1167,17 @@ function renderSurvey() {
         <button class="text-button" type="button" data-action="previous-topic" ${state.currentIndex === 0 ? 'disabled' : ''}>
           <span aria-hidden="true">←</span>${escapeHtml(t('previousTopic'))}
         </button>
+        <button class="text-button topic-notes-toggle" type="button" data-action="toggle-topic-notes" aria-controls="topic-notes" aria-expanded="false">
+          <span aria-hidden="true">i</span>${escapeHtml(t('topicNotesButton'))}
+        </button>
         <button class="primary-button" type="button" data-action="confirm-topic" ${hasChoice ? '' : 'disabled'}>
           ${escapeHtml(isLast ? finishLabel : t('confirmAndNext'))}<span aria-hidden="true">→</span>
         </button>
       </div>
+      <section class="topic-notes" id="topic-notes" aria-label="${escapeAttribute(t('candidateNotes'))}" hidden tabindex="-1">
+        <h2>${escapeHtml(t('candidateNotes'))}</h2>
+        <ul>${topicNotes}</ul>
+      </section>
     </div>
   `, 'survey-shell');
 }
@@ -1189,7 +1257,7 @@ function renderModuleField(module, number) {
     `;
   }
   return `
-    <div class="field-group note-field qualitative-field question-module-field" data-module-type="${module.type}">
+    <div class="field-group note-field qualitative-field question-module-field" data-module-type="${module.type}" data-module-id="${escapeAttribute(module.id)}">
       <div class="written-question-row">
         ${module.type === 'subjective_text' ? `<label class="qualitative-question-label" for="qualitative-${module.id}">` : '<div class="qualitative-question-label">'}
           <i>${String(number).padStart(2, '0')}</i>${prompt}
@@ -1763,6 +1831,9 @@ app.addEventListener('click', (event) => {
     case 'confirm-topic':
       confirmCurrentTopic();
       break;
+    case 'toggle-topic-notes':
+      toggleTopicNotes(button);
+      break;
     case 'previous-topic-page':
       showTopicDescriptionPage((sourceTopicPagination?.currentPage || 0) - 1);
       break;
@@ -1855,6 +1926,14 @@ app.addEventListener('click', (event) => {
     default:
       break;
   }
+});
+
+document.addEventListener('click', (event) => {
+  if (state.screen !== 'survey') return;
+  const notes = document.querySelector('.topic-notes');
+  const toggle = event.target.closest?.('[data-action="toggle-topic-notes"]');
+  if (!notes || notes.hidden || toggle || notes.contains(event.target)) return;
+  closeTopicNotes();
 });
 
 async function initializeApp() {

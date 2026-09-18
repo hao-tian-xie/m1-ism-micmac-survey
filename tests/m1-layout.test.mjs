@@ -147,4 +147,26 @@ test('written and final question screens share fixed slots', () => {
   assert.match(styles, /@media\s*\(min-width:\s*768px\)\s+and\s+\(max-height:\s*640px\)[\s\S]*?--written-answer-height:\s*clamp\(160px/);
   assert.match(styles, /\.written-question-form[\s\S]*?resize:\s*none/);
   assert.match(styles, /\.written-question-form \.module-error\s*\{[\s\S]*?height:\s*18px/);
+
+  assert.match(
+    app,
+    /class="field-group note-field qualitative-field question-module-field" data-module-type="\$\{module\.type\}" data-module-id="\$\{escapeAttribute\(module\.id\)\}"/,
+  );
+  const liftStart = styles.indexOf('/* The requested spacing correction is limited to the q2/q4 subjective modules.');
+  const notesStart = styles.indexOf('/* Restore the historical all-candidate topic-notes action', liftStart);
+  assert.ok(liftStart >= 0 && notesStart > liftStart, 'the scoped q2/q4 override should be isolated');
+  const liftStyles = styles.slice(liftStart, notesStart);
+  assert.deepEqual(
+    [...new Set([...liftStyles.matchAll(/data-module-id="([^"]+)"/g)].map(([, id]) => id))].sort(),
+    ['q2', 'q4'],
+  );
+  assert.doesNotMatch(liftStyles, /data-module-type="subjective_text"\]\s*\{/);
+  assert.match(liftStyles, /--module-answer-lift:\s*16px/);
+  assert.match(
+    liftStyles,
+    /grid-template-rows:\s*calc\(var\(--written-question-height\)\s*-\s*var\(--module-answer-lift\)\)\s+auto\s+calc\(var\(--written-answer-height\)\s*\+\s*var\(--module-answer-lift\)\)\s+18px/,
+  );
+  assert.match(liftStyles, /data-module-id="q2"\]\s+\.written-question-row[\s\S]*?height:\s*calc\(var\(--written-question-height\)\s*-\s*var\(--module-answer-lift\)\)/);
+  assert.match(liftStyles, /data-module-id="q4"\]\s+textarea[\s\S]*?height:\s*calc\(var\(--written-answer-height\)\s*\+\s*var\(--module-answer-lift\)\)/);
+  assert.match(styles, /\.written-question-form \.form-actions\s*\{[^}]*margin-top:\s*6px[^}]*padding-top:\s*10px/);
 });
