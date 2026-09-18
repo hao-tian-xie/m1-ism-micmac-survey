@@ -6,11 +6,17 @@ import {
   tryWriteStorage,
 } from './survey-core.mjs';
 import { displayTopicName, studyConfig } from './survey-config.mjs?v=topic-definitions-contains-20260908';
-import { copy, languageNames, locales } from './translations.mjs?v=live-question-config-v5';
+import { copy, languageNames, locales } from './translations.mjs?v=live-question-config-v6';
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
 import { resolveLocale } from './locale-state.mjs';
-import { guideStepsForScreen } from './guide-steps.mjs?v=live-question-config-v5';
-import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs?v=live-question-config-v5';
+import { guideStepsForScreen } from './guide-steps.mjs?v=live-question-config-v6';
+import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs?v=live-question-config-v6';
+import {
+  clampIndex,
+  confirmTopicTransition,
+  previousAfterTopicQuestion,
+  previousBeforeTopicQuestion,
+} from './m1-state-transitions.mjs?v=live-question-config-v6';
 import { joinTopicTextPages, splitTopicTextByFit, topicNodeFits } from './topic-pagination.mjs';
 import {
   FALLBACK_PUBLIC_QUESTIONNAIRE,
@@ -20,8 +26,8 @@ import {
   moduleAnswerError,
   normalizeModuleValue,
   serializeModuleAnswer,
-} from './public-questionnaire.mjs?v=live-question-config-v5';
-import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=live-question-config-v5';
+} from './public-questionnaire.mjs?v=live-question-config-v6';
+import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=live-question-config-v6';
 
 const STORAGE_KEY_BASE = `bextools:${studyConfig.id}:${studyConfig.version}`;
 const NONE_VALUE = '__none__';
@@ -1292,9 +1298,12 @@ function renderModuleField(module, number) {
 
 function renderWrittenQuestionScreen({ final = false } = {}) {
   const modules = final ? afterTopicModules() : beforeTopicModules();
-  const firstPosition = modules.length ? moduleGlobalPosition(modules[0]) : questionModules.length;
-  const lastPosition = modules.length ? moduleGlobalPosition(modules.at(-1)) : questionModules.length;
-  const position = firstPosition === lastPosition ? firstPosition : `${firstPosition}–${lastPosition}`;
+  const indexKey = final ? 'afterTopicsIndex' : 'qualitativeIndex';
+  const index = clampIndex(state[indexKey], modules.length);
+  const module = modules[index];
+  const position = module
+    ? (final ? moduleGlobalPosition(module) : index + 1)
+    : questionModules.length;
   const total = final ? questionModules.length : modules.length;
   const formIdAttribute = final ? 'id="final-submit-form"' : 'id="qualitative-form"';
   const pageClass = final ? 'complete-page qualitative-page final-question-page' : 'qualitative-page';
@@ -1302,10 +1311,15 @@ function renderWrittenQuestionScreen({ final = false } = {}) {
   const eyebrow = final ? t('completeEyebrow') : t('qualitativeEyebrow');
   const title = final ? t('completeTitle') : t('qualitativeTitle');
   const previousAction = final ? 'after-question-previous' : 'qualitative-previous';
-  const previousLabel = final ? t('backToSurvey') : t('back');
+  const previousLabel = final
+    ? (index > 0 ? t('qualitativePrevious') : t('backToSurvey'))
+    : (index > 0 ? t('qualitativePrevious') : t('back'));
+  const isLastModule = modules.length === 0 || index === modules.length - 1;
   const primaryLabel = final
-    ? (state.submitState === 'submitting' ? t('submitting') : t('submitResponse'))
-    : t('qualitativeFinish');
+    ? (isLastModule
+      ? (state.submitState === 'submitting' ? t('submitting') : t('submitResponse'))
+      : t('continueAfterTopics'))
+    : (isLastModule ? t('qualitativeFinish') : t('qualitativeNext'));
   const intro = t('qualitativeIntro');
   const error = final && state.submitState === 'error'
     ? `<div class="submit-error" role="alert"><span>${escapeHtml(t('submitError'))}</span><button type="button" data-action="submit-response">${escapeHtml(t('retrySubmit'))}</button></div>`
@@ -1323,9 +1337,9 @@ function renderWrittenQuestionScreen({ final = false } = {}) {
 
       <form class="qualitative-form written-question-form ${final ? 'final-submit-form' : ''}" ${formIdAttribute} novalidate>
         ${modules.length ? `<div class="qualitative-progress" aria-live="polite">${escapeHtml(t('qualitativePosition', { i: position, total }))}</div>` : ''}
-        <div class="qualitative-fields" data-module-collection="${final ? 'after_topics' : 'before_topics'}" data-module-count="${modules.length}" aria-label="${escapeAttribute(t('qualitativePosition', { i: position, total }))}">
-          ${modules.length
-            ? modules.map((candidate) => renderModuleField(candidate, moduleGlobalPosition(candidate))).join('')
+        <div class="qualitative-fields" data-module-id="${escapeAttribute(module?.id || '')}" aria-label="${escapeAttribute(t('qualitativePosition', { i: position, total }))}">
+          ${module
+            ? renderModuleField(module, position)
             : `<p>${escapeHtml(t('noAfterQuestions'))}</p>`}
         </div>
         <div class="form-actions">
@@ -1447,22 +1461,42 @@ function updateSurveySelectionUi(sourceId) {
 }
 
 function confirmCurrentTopic() {
-  const sourceId = factors[state.currentIndex].id;
+  const source = factors[state.currentIndex];
+  if (!source) return;
+  const sourceId = source.id;
   const selected = selectedTargets(sourceId);
   if (!selected.length && !hasExplicitNone(sourceId)) return;
 
   state.answers = applySourceSelections(state.answers, pairs, sourceId, selected);
-  if (!state.reviewedFactors.includes(sourceId)) state.reviewedFactors.push(sourceId);
-  state.reviewedFactors = factorIds.filter((id) => state.reviewedFactors.includes(id));
-  if (allTopicsReviewed()) {
+  const isLastTopic = state.currentIndex >= factors.length - 1;
+  const transition = confirmTopicTransition({
+    currentIndex: state.currentIndex,
+    total: factors.length,
+    hasAfterTopics: afterTopicModules().length > 0,
+    reviewedIds: state.reviewedFactors,
+    currentId: sourceId,
+    isLastTopic,
+  });
+  state.reviewedFactors = factorIds.filter((id) => transition.reviewedIds.includes(id));
+  state.currentIndex = transition.currentIndex;
+  if (!isLastTopic) {
+    persist({ immediate: true });
+    render();
+    pageTop();
+    focusPageHeading();
+    return;
+  }
+  if (transition.screen === 'complete') {
     state.afterTopicsIndex = Math.min(state.afterTopicsIndex, Math.max(0, afterTopicModules().length - 1));
     persist({ immediate: true });
     goTo('complete');
     return;
   }
-
-  state.currentIndex += 1;
   persist({ immediate: true });
+  if (transition.screen === 'submit') {
+    void submitResponse();
+    return;
+  }
   render();
   pageTop();
   focusPageHeading();
@@ -1572,17 +1606,6 @@ function validateModule(module) {
   return showModuleValidation(module, moduleAnswerError(module, state.moduleAnswers[module.id]));
 }
 
-function validateModules(modules) {
-  const invalid = firstInvalidModule(modules);
-  return invalid
-    ? showModuleValidation(invalid, moduleAnswerError(invalid, state.moduleAnswers[invalid.id]))
-    : true;
-}
-
-function validateAllModules() {
-  return validateModules(questionModules);
-}
-
 function isResultCard(value, submissionId = '') {
   return value && typeof value === 'object'
     && value.version === 'm1-direct-structure-card-v1'
@@ -1596,7 +1619,12 @@ function isResultCard(value, submissionId = '') {
 
 async function submitResponse() {
   if (!allTopicsReviewed() || !state.qualitativeSectionComplete || state.submitState === 'submitting') return;
-  if (!validateAllModules()) return;
+  const finalModules = afterTopicModules();
+  if (finalModules.length) {
+    const finalIndex = clampIndex(state.afterTopicsIndex, finalModules.length);
+    state.afterTopicsIndex = finalIndex;
+    if (!validateModule(finalModules[finalIndex])) return;
+  }
   let clientSubmissionId = state.clientSubmissionId;
   state.submitState = 'submitting';
   render();
@@ -1681,9 +1709,20 @@ app.addEventListener('submit', (event) => {
   if (event.target.id === 'qualitative-form') {
     event.preventDefault();
     const modules = beforeTopicModules();
-    if (!validateModules(modules)) return;
+    const index = clampIndex(state.qualitativeIndex, modules.length);
+    state.qualitativeIndex = index;
+    const module = modules[index];
+    if (!validateModule(module)) return;
     state.questionValidationId = '';
     state.questionValidationError = '';
+    if (index < modules.length - 1) {
+      state.qualitativeIndex += 1;
+      persist({ immediate: true });
+      render();
+      pageTop();
+      focusPageHeading();
+      return;
+    }
     state.qualitativeSectionComplete = true;
     state.currentIndex = firstUnreviewedIndex();
     persist({ immediate: true });
@@ -1693,9 +1732,21 @@ app.addEventListener('submit', (event) => {
   if (event.target.id === 'final-submit-form') {
     event.preventDefault();
     const modules = afterTopicModules();
-    if (!validateModules(modules)) return;
+    const index = clampIndex(state.afterTopicsIndex, modules.length);
+    state.afterTopicsIndex = index;
+    const module = modules[index];
+    if (!validateModule(module)) return;
     state.questionValidationId = '';
     state.questionValidationError = '';
+    if (index < modules.length - 1) {
+      state.afterTopicsIndex += 1;
+      persist({ immediate: true });
+      render();
+      pageTop();
+      focusPageHeading();
+      return;
+    }
+    persist({ immediate: true });
     void submitResponse();
     return;
   }
@@ -1851,7 +1902,12 @@ app.addEventListener('click', (event) => {
     case 'qualitative-previous':
       state.questionValidationId = '';
       state.questionValidationError = '';
-      goTo('profile');
+      {
+        const transition = previousBeforeTopicQuestion(state.qualitativeIndex);
+        state.qualitativeIndex = transition.index;
+        persist({ immediate: true });
+        goTo(transition.screen);
+      }
       break;
     case 'qualitative-na': {
       const module = activeModuleById(button.dataset.moduleId);
@@ -1874,11 +1930,17 @@ app.addEventListener('click', (event) => {
       break;
     }
     case 'after-question-previous':
-      state.afterTopicsIndex = 0;
       state.questionValidationId = '';
       state.questionValidationError = '';
-      state.currentIndex = Math.min(state.currentIndex, factors.length - 1);
-      goTo('survey');
+      {
+        const transition = previousAfterTopicQuestion(state.afterTopicsIndex);
+        state.afterTopicsIndex = transition.index;
+        persist({ immediate: true });
+        if (transition.screen === 'survey') {
+          state.currentIndex = Math.min(state.currentIndex, factors.length - 1);
+        }
+        goTo(transition.screen);
+      }
       break;
     case 'back-to-survey':
       state.qualitativeSectionComplete = true;

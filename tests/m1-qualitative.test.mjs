@@ -23,7 +23,7 @@ test('the seven Chinese subjective questions preserve the requested wording', ()
   );
 });
 
-test('all locales include the one-page written-question flow and final-submit copy', () => {
+test('all locales include the indexed written-question flow and final-submit copy', () => {
   for (const locale of locales) {
     for (const key of [
       'stepQualitative', 'stepResult', 'qualitativeTitle', 'qualitativeIntro', 'qualitativePrivacy',
@@ -42,7 +42,7 @@ test('all locales include the one-page written-question flow and final-submit co
   assert.match(copy['zh-CN'].qualitativePrivacy, /机密。\n未提交/);
 });
 
-test('active configured module collections render all configured fields and submit their revision', () => {
+test('active configured modules render one indexed field at a time and submit their revision', () => {
   assert.deepEqual(
     M1_DEFAULT_QUESTIONNAIRE_CONFIG.modules.filter(({ stage }) => stage === 'before_topics').map(({ id }) => id),
     ['q1', 'q2', 'q3', 'q4', 'q5', 'q6'],
@@ -54,13 +54,16 @@ test('active configured module collections render all configured fields and subm
   assert.match(app, /loadPublicQuestionnaireConfig/);
   assert.match(app, /beforeTopicModules\(\)/);
   assert.match(app, /afterTopicModules\(\)/);
-  assert.match(app, /modules\.map\(\(candidate\) => renderModuleField\(candidate, moduleGlobalPosition\(candidate\)\)\)/);
-  assert.match(app, /data-module-collection="\$\{final \? 'after_topics' : 'before_topics'\}"/);
-  assert.match(app, /data-module-count="\$\{modules\.length\}"/);
-  assert.match(app, /function validateModules\(modules\)/);
-  assert.match(app, /if \(!validateModules\(modules\)\) return;/);
-  assert.doesNotMatch(app, /const module = modules\[state\.qualitativeIndex\]/);
-  assert.doesNotMatch(app, /const module = modules\[state\.afterTopicsIndex\]/);
+  assert.match(app, /const indexKey = final \? 'afterTopicsIndex' : 'qualitativeIndex'/);
+  assert.match(app, /const index = clampIndex\(state\[indexKey\], modules\.length\)/);
+  assert.match(app, /const module = modules\[index\]/);
+  assert.match(app, /renderModuleField\(module, position\)/);
+  assert.doesNotMatch(app, /modules\.map\(\(candidate\) => renderModuleField/);
+  assert.match(app, /const module = modules\[index\];[\s\S]*?if \(!validateModule\(module\)\) return;[\s\S]*?if \(index < modules\.length - 1\)/);
+  assert.doesNotMatch(app, /function validateModules\(modules\)/);
+  assert.doesNotMatch(app, /validateAllModules\(\)/);
+  assert.match(app, /previousAfterTopicQuestion\(state\.afterTopicsIndex\)/);
+  assert.match(app, /const isLastTopic = state\.currentIndex >= factors\.length - 1/);
   assert.match(app, /id="final-submit-form"/);
   assert.match(app, /function renderModuleField/);
   assert.match(app, /displayedModuleOptions\(module\)/);
