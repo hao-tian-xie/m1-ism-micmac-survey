@@ -46,7 +46,7 @@ test('ESG copy, grouped welcome topics, and survey candidate grid match the inte
   assert.match(surveyFit, /body\[data-screen="survey"\]\s+\.target-list\s*\{[\s\S]*?grid-template-columns:\s*repeat\(10,\s*minmax\(0,\s*1fr\)\)/);
   assert.match(surveyFit, /body\[data-screen="survey"\]\s+\.target-list\s*\{[\s\S]*?grid-template-rows:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
 
-  assert.equal(JSON.parse(packageSource).version, '1.3.0');
+  assert.equal(JSON.parse(packageSource).version, '1.4.0');
   const cacheBusts = [
     indexSource.match(/styles\.css\?v=([^"']+)/)?.[1],
     indexSource.match(/app\.mjs\?v=([^"']+)/)?.[1],
@@ -57,5 +57,5 @@ test('ESG copy, grouped welcome topics, and survey candidate grid match the inte
     appSource.match(/public-questionnaire\.mjs\?v=([^"']+)/)?.[1],
     publicQuestionnaireSource.match(/translations\.mjs\?v=([^"']+)/)?.[1],
   ];
-  assert.deepEqual(cacheBusts, Array(8).fill('live-question-config-v4'));
+  assert.deepEqual(cacheBusts, Array(8).fill('live-question-config-v5'));
 });

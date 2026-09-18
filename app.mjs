@@ -6,11 +6,11 @@ import {
   tryWriteStorage,
 } from './survey-core.mjs';
 import { displayTopicName, studyConfig } from './survey-config.mjs?v=topic-definitions-contains-20260908';
-import { copy, languageNames, locales } from './translations.mjs?v=live-question-config-v4';
+import { copy, languageNames, locales } from './translations.mjs?v=live-question-config-v5';
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
 import { resolveLocale } from './locale-state.mjs';
-import { guideStepsForScreen } from './guide-steps.mjs?v=live-question-config-v4';
-import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs?v=live-question-config-v4';
+import { guideStepsForScreen } from './guide-steps.mjs?v=live-question-config-v5';
+import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs?v=live-question-config-v5';
 import { joinTopicTextPages, splitTopicTextByFit, topicNodeFits } from './topic-pagination.mjs';
 import {
   FALLBACK_PUBLIC_QUESTIONNAIRE,
@@ -20,8 +20,8 @@ import {
   moduleAnswerError,
   normalizeModuleValue,
   serializeModuleAnswer,
-} from './public-questionnaire.mjs?v=live-question-config-v4';
-import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=live-question-config-v4';
+} from './public-questionnaire.mjs?v=live-question-config-v5';
+import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=live-question-config-v5';
 
 const STORAGE_KEY_BASE = `bextools:${studyConfig.id}:${studyConfig.version}`;
 const NONE_VALUE = '__none__';
@@ -367,7 +367,11 @@ function allTopicsReviewed() {
 }
 
 function firstInvalidBeforeTopicModule() {
-  return beforeTopicModules().find((module) => moduleAnswerError(module, state.moduleAnswers[module.id])) || null;
+  return firstInvalidModule(beforeTopicModules());
+}
+
+function firstInvalidModule(modules = questionModules) {
+  return modules.find((module) => moduleAnswerError(module, state.moduleAnswers[module.id])) || null;
 }
 
 function beforeTopicModulesAreValid() {
@@ -871,20 +875,28 @@ function renderStepper() {
     `;
   }).join('');
   const topicDirectory = state.screen === 'survey' ? `
-    <nav class="topic-index" aria-label="${escapeHtml(t('topicDirectoryLabel'))}">
+    <nav class="topic-index" aria-label="${escapeAttribute(t('topicDirectoryLabel', { total: factors.length }))}">
+      <div class="topic-index-heading">
+        <span class="topic-index-step">03</span>
+        <span class="topic-index-title">${escapeHtml(t('topicDirectoryLabel', { total: factors.length }))}</span>
+        <strong aria-live="polite">${escapeHtml(t('topicPosition', { i: state.currentIndex + 1, total: factors.length }))}</strong>
+      </div>
+      <p class="topic-index-hint">${escapeHtml(t('topicDirectoryHint'))}</p>
       <div class="topic-index-grid">
         ${factors.map((factor, index) => {
           const number = String(index + 1).padStart(2, '0');
           const isActive = index === state.currentIndex;
           const isDone = state.reviewedFactors.includes(factor.id);
           const available = topicIsAvailable(index, state.currentIndex, state.reviewedFactors, factor.id);
+          const label = activeFactorLabel(factor, state.locale);
           return `
             <button
               class="topic-index-item ${isActive ? 'is-active' : ''} ${isDone ? 'is-done' : ''}"
               type="button"
               data-action="topic-index"
               data-topic-index="${index}"
-              aria-label="${escapeHtml(t('topicDirectoryItem', { n: number }))}"
+              aria-label="${escapeAttribute(t('topicDirectoryItem', { n: number, topic: label }))}"
+              title="${escapeAttribute(label)}"
               ${isActive ? 'aria-current="step"' : ''}
               ${available ? '' : 'disabled'}
             >${number}</button>
@@ -1204,6 +1216,8 @@ function renderModuleField(module, number) {
   const countId = `qualitative-count-${module.id}`;
   const helpId = `question-help-${module.id}`;
   const errorId = `question-error-${module.id}`;
+  const promptId = `question-prompt-${module.id}`;
+  const hasHelp = Boolean(localized.helpText);
   const errorCode = state.questionValidationId === module.id ? state.questionValidationError : '';
   const describedBy = [localized.helpText ? helpId : '', module.type === 'subjective_text' ? countId : '', errorCode ? errorId : '']
     .filter(Boolean).join(' ');
@@ -1224,6 +1238,7 @@ function renderModuleField(module, number) {
         maxlength="${module.constraints.maxLength}"
         rows="${module.constraints.multiline ? 8 : 2}"
         aria-required="${module.required}"
+        aria-labelledby="${escapeAttribute(promptId)}"
         aria-invalid="${Boolean(errorCode)}"
         ${describedBy ? `aria-describedby="${describedBy}"` : ''}${placeholder}
       >${escapeHtml(value)}</textarea>
@@ -1236,7 +1251,7 @@ function renderModuleField(module, number) {
     const isMultiple = module.type === 'multiple_choice';
     const selected = new Set(isMultiple ? value : [value]);
     control = `
-      <fieldset class="module-choice-group" ${describedBy ? `aria-describedby="${describedBy}"` : ''}>
+      <fieldset class="module-choice-group" aria-labelledby="${escapeAttribute(promptId)}" ${describedBy ? `aria-describedby="${describedBy}"` : ''}>
         <legend class="visually-hidden">${escapeHtml(localized.prompt)}</legend>
         <div class="module-choice-grid">
           ${displayedModuleOptions(module).map((option) => `
@@ -1257,9 +1272,9 @@ function renderModuleField(module, number) {
     `;
   }
   return `
-    <div class="field-group note-field qualitative-field question-module-field" data-module-type="${module.type}" data-module-id="${escapeAttribute(module.id)}">
+    <div class="field-group note-field qualitative-field question-module-field" data-module-type="${module.type}" data-module-id="${escapeAttribute(module.id)}" data-has-help="${hasHelp}">
       <div class="written-question-row">
-        ${module.type === 'subjective_text' ? `<label class="qualitative-question-label" for="qualitative-${module.id}">` : '<div class="qualitative-question-label">'}
+        ${module.type === 'subjective_text' ? `<label class="qualitative-question-label" id="${escapeAttribute(promptId)}" for="qualitative-${module.id}">` : `<div class="qualitative-question-label" id="${escapeAttribute(promptId)}">`}
           <i>${String(number).padStart(2, '0')}</i>${prompt}
         ${module.type === 'subjective_text' ? '</label>' : '</div>'}
         ${module.type === 'subjective_text' ? `
@@ -1277,11 +1292,9 @@ function renderModuleField(module, number) {
 
 function renderWrittenQuestionScreen({ final = false } = {}) {
   const modules = final ? afterTopicModules() : beforeTopicModules();
-  const indexKey = final ? 'afterTopicsIndex' : 'qualitativeIndex';
-  const index = Math.min(state[indexKey], Math.max(0, modules.length - 1));
-  const module = modules[index] || null;
-  const isLast = index === modules.length - 1;
-  const position = module ? (final ? moduleGlobalPosition(module) : index + 1) : questionModules.length;
+  const firstPosition = modules.length ? moduleGlobalPosition(modules[0]) : questionModules.length;
+  const lastPosition = modules.length ? moduleGlobalPosition(modules.at(-1)) : questionModules.length;
+  const position = firstPosition === lastPosition ? firstPosition : `${firstPosition}–${lastPosition}`;
   const total = final ? questionModules.length : modules.length;
   const formIdAttribute = final ? 'id="final-submit-form"' : 'id="qualitative-form"';
   const pageClass = final ? 'complete-page qualitative-page final-question-page' : 'qualitative-page';
@@ -1289,10 +1302,10 @@ function renderWrittenQuestionScreen({ final = false } = {}) {
   const eyebrow = final ? t('completeEyebrow') : t('qualitativeEyebrow');
   const title = final ? t('completeTitle') : t('qualitativeTitle');
   const previousAction = final ? 'after-question-previous' : 'qualitative-previous';
-  const previousLabel = final ? t('backToSurvey') : (index === 0 ? t('back') : t('qualitativePrevious'));
+  const previousLabel = final ? t('backToSurvey') : t('back');
   const primaryLabel = final
-    ? (isLast ? (state.submitState === 'submitting' ? t('submitting') : t('submitResponse')) : t('qualitativeNext'))
-    : (isLast ? t('qualitativeFinish') : t('qualitativeNext'));
+    ? (state.submitState === 'submitting' ? t('submitting') : t('submitResponse'))
+    : t('qualitativeFinish');
   const intro = t('qualitativeIntro');
   const error = final && state.submitState === 'error'
     ? `<div class="submit-error" role="alert"><span>${escapeHtml(t('submitError'))}</span><button type="button" data-action="submit-response">${escapeHtml(t('retrySubmit'))}</button></div>`
@@ -1309,8 +1322,12 @@ function renderWrittenQuestionScreen({ final = false } = {}) {
       <p class="qualitative-privacy">${escapeHtml(t('qualitativePrivacy'))}</p>
 
       <form class="qualitative-form written-question-form ${final ? 'final-submit-form' : ''}" ${formIdAttribute} novalidate>
-        ${module ? `<div class="qualitative-progress" aria-live="polite">${escapeHtml(t('qualitativePosition', { i: position, total }))}</div>` : ''}
-        <div class="qualitative-fields">${module ? renderModuleField(module, position) : `<p>${escapeHtml(t('noAfterQuestions'))}</p>`}</div>
+        ${modules.length ? `<div class="qualitative-progress" aria-live="polite">${escapeHtml(t('qualitativePosition', { i: position, total }))}</div>` : ''}
+        <div class="qualitative-fields" data-module-collection="${final ? 'after_topics' : 'before_topics'}" data-module-count="${modules.length}" aria-label="${escapeAttribute(t('qualitativePosition', { i: position, total }))}">
+          ${modules.length
+            ? modules.map((candidate) => renderModuleField(candidate, moduleGlobalPosition(candidate))).join('')
+            : `<p>${escapeHtml(t('noAfterQuestions'))}</p>`}
+        </div>
         <div class="form-actions">
           <button class="text-button" type="button" data-action="${previousAction}"><span aria-hidden="true">←</span>${escapeHtml(previousLabel)}</button>
           <button class="primary-button" type="submit" ${final && state.submitState === 'submitting' ? 'disabled' : ''}>${escapeHtml(primaryLabel)}<span aria-hidden="true">→</span></button>
@@ -1542,7 +1559,10 @@ function showModuleValidation(module, errorCode) {
     goTo('complete');
   }
   requestAnimationFrame(() => {
-    document.querySelector('[aria-invalid="true"]')?.focus?.({ preventScroll: true });
+    const field = document.querySelector(`.question-module-field[data-module-id="${module.id}"]`);
+    field?.scrollIntoView?.({ block: 'center', behavior: 'auto' });
+    (field?.querySelector('[aria-invalid="true"]') || field?.querySelector('textarea, input, select'))
+      ?.focus?.({ preventScroll: true });
   });
   return false;
 }
@@ -1552,9 +1572,15 @@ function validateModule(module) {
   return showModuleValidation(module, moduleAnswerError(module, state.moduleAnswers[module.id]));
 }
 
+function validateModules(modules) {
+  const invalid = firstInvalidModule(modules);
+  return invalid
+    ? showModuleValidation(invalid, moduleAnswerError(invalid, state.moduleAnswers[invalid.id]))
+    : true;
+}
+
 function validateAllModules() {
-  const invalid = questionModules.find((module) => moduleAnswerError(module, state.moduleAnswers[module.id]));
-  return invalid ? showModuleValidation(invalid, moduleAnswerError(invalid, state.moduleAnswers[invalid.id])) : true;
+  return validateModules(questionModules);
 }
 
 function isResultCard(value, submissionId = '') {
@@ -1655,18 +1681,9 @@ app.addEventListener('submit', (event) => {
   if (event.target.id === 'qualitative-form') {
     event.preventDefault();
     const modules = beforeTopicModules();
-    const module = modules[state.qualitativeIndex];
-    if (!validateModule(module)) return;
+    if (!validateModules(modules)) return;
     state.questionValidationId = '';
     state.questionValidationError = '';
-    if (state.qualitativeIndex < modules.length - 1) {
-      state.qualitativeIndex += 1;
-      persist({ immediate: true });
-      render();
-      pageTop();
-      focusPageHeading();
-      return;
-    }
     state.qualitativeSectionComplete = true;
     state.currentIndex = firstUnreviewedIndex();
     persist({ immediate: true });
@@ -1676,18 +1693,9 @@ app.addEventListener('submit', (event) => {
   if (event.target.id === 'final-submit-form') {
     event.preventDefault();
     const modules = afterTopicModules();
-    const module = modules[state.afterTopicsIndex];
-    if (module && !validateModule(module)) return;
+    if (!validateModules(modules)) return;
     state.questionValidationId = '';
     state.questionValidationError = '';
-    if (state.afterTopicsIndex < modules.length - 1) {
-      state.afterTopicsIndex += 1;
-      persist({ immediate: true });
-      render();
-      pageTop();
-      focusPageHeading();
-      return;
-    }
     void submitResponse();
     return;
   }
@@ -1843,15 +1851,7 @@ app.addEventListener('click', (event) => {
     case 'qualitative-previous':
       state.questionValidationId = '';
       state.questionValidationError = '';
-      if (state.qualitativeIndex > 0) {
-        state.qualitativeIndex -= 1;
-        persist({ immediate: true });
-        render();
-        pageTop();
-        focusPageHeading();
-      } else {
-        goTo('profile');
-      }
+      goTo('profile');
       break;
     case 'qualitative-na': {
       const module = activeModuleById(button.dataset.moduleId);
@@ -1874,18 +1874,11 @@ app.addEventListener('click', (event) => {
       break;
     }
     case 'after-question-previous':
-      if (state.afterTopicsIndex > 0) {
-        state.afterTopicsIndex -= 1;
-        state.questionValidationId = '';
-        state.questionValidationError = '';
-        persist({ immediate: true });
-        render();
-        pageTop();
-        focusPageHeading();
-      } else {
-        state.currentIndex = Math.min(state.currentIndex, factors.length - 1);
-        goTo('survey');
-      }
+      state.afterTopicsIndex = 0;
+      state.questionValidationId = '';
+      state.questionValidationError = '';
+      state.currentIndex = Math.min(state.currentIndex, factors.length - 1);
+      goTo('survey');
       break;
     case 'back-to-survey':
       state.qualitativeSectionComplete = true;

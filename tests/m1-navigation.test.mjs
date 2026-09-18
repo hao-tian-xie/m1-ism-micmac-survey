@@ -102,6 +102,23 @@ test('completed Step 03 survives a Step 04 to Step 02 round trip', () => {
   );
 });
 
+test('Step 02 exposes only Step 03 until the 38-topic collection is complete', () => {
+  const unfinished = {
+    surveyComplete: false,
+    qualitativeComplete: true,
+  };
+  assert.equal(canNavigateToStage('qualitative', 'survey', unfinished), true);
+  assert.equal(canNavigateToStage('qualitative', 'complete', unfinished), false);
+
+  const completed = {
+    surveyComplete: true,
+    qualitativeComplete: true,
+  };
+  assert.equal(canNavigateToStage('qualitative', 'survey', completed), false);
+  assert.equal(canNavigateToStage('qualitative', 'complete', completed), true);
+  assert.equal(canNavigateToStage('complete', 'qualitative', { ...completed, allowComplete: true }), true);
+});
+
 test('topic directory exposes current and reviewed topics only', () => {
   const reviewed = ['F1'];
   assert.equal(topicIsAvailable(0, 1, reviewed, 'F1'), true);

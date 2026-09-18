@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 import { copy, locales } from '../translations.mjs';
+import { M1_DEFAULT_QUESTIONNAIRE_CONFIG } from '../server/m1-default-question-config.mjs';
 
 const app = await readFile(new URL('../app.mjs', import.meta.url), 'utf8');
 const styles = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
@@ -41,12 +42,25 @@ test('all locales include the one-page written-question flow and final-submit co
   assert.match(copy['zh-CN'].qualitativePrivacy, /机密。\n未提交/);
 });
 
-test('active configured modules render one per page and are submitted with their revision', () => {
+test('active configured module collections render all configured fields and submit their revision', () => {
+  assert.deepEqual(
+    M1_DEFAULT_QUESTIONNAIRE_CONFIG.modules.filter(({ stage }) => stage === 'before_topics').map(({ id }) => id),
+    ['q1', 'q2', 'q3', 'q4', 'q5', 'q6'],
+  );
+  assert.deepEqual(
+    M1_DEFAULT_QUESTIONNAIRE_CONFIG.modules.filter(({ stage }) => stage === 'after_topics').map(({ id }) => id),
+    ['q7'],
+  );
   assert.match(app, /loadPublicQuestionnaireConfig/);
   assert.match(app, /beforeTopicModules\(\)/);
   assert.match(app, /afterTopicModules\(\)/);
-  assert.match(app, /qualitativeIndex/);
-  assert.match(app, /if \(state\.qualitativeIndex < modules\.length - 1\)/);
+  assert.match(app, /modules\.map\(\(candidate\) => renderModuleField\(candidate, moduleGlobalPosition\(candidate\)\)\)/);
+  assert.match(app, /data-module-collection="\$\{final \? 'after_topics' : 'before_topics'\}"/);
+  assert.match(app, /data-module-count="\$\{modules\.length\}"/);
+  assert.match(app, /function validateModules\(modules\)/);
+  assert.match(app, /if \(!validateModules\(modules\)\) return;/);
+  assert.doesNotMatch(app, /const module = modules\[state\.qualitativeIndex\]/);
+  assert.doesNotMatch(app, /const module = modules\[state\.afterTopicsIndex\]/);
   assert.match(app, /id="final-submit-form"/);
   assert.match(app, /function renderModuleField/);
   assert.match(app, /displayedModuleOptions\(module\)/);
@@ -61,6 +75,31 @@ test('active configured modules render one per page and are submitted with their
   assert.match(app, /stepNumbers = \['01', '02', '03', '04'\]/);
   assert.doesNotMatch(app, /feedbackToken|loadFrozenResult|submitFeedback/);
   assert.doesNotMatch(app, /data-action="verify-result"|data-action="save-feedback"/);
+});
+
+test('Step 03 keeps a full 38-topic directory with direct accessible jumps', () => {
+  assert.equal(M1_DEFAULT_QUESTIONNAIRE_CONFIG.topics.length, 38);
+  assert.match(app, /topicDirectoryLabel', \{ total: factors\.length \}/);
+  assert.match(app, /factors\.map\(\(factor, index\) =>/);
+  assert.match(app, /data-action="topic-index"/);
+  assert.match(app, /data-topic-index="\$\{index\}"/);
+  assert.match(app, /topicDirectoryItem', \{ n: number, topic: label \}/);
+  assert.match(styles, /\.topic-index-heading\s*\{/);
+  assert.match(styles, /\.topic-index-hint\s*\{/);
+});
+
+test('02 and 04 use one scrollable field region with an anchored action row', () => {
+  const marker = '/* Complete written-question collections:';
+  const start = styles.indexOf(marker);
+  assert.notEqual(start, -1, 'the complete collection override should be present');
+  const collectionStyles = styles.slice(start);
+  assert.match(collectionStyles, /\.written-question-form \.qualitative-fields\s*\{[\s\S]*?min-height:\s*0[\s\S]*?overflow-y:\s*auto/);
+  assert.match(collectionStyles, /\.written-question-form \.qualitative-field\[data-has-help="false"\]\s*\{[\s\S]*?\n\s*0\n[\s\S]*?calc\(var\(--written-answer-height\) \+ var\(--written-answer-lift\)\)/);
+  assert.match(collectionStyles, /\.written-question-form \.qualitative-field \.written-question-row\s*\{[\s\S]*?grid-row:\s*1/);
+  assert.match(collectionStyles, /\.written-question-form \.qualitative-field textarea,[\s\S]*?grid-row:\s*3/);
+  assert.match(collectionStyles, /\.written-question-form \.form-actions\s*\{[\s\S]*?background:\s*var\(--paper\)/);
+  assert.match(styles, /body\[data-screen="qualitative"\][\s\S]*?\.content-stage[\s\S]*?overflow:\s*hidden/);
+  assert.match(styles, /body\[data-screen="complete"\]\s+\.content-stage\s*\{[\s\S]*?overflow:\s*hidden/);
 });
 
 test('written fields honor configured placeholders and keep the privacy note line break', () => {
