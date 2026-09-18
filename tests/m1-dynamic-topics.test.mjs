@@ -3,6 +3,7 @@ import test from 'node:test';
 import { readFile } from 'node:fs/promises';
 
 import { buildDirectMatrix, buildSubmission, createPairs } from '../survey-core.mjs';
+import { copy } from '../translations.mjs';
 import {
   MAX_PUBLIC_TOPIC_COUNT,
   MAX_PUBLIC_TOPIC_DESCRIPTION_LENGTH,
@@ -138,6 +139,9 @@ test('Section 03 keeps one complete IF explanation and separates candidate hints
   assert.match(app, /data-action="toggle-topic-notes"/);
   assert.match(app, /aria-controls="topic-notes"/);
   assert.match(app, /t\('topicNotesButton'\)/);
+  assert.equal(copy['zh-CN'].topicNotesButton, '主题说明全览');
+  assert.equal(copy['zh-HK'].topicNotesButton, '主題說明全覽');
+  assert.equal(copy.en.topicNotesButton, 'All topic notes');
   assert.match(app, /<section class="topic-notes" id="topic-notes" aria-label="\$\{escapeAttribute\(t\('candidateNotes'\)\)\}" hidden/);
   assert.match(app, /<h2>\$\{escapeHtml\(t\('candidateNotes'\)\)\}<\/h2>/);
   assert.match(app, /<ul>\$\{topicNotes\}<\/ul>/);

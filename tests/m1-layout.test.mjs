@@ -152,21 +152,21 @@ test('written and final question screens share fixed slots', () => {
     app,
     /class="field-group note-field qualitative-field question-module-field" data-module-type="\$\{module\.type\}" data-module-id="\$\{escapeAttribute\(module\.id\)\}"/,
   );
-  const liftStart = styles.indexOf('/* The requested spacing correction is limited to the q2/q4 subjective modules.');
+  const liftStart = styles.indexOf('/* Step 02 and the unsent Step 04 use the same written-question geometry.');
   const notesStart = styles.indexOf('/* Restore the historical all-candidate topic-notes action', liftStart);
-  assert.ok(liftStart >= 0 && notesStart > liftStart, 'the scoped q2/q4 override should be isolated');
+  assert.ok(liftStart >= 0 && notesStart > liftStart, 'the shared Step 02/04 override should be isolated');
   const liftStyles = styles.slice(liftStart, notesStart);
-  assert.deepEqual(
-    [...new Set([...liftStyles.matchAll(/data-module-id="([^"]+)"/g)].map(([, id]) => id))].sort(),
-    ['q2', 'q4'],
-  );
-  assert.doesNotMatch(liftStyles, /data-module-type="subjective_text"\]\s*\{/);
-  assert.match(liftStyles, /--module-answer-lift:\s*16px/);
+  assert.doesNotMatch(liftStyles, /data-module-id=/);
+  assert.match(liftStyles, /--written-answer-lift:\s*16px/);
+  assert.match(liftStyles, /data-module-type="subjective_text"\]\s*\{/);
+  assert.match(liftStyles, /--written-question-font-size:\s*18px/);
+  assert.match(liftStyles, /--written-question-line-height:\s*1\.45/);
   assert.match(
     liftStyles,
-    /grid-template-rows:\s*calc\(var\(--written-question-height\)\s*-\s*var\(--module-answer-lift\)\)\s+auto\s+calc\(var\(--written-answer-height\)\s*\+\s*var\(--module-answer-lift\)\)\s+18px/,
+    /grid-template-rows:\s*calc\(var\(--written-question-height\)\s*-\s*var\(--written-answer-lift\)\)\s+auto\s+calc\(var\(--written-answer-height\)\s*\+\s*var\(--written-answer-lift\)\)\s+18px/,
   );
-  assert.match(liftStyles, /data-module-id="q2"\]\s+\.written-question-row[\s\S]*?height:\s*calc\(var\(--written-question-height\)\s*-\s*var\(--module-answer-lift\)\)/);
-  assert.match(liftStyles, /data-module-id="q4"\]\s+textarea[\s\S]*?height:\s*calc\(var\(--written-answer-height\)\s*\+\s*var\(--module-answer-lift\)\)/);
+  assert.match(liftStyles, /data-module-type="subjective_text"\]\s+\.written-question-row[\s\S]*?height:\s*calc\(var\(--written-question-height\)\s*-\s*var\(--written-answer-lift\)\)/);
+  assert.match(liftStyles, /data-module-type="subjective_text"\]\s+textarea[\s\S]*?height:\s*calc\(var\(--written-answer-height\)\s*\+\s*var\(--written-answer-lift\)\)/);
+  assert.doesNotMatch(styles, /final-submit-form \.qualitative-question-label\s*\{[^}]*font-size/);
   assert.match(styles, /\.written-question-form \.form-actions\s*\{[^}]*margin-top:\s*6px[^}]*padding-top:\s*10px/);
 });

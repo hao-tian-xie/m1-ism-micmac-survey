@@ -6,11 +6,11 @@ import {
   tryWriteStorage,
 } from './survey-core.mjs';
 import { displayTopicName, studyConfig } from './survey-config.mjs?v=topic-definitions-contains-20260908';
-import { copy, languageNames, locales } from './translations.mjs?v=live-question-config-v3';
+import { copy, languageNames, locales } from './translations.mjs?v=live-question-config-v4';
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
 import { resolveLocale } from './locale-state.mjs';
-import { guideStepsForScreen } from './guide-steps.mjs?v=live-question-config-v1';
-import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs';
+import { guideStepsForScreen } from './guide-steps.mjs?v=live-question-config-v4';
+import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs?v=live-question-config-v4';
 import { joinTopicTextPages, splitTopicTextByFit, topicNodeFits } from './topic-pagination.mjs';
 import {
   FALLBACK_PUBLIC_QUESTIONNAIRE,
@@ -20,8 +20,8 @@ import {
   moduleAnswerError,
   normalizeModuleValue,
   serializeModuleAnswer,
-} from './public-questionnaire.mjs';
-import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=live-question-config-v3';
+} from './public-questionnaire.mjs?v=live-question-config-v4';
+import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=live-question-config-v4';
 
 const STORAGE_KEY_BASE = `bextools:${studyConfig.id}:${studyConfig.version}`;
 const NONE_VALUE = '__none__';

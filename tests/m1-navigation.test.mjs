@@ -22,6 +22,7 @@ test('stage order preserves backward navigation and blocks unrelated forward jum
   assert.equal(canNavigateToStage('complete', 'survey'), false);
   assert.equal(canNavigateToStage('complete', 'survey', { allowComplete: true }), true);
   assert.equal(canNavigateToStage('qualitative', 'complete', { surveyComplete: false }), false);
+  assert.equal(canNavigateToStage('qualitative', 'complete', { surveyComplete: true }), false);
 });
 
 test('Step 02 resumes only unfinished Step 03 or validated Step 04', () => {
@@ -73,6 +74,31 @@ test('Step 02 resumes only unfinished Step 03 or validated Step 04', () => {
       qualitativeComplete: false,
     }),
     true,
+  );
+});
+
+test('completed Step 03 survives a Step 04 to Step 02 round trip', () => {
+  assert.equal(
+    canNavigateToStage('complete', 'qualitative', {
+      allowComplete: true,
+      surveyComplete: true,
+      qualitativeComplete: true,
+    }),
+    true,
+  );
+  assert.equal(
+    canNavigateToStage('qualitative', 'complete', {
+      surveyComplete: true,
+      qualitativeComplete: true,
+    }),
+    true,
+  );
+  assert.equal(
+    canNavigateToStage('qualitative', 'complete', {
+      surveyComplete: false,
+      qualitativeComplete: true,
+    }),
+    false,
   );
 });
 

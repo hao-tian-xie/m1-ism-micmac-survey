@@ -11,7 +11,7 @@ export function stageIndex(screen) {
 export function canNavigateToStage(currentScreen, targetStage, {
   allowComplete = false,
   surveyComplete = false,
-  qualitativeComplete = true,
+  qualitativeComplete = false,
 } = {}) {
   const currentIndex = stageIndex(currentScreen);
   const targetIndex = stageIndex(targetStage);

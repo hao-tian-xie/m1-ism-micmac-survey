@@ -3507,11 +3507,6 @@ body[data-screen="welcome"] .save-status {
   border-top: 1px solid var(--line-strong);
 }
 
-.final-submit-form .qualitative-question-label {
-  font-size: 19px;
-  line-height: 1.5;
-}
-
 .final-submit-form .form-actions {
   margin-top: 20px;
 }
@@ -5142,35 +5137,55 @@ body[data-screen="survey"] .target-option:has(input:focus-visible) {
   }
 }
 
-/* The requested spacing correction is limited to the q2/q4 subjective modules.
-   The two tracks keep their combined height, so the prompt stays in place while
-   the textarea grows upward without moving its bottom edge or the action row. */
-.written-question-form .qualitative-field[data-module-type="subjective_text"][data-module-id="q2"],
-.written-question-form .qualitative-field[data-module-type="subjective_text"][data-module-id="q4"] {
-  --module-answer-lift: 16px;
+/* Step 02 and the unsent Step 04 use the same written-question geometry. The
+   module ids are intentionally not part of this contract: q1-q6 and q7 are
+   all subjective text modules and must share the same type treatment. */
+.qualitative-shell .form-page {
+  --written-answer-lift: 16px;
+  --written-question-font-size: 18px;
+  --written-question-line-height: 1.45;
+}
+
+.qualitative-shell .written-question-row .qualitative-question-label {
+  font-size: var(--written-question-font-size);
+  line-height: var(--written-question-line-height);
+}
+
+.written-question-form .qualitative-field[data-module-type="subjective_text"] {
   grid-template-rows:
-    calc(var(--written-question-height) - var(--module-answer-lift))
+    calc(var(--written-question-height) - var(--written-answer-lift))
     auto
-    calc(var(--written-answer-height) + var(--module-answer-lift))
+    calc(var(--written-answer-height) + var(--written-answer-lift))
     18px;
 }
 
-.written-question-form .qualitative-field[data-module-type="subjective_text"][data-module-id="q2"] .written-question-row,
-.written-question-form .qualitative-field[data-module-type="subjective_text"][data-module-id="q4"] .written-question-row,
-.written-question-form .qualitative-field[data-module-type="subjective_text"][data-module-id="q2"] .written-question-row .qualitative-question-label,
-.written-question-form .qualitative-field[data-module-type="subjective_text"][data-module-id="q4"] .written-question-row .qualitative-question-label {
-  height: calc(var(--written-question-height) - var(--module-answer-lift));
-  min-height: calc(var(--written-question-height) - var(--module-answer-lift));
-  max-height: calc(var(--written-question-height) - var(--module-answer-lift));
+.written-question-form .qualitative-field[data-module-type="subjective_text"] .written-question-row,
+.written-question-form .qualitative-field[data-module-type="subjective_text"] .written-question-row .qualitative-question-label {
+  height: calc(var(--written-question-height) - var(--written-answer-lift));
+  min-height: calc(var(--written-question-height) - var(--written-answer-lift));
+  max-height: calc(var(--written-question-height) - var(--written-answer-lift));
 }
 
-.written-question-form .qualitative-field[data-module-type="subjective_text"][data-module-id="q2"] textarea,
-.written-question-form .qualitative-field[data-module-type="subjective_text"][data-module-id="q4"] textarea {
-  height: calc(var(--written-answer-height) + var(--module-answer-lift));
-  min-height: calc(var(--written-answer-height) + var(--module-answer-lift));
-  max-height: calc(var(--written-answer-height) + var(--module-answer-lift));
+.written-question-form .qualitative-field[data-module-type="subjective_text"] textarea {
+  height: calc(var(--written-answer-height) + var(--written-answer-lift));
+  min-height: calc(var(--written-answer-height) + var(--written-answer-lift));
+  max-height: calc(var(--written-answer-height) + var(--written-answer-lift));
   margin: 0;
   resize: none;
+}
+
+@media (max-width: 767px) {
+  .qualitative-shell .form-page {
+    --written-question-font-size: 16px;
+    --written-question-line-height: 1.35;
+  }
+}
+
+@media (min-width: 768px) and (max-height: 640px) {
+  .qualitative-shell .form-page {
+    --written-question-font-size: 14px;
+    --written-question-line-height: 1.2;
+  }
 }
 
 /* Restore the historical all-candidate topic-notes action without changing the
