@@ -134,7 +134,13 @@ test('candidate choices keep labels in flow and expose accessible fixed hints', 
 test('written and final question screens share fixed slots', () => {
   assert.match(app, /function renderWrittenQuestionScreen\(\{ final = false \} = \{\}\)/);
   assert.match(app, /if \(!submitted\) return renderWrittenQuestionScreen\(\{ final: true \}\)/);
-  assert.match(app, /const pageClass = final \? 'complete-page qualitative-page final-question-page' : 'qualitative-page'/);
+  assert.match(app, /const pageClass = final \? 'qualitative-page final-question-page' : 'qualitative-page'/);
+  const writtenScreenStart = app.indexOf('function renderWrittenQuestionScreen');
+  const writtenScreenEnd = app.indexOf('function renderQualitative', writtenScreenStart);
+  const writtenScreen = app.slice(writtenScreenStart, writtenScreenEnd);
+  assert.match(writtenScreen, /<header class="page-heading">/);
+  assert.match(writtenScreen, /<form class="qualitative-form written-question-form"/);
+  assert.doesNotMatch(writtenScreen, /class="[^"]*(?:complete-page|complete-heading|final-submit-form)/);
   assert.match(app, /const intro = t\('qualitativeIntro'\)/);
   const writtenSlotVariables = styles.match(/\.qualitative-shell \.form-page\s*\{[^}]*--written-question-lift:\s*24px[^}]*\}/)?.[0] || '';
   assert.match(writtenSlotVariables, /--written-question-height:\s*clamp\(108px,\s*calc\(18dvh\s*-\s*var\(--written-question-lift\)\),\s*150px\)/);
@@ -168,5 +174,7 @@ test('written and final question screens share fixed slots', () => {
   assert.match(liftStyles, /data-module-type="subjective_text"\]\s+\.written-question-row[\s\S]*?height:\s*calc\(var\(--written-question-height\)\s*-\s*var\(--written-answer-lift\)\)/);
   assert.match(liftStyles, /data-module-type="subjective_text"\]\s+textarea[\s\S]*?height:\s*calc\(var\(--written-answer-height\)\s*\+\s*var\(--written-answer-lift\)\)/);
   assert.doesNotMatch(styles, /final-submit-form \.qualitative-question-label\s*\{[^}]*font-size/);
+  assert.doesNotMatch(styles, /\.final-submit-form\s*\{/);
+  assert.doesNotMatch(styles, /\.final-submit-form \.form-actions/);
   assert.match(styles, /\.written-question-form \.form-actions\s*\{[^}]*margin-top:\s*6px[^}]*padding-top:\s*10px/);
 });

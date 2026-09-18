@@ -6,17 +6,17 @@ import {
   tryWriteStorage,
 } from './survey-core.mjs';
 import { displayTopicName, studyConfig } from './survey-config.mjs?v=topic-definitions-contains-20260908';
-import { copy, languageNames, locales } from './translations.mjs?v=live-question-config-v6';
+import { copy, languageNames, locales } from './translations.mjs?v=live-question-config-v7';
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
 import { resolveLocale } from './locale-state.mjs';
-import { guideStepsForScreen } from './guide-steps.mjs?v=live-question-config-v6';
-import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs?v=live-question-config-v6';
+import { guideStepsForScreen } from './guide-steps.mjs?v=live-question-config-v7';
+import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs?v=live-question-config-v7';
 import {
   clampIndex,
   confirmTopicTransition,
   previousAfterTopicQuestion,
   previousBeforeTopicQuestion,
-} from './m1-state-transitions.mjs?v=live-question-config-v6';
+} from './m1-state-transitions.mjs?v=live-question-config-v7';
 import { joinTopicTextPages, splitTopicTextByFit, topicNodeFits } from './topic-pagination.mjs';
 import {
   FALLBACK_PUBLIC_QUESTIONNAIRE,
@@ -26,8 +26,8 @@ import {
   moduleAnswerError,
   normalizeModuleValue,
   serializeModuleAnswer,
-} from './public-questionnaire.mjs?v=live-question-config-v6';
-import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=live-question-config-v6';
+} from './public-questionnaire.mjs?v=live-question-config-v7';
+import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=live-question-config-v7';
 
 const STORAGE_KEY_BASE = `bextools:${studyConfig.id}:${studyConfig.version}`;
 const NONE_VALUE = '__none__';
@@ -1306,7 +1306,10 @@ function renderWrittenQuestionScreen({ final = false } = {}) {
     : questionModules.length;
   const total = final ? questionModules.length : modules.length;
   const formIdAttribute = final ? 'id="final-submit-form"' : 'id="qualitative-form"';
-  const pageClass = final ? 'complete-page qualitative-page final-question-page' : 'qualitative-page';
+  // The unsent Step 04 question intentionally uses the same visual classes as
+  // Step 02. Keep its form id and actions distinct for submission behavior,
+  // but do not opt it into the receipt/completion layout rules.
+  const pageClass = final ? 'qualitative-page final-question-page' : 'qualitative-page';
   const shellClass = final ? 'form-shell qualitative-shell complete-shell' : 'form-shell qualitative-shell';
   const eyebrow = final ? t('completeEyebrow') : t('qualitativeEyebrow');
   const title = final ? t('completeTitle') : t('qualitativeTitle');
@@ -1327,7 +1330,7 @@ function renderWrittenQuestionScreen({ final = false } = {}) {
 
   return renderShell(`
     <div class="form-page ${pageClass}">
-      <header class="page-heading ${final ? 'complete-heading' : ''}">
+      <header class="page-heading">
         <p class="eyebrow">${escapeHtml(eyebrow)}</p>
         <h1 data-page-title tabindex="-1">${escapeHtml(title)}</h1>
         ${intro ? `<p>${escapeHtml(intro)}</p>` : ''}
@@ -1335,7 +1338,7 @@ function renderWrittenQuestionScreen({ final = false } = {}) {
 
       <p class="qualitative-privacy">${escapeHtml(t('qualitativePrivacy'))}</p>
 
-      <form class="qualitative-form written-question-form ${final ? 'final-submit-form' : ''}" ${formIdAttribute} novalidate>
+      <form class="qualitative-form written-question-form" ${formIdAttribute} novalidate>
         ${modules.length ? `<div class="qualitative-progress" aria-live="polite">${escapeHtml(t('qualitativePosition', { i: position, total }))}</div>` : ''}
         <div class="qualitative-fields" data-module-id="${escapeAttribute(module?.id || '')}" aria-label="${escapeAttribute(t('qualitativePosition', { i: position, total }))}">
           ${module

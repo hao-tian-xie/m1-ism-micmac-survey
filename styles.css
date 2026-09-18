@@ -3417,8 +3417,7 @@ body[data-screen="welcome"] .save-status {
   gap: 9px;
 }
 
-.qualitative-field textarea,
-.final-submit-form textarea {
+.qualitative-field textarea {
   min-height: 150px;
 }
 
@@ -3535,17 +3534,6 @@ body[data-screen="welcome"] .save-status {
   max-width: 860px;
 }
 
-.final-submit-form {
-  max-width: 860px;
-  margin-top: 20px;
-  padding-top: 18px;
-  border-top: 1px solid var(--line-strong);
-}
-
-.final-submit-form .form-actions {
-  margin-top: 20px;
-}
-
 @media (min-width: 768px) {
   .steps {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -3591,8 +3579,7 @@ body[data-screen="welcome"] .save-status {
     margin-top: 14px;
   }
 
-  .qualitative-field textarea,
-  .final-submit-form textarea {
+  .qualitative-field textarea {
     min-height: 132px;
   }
 
@@ -4565,9 +4552,7 @@ body[data-screen="complete"] .content-stage {
   text-align: center;
 }
 
-.written-question-form .qualitative-field textarea,
-.written-question-form .final-submit-form textarea,
-.final-submit-form textarea {
+.written-question-form .qualitative-field textarea {
   height: var(--written-answer-height);
   min-height: var(--written-answer-height);
   max-height: var(--written-answer-height);
@@ -5140,8 +5125,7 @@ body[data-screen="survey"] .target-option:has(input:focus-visible) {
   max-height: var(--written-question-height);
 }
 
-.written-question-form .qualitative-field textarea,
-.final-submit-form textarea {
+.written-question-form .qualitative-field textarea {
   height: var(--written-answer-height);
   min-height: var(--written-answer-height);
   max-height: var(--written-answer-height);
