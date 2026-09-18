@@ -1,6 +1,6 @@
 {
   "name": "m1-ism-micmac-survey",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "private": true,
   "scripts": {
     "dev": "vite --host 0.0.0.0",

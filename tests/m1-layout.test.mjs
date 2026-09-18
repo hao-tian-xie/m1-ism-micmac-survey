@@ -165,8 +165,13 @@ test('written and final question screens share fixed slots', () => {
   assert.doesNotMatch(liftStyles, /data-module-id=/);
   assert.match(liftStyles, /--written-answer-lift:\s*16px/);
   assert.match(liftStyles, /data-module-type="subjective_text"\]\s*\{/);
-  assert.match(liftStyles, /--written-question-font-size:\s*18px/);
-  assert.match(liftStyles, /--written-question-line-height:\s*1\.45/);
+  assert.doesNotMatch(liftStyles, /--written-question-font-size|--written-question-line-height/);
+  assert.match(styles, /\.qualitative-shell \.page-heading h1\s*\{[\s\S]*?font-size:\s*clamp\(27px,\s*2\.8vw,\s*36px\)[\s\S]*?font-weight:\s*500[\s\S]*?letter-spacing:\s*-0\.015em[\s\S]*?line-height:\s*1\.16/);
+  assert.match(styles, /\.qualitative-shell \.page-heading > p:last-child\s*\{[\s\S]*?font-size:\s*15px/);
+  assert.match(styles, /\.qualitative-shell \.written-question-row \.qualitative-question-label\s*\{[\s\S]*?font-size:\s*16px[\s\S]*?font-weight:\s*500[\s\S]*?line-height:\s*1\.22/);
+  assert.match(styles, /\.written-question-form \.qualitative-field textarea\s*\{[\s\S]*?font-size:\s*16px[\s\S]*?line-height:\s*1\.42/);
+  assert.match(styles, /\.module-help\s*\{[\s\S]*?font-size:\s*15px/);
+  assert.match(styles, /\.written-question-form \.qualitative-field small\s*\{[\s\S]*?font-size:\s*13px/);
   assert.match(
     liftStyles,
     /grid-template-rows:\s*calc\(var\(--written-question-height\)\s*-\s*var\(--written-answer-lift\)\)\s+auto\s+calc\(var\(--written-answer-height\)\s*\+\s*var\(--written-answer-lift\)\)\s+18px/,

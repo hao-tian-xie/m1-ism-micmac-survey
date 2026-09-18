@@ -3400,7 +3400,7 @@ body[data-screen="welcome"] .save-status {
 .qualitative-progress {
   margin: 18px 0 0;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -4395,14 +4395,23 @@ body[data-screen="complete"] .content-stage {
   min-height: 0;
 }
 
+.qualitative-shell .page-heading h1 {
+  font-size: clamp(27px, 2.8vw, 36px);
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1.16;
+}
+
 .qualitative-shell .page-heading > p:last-child {
   max-height: 4.7em;
   overflow: hidden;
+  font-size: 15px;
 }
 
 .qualitative-shell .qualitative-privacy {
   max-height: 4.8em;
   overflow: hidden;
+  font-size: 15px;
 }
 
 .written-question-form {
@@ -4458,7 +4467,7 @@ body[data-screen="complete"] .content-stage {
   border: 1px solid var(--line-strong);
   background: var(--paper);
   color: var(--muted);
-  font-size: 15px;
+  font-size: 16px;
   white-space: nowrap;
 }
 
@@ -4479,7 +4488,7 @@ body[data-screen="complete"] .content-stage {
   margin: 0 0 0 48px;
   overflow: hidden;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.4;
   white-space: pre-line;
 }
@@ -4528,6 +4537,8 @@ body[data-screen="complete"] .content-stage {
 
 .module-option-card span {
   min-width: 0;
+  font-size: 16px;
+  line-height: 1.42;
   overflow-wrap: anywhere;
 }
 
@@ -4556,11 +4567,18 @@ body[data-screen="complete"] .content-stage {
   height: var(--written-answer-height);
   min-height: var(--written-answer-height);
   max-height: var(--written-answer-height);
+  font-size: 16px;
+  line-height: 1.42;
   resize: none;
 }
 
 .written-question-form .qualitative-field small {
   min-height: 18px;
+  font-size: 13px;
+}
+
+.written-question-form .submit-error button {
+  font-size: 16px;
 }
 
 .written-question-form .form-actions {
@@ -4676,13 +4694,10 @@ body[data-screen="survey"] .source-progress {
   .written-question-row .qualitative-question-label {
     grid-template-columns: 28px minmax(0, 1fr);
     gap: 7px;
-    font-size: 16px;
-    line-height: 1.35;
   }
 
   .module-help {
     margin-left: 35px;
-    font-size: 13px;
   }
 
   .module-choice-grid {
@@ -4693,7 +4708,6 @@ body[data-screen="survey"] .source-progress {
     min-width: 72px;
     min-height: 38px;
     padding-inline: 8px;
-    font-size: 14px;
   }
 
   .written-question-form .form-actions {
@@ -4723,7 +4737,6 @@ body[data-screen="survey"] .source-progress {
 
   .qualitative-shell .qualitative-privacy {
     max-height: 3.1em;
-    font-size: 13px;
   }
 
 }
@@ -4742,14 +4755,11 @@ body[data-screen="survey"] .source-progress {
   }
 
   .qualitative-shell .page-heading h1 {
-    font-size: clamp(28px, 4vw, 36px);
-    line-height: 1.05;
   }
 
   .qualitative-shell .page-heading > p:last-child {
     max-height: 2.4em;
     margin-top: 4px;
-    font-size: 14px;
     line-height: 1.2;
   }
 
@@ -4757,7 +4767,6 @@ body[data-screen="survey"] .source-progress {
     max-height: 2.4em;
     margin-top: 5px;
     padding: 4px 8px;
-    font-size: 11px;
     line-height: 1.2;
   }
 
@@ -4767,7 +4776,6 @@ body[data-screen="survey"] .source-progress {
 
   .written-question-form .qualitative-progress {
     margin: 2px 0;
-    font-size: 12px;
   }
 
   .written-question-form .qualitative-field {
@@ -4781,14 +4789,11 @@ body[data-screen="survey"] .source-progress {
   .written-question-row .qualitative-question-label {
     grid-template-columns: 24px minmax(0, 1fr);
     gap: 6px;
-    font-size: 14px;
-    line-height: 1.2;
   }
 
   .qualitative-na-button {
     min-height: 36px;
     padding-block: 5px;
-    font-size: 13px;
   }
 
   .written-question-form .form-actions {
@@ -5161,13 +5166,16 @@ body[data-screen="survey"] .target-option:has(input:focus-visible) {
    all subjective text modules and must share the same type treatment. */
 .qualitative-shell .form-page {
   --written-answer-lift: 16px;
-  --written-question-font-size: 18px;
-  --written-question-line-height: 1.45;
 }
 
 .qualitative-shell .written-question-row .qualitative-question-label {
-  font-size: var(--written-question-font-size);
-  line-height: var(--written-question-line-height);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.22;
+}
+
+.qualitative-shell .written-question-row .qualitative-question-label i {
+  font-size: 13px;
 }
 
 .written-question-form .qualitative-field[data-module-type="subjective_text"] {
@@ -5191,20 +5199,6 @@ body[data-screen="survey"] .target-option:has(input:focus-visible) {
   max-height: calc(var(--written-answer-height) + var(--written-answer-lift));
   margin: 0;
   resize: none;
-}
-
-@media (max-width: 767px) {
-  .qualitative-shell .form-page {
-    --written-question-font-size: 16px;
-    --written-question-line-height: 1.35;
-  }
-}
-
-@media (min-width: 768px) and (max-height: 640px) {
-  .qualitative-shell .form-page {
-    --written-question-font-size: 14px;
-    --written-question-line-height: 1.2;
-  }
 }
 
 /* Restore the historical all-candidate topic-notes action without changing the
