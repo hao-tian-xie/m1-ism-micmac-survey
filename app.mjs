@@ -6,17 +6,17 @@ import {
   tryWriteStorage,
 } from './survey-core.mjs';
 import { displayTopicName, studyConfig } from './survey-config.mjs?v=topic-definitions-contains-20260908';
-import { copy, languageNames, locales } from './translations.mjs?v=live-question-config-v9';
+import { copy, languageNames, locales } from './translations.mjs?v=live-question-config-v10';
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
 import { resolveLocale } from './locale-state.mjs';
-import { guideStepsForScreen } from './guide-steps.mjs?v=live-question-config-v9';
-import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs?v=live-question-config-v9';
+import { guideStepsForScreen } from './guide-steps.mjs?v=live-question-config-v10';
+import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs?v=live-question-config-v10';
 import {
   clampIndex,
   confirmTopicTransition,
   previousAfterTopicQuestion,
   previousBeforeTopicQuestion,
-} from './m1-state-transitions.mjs?v=live-question-config-v9';
+} from './m1-state-transitions.mjs?v=live-question-config-v10';
 import { joinTopicTextPages, splitTopicTextByFit, topicNodeFits } from './topic-pagination.mjs';
 import {
   FALLBACK_PUBLIC_QUESTIONNAIRE,
@@ -26,8 +26,8 @@ import {
   moduleAnswerError,
   normalizeModuleValue,
   serializeModuleAnswer,
-} from './public-questionnaire.mjs?v=live-question-config-v9';
-import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=live-question-config-v9';
+} from './public-questionnaire.mjs?v=live-question-config-v10';
+import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=live-question-config-v10';
 
 const STORAGE_KEY_BASE = `bextools:${studyConfig.id}:${studyConfig.version}`;
 const NONE_VALUE = '__none__';
@@ -386,11 +386,11 @@ function beforeTopicModulesAreValid() {
 
 function stageNavigationState() {
   // Derive sidebar recovery from the current draft. Returning from Step 03
-  // intentionally clears qualitativeSectionComplete, but valid Step 02
-  // answers still permit the completed Step 03 -> Step 04 recovery path.
+  // intentionally clears qualitativeSectionComplete. The Step 02 -> Step 04
+  // sidebar rule is driven only by whether all Step 03 topics are reviewed;
+  // Step 02 validity remains a final-submission concern.
   return {
     surveyComplete: allTopicsReviewed(),
-    qualitativeComplete: beforeTopicModulesAreValid(),
   };
 }
 
@@ -512,6 +512,9 @@ function fitTopicSourceSlot() {
   const descriptionRegion = body?.querySelector('[data-source-topic-description]');
   const description = descriptionRegion?.querySelector('p');
   if (!body || !title || !description) return;
+  // Keep the fixed measurement slot while deciding whether pagination is
+  // needed. Once that decision is made, CSS can collapse short descriptions.
+  body.classList.remove('is-content-fitted');
 
   const fitNode = (node, { minSize, columns = false, maxColumns = 4 } = {}) => {
     const computed = window.getComputedStyle(node);
@@ -571,6 +574,7 @@ function fitTopicSourceSlot() {
     description.style.columnCount = cached.descriptionColumnCount
       || (cached.descriptionPages.length > 1 ? '1' : '');
     paginationVisible(pagination, cached.descriptionPages.length > 1);
+    body.classList.add('is-content-fitted');
     sourceTopicPagination = cached;
     showTopicDescriptionPage(cached.currentPage);
     return;
@@ -597,6 +601,7 @@ function fitTopicSourceSlot() {
     // valid.
     description.style.columnCount = cached.descriptionColumnCount;
     paginationVisible(pagination, false);
+    body.classList.add('is-content-fitted');
     showTopicDescriptionPage(0);
     return;
   }
@@ -618,6 +623,7 @@ function fitTopicSourceSlot() {
   cached.descriptionColumnCount = '1';
   sourceTopicPagination = cached;
   paginationVisible(pagination, losslessPages.length > 1);
+  body.classList.add('is-content-fitted');
   showTopicDescriptionPage(0);
 }
 
@@ -665,10 +671,6 @@ function navigateToStage(targetStage) {
     allowComplete: !state.submissionId,
     ...navigationState,
   })) {
-    if (state.screen === 'qualitative' && targetStage === 'complete' && navigationState.surveyComplete) {
-      const invalid = firstInvalidBeforeTopicModule();
-      if (invalid) showModuleValidation(invalid, moduleAnswerError(invalid, state.moduleAnswers[invalid.id]));
-    }
     return;
   }
 
@@ -697,14 +699,10 @@ function navigateToStage(targetStage) {
   }
 
   if (targetStage === 'complete') {
-    // Re-check the written answers at the forward boundary so a sidebar click
-    // cannot turn an incomplete Step 02 into a submittable Step 04.
-    if (!beforeTopicModulesAreValid()) {
-      const invalid = firstInvalidBeforeTopicModule();
-      if (invalid) showModuleValidation(invalid, moduleAnswerError(invalid, state.moduleAnswers[invalid.id]));
-      return;
-    }
-    state.qualitativeSectionComplete = true;
+    // Step 04 may be opened once Step 03 is complete, even when Step 02 needs
+    // correction. Keep the flag honest; submitResponse() revalidates before
+    // sending anything.
+    state.qualitativeSectionComplete = beforeTopicModulesAreValid();
     goTo('complete');
   }
 }
@@ -1629,7 +1627,13 @@ function isResultCard(value, submissionId = '') {
 }
 
 async function submitResponse() {
-  if (!allTopicsReviewed() || !state.qualitativeSectionComplete || state.submitState === 'submitting') return;
+  if (!allTopicsReviewed() || state.submitState === 'submitting') return;
+  if (!beforeTopicModulesAreValid()) {
+    const invalid = firstInvalidBeforeTopicModule();
+    if (invalid) showModuleValidation(invalid, moduleAnswerError(invalid, state.moduleAnswers[invalid.id]));
+    return;
+  }
+  if (!state.qualitativeSectionComplete) return;
   const finalModules = afterTopicModules();
   if (finalModules.length) {
     const finalIndex = clampIndex(state.afterTopicsIndex, finalModules.length);

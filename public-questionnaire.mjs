@@ -1,5 +1,5 @@
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
-import { copy, locales } from './translations.mjs?v=live-question-config-v9';
+import { copy, locales } from './translations.mjs?v=live-question-config-v10';
 
 export const PUBLIC_QUESTION_MODULE_TYPES = Object.freeze([
   'subjective_text',

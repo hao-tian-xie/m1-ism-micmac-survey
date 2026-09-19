@@ -6,8 +6,15 @@ import {
   stageIndex,
   topicIsAvailable,
 } from '../navigation-rules.mjs';
+import { studyConfig } from '../survey-config.mjs';
+import { M1_DEFAULT_QUESTIONNAIRE_CONFIG } from '../server/m1-default-question-config.mjs';
 
 const appSource = await readFile(new URL('../app.mjs', import.meta.url), 'utf8');
+
+test('release keeps the 38-topic catalogue and seven-module questionnaire', () => {
+  assert.equal(studyConfig.factors.length, 38);
+  assert.equal(M1_DEFAULT_QUESTIONNAIRE_CONFIG.modules.length, 7);
+});
 
 test('stage order preserves backward navigation and blocks unrelated forward jumps', () => {
   assert.equal(stageIndex('profile'), 0);
@@ -25,10 +32,10 @@ test('stage order preserves backward navigation and blocks unrelated forward jum
   assert.equal(canNavigateToStage('complete', 'survey'), false);
   assert.equal(canNavigateToStage('complete', 'survey', { allowComplete: true }), true);
   assert.equal(canNavigateToStage('qualitative', 'complete', { surveyComplete: false }), false);
-  assert.equal(canNavigateToStage('qualitative', 'complete', { surveyComplete: true }), false);
+  assert.equal(canNavigateToStage('qualitative', 'complete', { surveyComplete: true }), true);
 });
 
-test('Step 02 resumes only unfinished Step 03 or validated Step 04', () => {
+test('Step 02 resumes only unfinished Step 03 or reviewed Step 04', () => {
   assert.equal(
     canNavigateToStage('qualitative', 'survey', {
       surveyComplete: false,
@@ -62,7 +69,7 @@ test('Step 02 resumes only unfinished Step 03 or validated Step 04', () => {
       surveyComplete: true,
       qualitativeComplete: false,
     }),
-    false,
+    true,
   );
   assert.equal(
     canNavigateToStage('qualitative', 'complete', {
@@ -105,7 +112,7 @@ test('completed Step 03 survives a Step 04 to Step 02 round trip', () => {
   );
 });
 
-test('Step 02 resume matrix gates Step 04 on all 38 topics plus valid Step 02 answers', () => {
+test('Step 02 resume matrix gates Step 04 only on all 38 topics', () => {
   const cases = [
     {
       name: '03 unfinished',
@@ -120,7 +127,7 @@ test('Step 02 resume matrix gates Step 04 on all 38 topics plus valid Step 02 an
     {
       name: '03 complete and 02 invalid',
       state: { surveyComplete: true, qualitativeComplete: false },
-      expected: { survey: false, complete: false },
+      expected: { survey: false, complete: true },
     },
   ];
   for (const { name, state, expected } of cases) {
@@ -130,11 +137,14 @@ test('Step 02 resume matrix gates Step 04 on all 38 topics plus valid Step 02 an
   assert.equal(canNavigateToStage('complete', 'qualitative', { allowComplete: true, surveyComplete: true, qualitativeComplete: true }), true);
 });
 
-test('Step 04 recovery validation remains wired to the rejected invalid Step 02 branch', () => {
+test('Step 02 to Step 04 allows invalid Step 02 answers but final submit still validates them', () => {
   assert.match(appSource, /function stageNavigationState\(\)/u);
   assert.match(appSource, /canNavigateToStage\(state\.screen, targetStage, \{[\s\S]*\.\.\.navigationState/u);
-  assert.match(appSource, /state\.screen === 'qualitative' && targetStage === 'complete' && navigationState\.surveyComplete/u);
-  assert.match(appSource, /showModuleValidation\(invalid, moduleAnswerError\(invalid, state\.moduleAnswers\[invalid\.id\]\)\)/u);
+  assert.match(appSource, /state\.qualitativeSectionComplete = beforeTopicModulesAreValid\(\);\s*goTo\('complete'\)/u);
+  assert.match(appSource, /async function submitResponse\(\) \{[\s\S]*?if \(!beforeTopicModulesAreValid\(\)\)/u);
+  const navigateStart = appSource.indexOf('function navigateToStage');
+  const navigateEnd = appSource.indexOf('function navigateToTopic', navigateStart);
+  assert.doesNotMatch(appSource.slice(navigateStart, navigateEnd), /if \(!beforeTopicModulesAreValid\(\)/u);
 });
 
 test('Step 04 is not widened from other stages', () => {

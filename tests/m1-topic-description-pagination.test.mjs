@@ -105,6 +105,18 @@ test('Section 03 exposes locale/topic keyed page state, trilingual controls, and
   const compactSourceDescriptionRule = styles.match(/body\[data-screen="survey"\]\s+\.source-topic-description p\s*\{[\s\S]*?\}/gu)?.at(-1) || '';
   assert.match(compactSourceDescriptionRule, /margin:\s*0/u);
   assert.match(compactSourceDescriptionRule, /white-space:\s*normal/u);
+  const fittedSourceBodyRule = styles.match(/body\[data-screen="survey"\]\s+\.source-topic-body\.is-content-fitted:not\(:has\([^)]*\)\)\s*\{[\s\S]*?\}/u)?.[0] || '';
+  assert.match(fittedSourceBodyRule, /height:\s*auto/u);
+  assert.match(fittedSourceBodyRule, /grid-template-rows:\s*18px\s+4\.4em\s+auto/u);
+  const fittedSourceDescriptionRule = styles.match(/body\[data-screen="survey"\]\s+\.source-topic-body\.is-content-fitted:not\(:has\([^)]*\)\) \.source-topic-description\s*\{[\s\S]*?\}/u)?.[0] || '';
+  assert.match(fittedSourceDescriptionRule, /grid-template-rows:\s*auto\s+0/u);
+  assert.match(fittedSourceDescriptionRule, /gap:\s*0/u);
+  const fittedSourceParagraphRule = styles.match(/body\[data-screen="survey"\]\s+\.source-topic-body\.is-content-fitted:not\(:has\([^)]*\)\) \.source-topic-description p\s*\{[\s\S]*?\}/u)?.[0] || '';
+  assert.match(fittedSourceParagraphRule, /height:\s*auto/u);
+  assert.match(fittedSourceParagraphRule, /align-self:\s*start/u);
+  assert.match(fittedSourceParagraphRule, /padding-block:\s*0/u);
+  assert.match(fittedSourceParagraphRule, /white-space:\s*normal/u);
+  assert.match(styles, /source-topic-pagination:not\(.is-visible\)[\s\S]*?height:\s*0/u);
   const sourceDescriptionRules = styles.match(/body\[data-screen="survey"\]\s+\.source-topic-description(?:\s*:has\([^)]*\))?\s*\{[\s\S]*?\}/gu) || [];
   const hiddenSourceDescriptionRule = sourceDescriptionRules.filter((rule) => !rule.includes(':has(')).at(-1) || '';
   assert.match(hiddenSourceDescriptionRule, /grid-template-rows:\s*minmax\(0,\s*1fr\)\s+0/u);

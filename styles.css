@@ -4930,8 +4930,8 @@ body[data-screen="survey"] .source-topic-pagination .icon-button:disabled {
   cursor: default;
 }
 
-/* Final survey CSS closure: content stays in fixed slots, while definitions
-   and written answers remain available without changing the surrounding flow. */
+/* Final survey CSS closure: keep a fixed slot while the JS fit pass measures
+   the explanation, then collapse short non-paginated copy to its content. */
 body[data-screen="survey"] .source-topic {
   --if-source-slot-height: clamp(216px, 30vh, 300px);
   overflow: visible;
@@ -5037,6 +5037,52 @@ body[data-screen="survey"] .source-topic-description {
 body[data-screen="survey"] .source-topic-description:has(.source-topic-pagination.is-visible) {
   grid-template-rows: minmax(0, 1fr) 22px;
   gap: 4px;
+}
+
+body[data-screen="survey"] .source-topic-body.is-content-fitted:not(:has(.source-topic-pagination.is-visible)) {
+  height: auto;
+  grid-template-rows: 18px 4.4em auto;
+  align-content: start;
+}
+
+body[data-screen="survey"] .source-topic-body.is-content-fitted:not(:has(.source-topic-pagination.is-visible)) .source-topic-description {
+  height: auto;
+  align-self: start;
+  grid-template-rows: auto 0;
+  gap: 0;
+  margin-block: 0;
+  padding-block: 0;
+}
+
+body[data-screen="survey"] .source-topic-body.is-content-fitted:not(:has(.source-topic-pagination.is-visible)) .source-topic-description p {
+  height: auto;
+  align-self: start;
+  margin-block: 0;
+  padding-block: 0;
+  white-space: normal;
+}
+
+body[data-screen="survey"] .source-topic-body.is-content-fitted:not(:has(.source-topic-pagination.is-visible)) .source-topic-pagination:not(.is-visible) {
+  height: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body[data-screen="survey"] .source-topic-body.is-content-fitted:has(.source-topic-pagination.is-visible) {
+  height: var(--if-source-slot-height);
+  grid-template-rows: 18px 4.4em minmax(0, 1fr);
+}
+
+body[data-screen="survey"] .source-topic-description:has(.source-topic-pagination.is-visible) {
+  align-self: stretch;
+}
+
+body[data-screen="survey"] .source-topic-description:has(.source-topic-pagination.is-visible) p {
+  height: 100%;
+  align-self: stretch;
+  margin-block: 0;
+  padding-block: 0;
+  white-space: normal;
 }
 
 /* Candidate explanations are fixed to the viewport, so they cannot resize a
