@@ -43,6 +43,7 @@ test('all locales include the indexed written-question flow and final-submit cop
 });
 
 test('active configured modules render one indexed field at a time and submit their revision', () => {
+  assert.equal(M1_DEFAULT_QUESTIONNAIRE_CONFIG.modules.length, 7);
   assert.deepEqual(
     M1_DEFAULT_QUESTIONNAIRE_CONFIG.modules.filter(({ stage }) => stage === 'before_topics').map(({ id }) => id),
     ['q1', 'q2', 'q3', 'q4', 'q5', 'q6'],

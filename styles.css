@@ -5021,6 +5021,24 @@ body[data-screen="survey"] .source-topic-pagination.is-visible {
   }
 }
 
+/* Section 03 source explanations are one compact gray flow. The topic data
+   retains intentional newlines for other views; only this rendered paragraph
+   collapses those authoring breaks into normal inline whitespace. */
+body[data-screen="survey"] .source-topic-description p {
+  margin: 0;
+  white-space: normal;
+}
+
+body[data-screen="survey"] .source-topic-description {
+  grid-template-rows: minmax(0, 1fr) 0;
+  gap: 0;
+}
+
+body[data-screen="survey"] .source-topic-description:has(.source-topic-pagination.is-visible) {
+  grid-template-rows: minmax(0, 1fr) 22px;
+  gap: 4px;
+}
+
 /* Candidate explanations are fixed to the viewport, so they cannot resize a
    grid cell. The JS boundary classes select the side and vertical origin. */
 body[data-screen="survey"] .target-option {

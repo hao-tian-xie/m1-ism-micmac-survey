@@ -6,17 +6,17 @@ import {
   tryWriteStorage,
 } from './survey-core.mjs';
 import { displayTopicName, studyConfig } from './survey-config.mjs?v=topic-definitions-contains-20260908';
-import { copy, languageNames, locales } from './translations.mjs?v=live-question-config-v8';
+import { copy, languageNames, locales } from './translations.mjs?v=live-question-config-v9';
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
 import { resolveLocale } from './locale-state.mjs';
-import { guideStepsForScreen } from './guide-steps.mjs?v=live-question-config-v8';
-import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs?v=live-question-config-v8';
+import { guideStepsForScreen } from './guide-steps.mjs?v=live-question-config-v9';
+import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs?v=live-question-config-v9';
 import {
   clampIndex,
   confirmTopicTransition,
   previousAfterTopicQuestion,
   previousBeforeTopicQuestion,
-} from './m1-state-transitions.mjs?v=live-question-config-v8';
+} from './m1-state-transitions.mjs?v=live-question-config-v9';
 import { joinTopicTextPages, splitTopicTextByFit, topicNodeFits } from './topic-pagination.mjs';
 import {
   FALLBACK_PUBLIC_QUESTIONNAIRE,
@@ -26,8 +26,8 @@ import {
   moduleAnswerError,
   normalizeModuleValue,
   serializeModuleAnswer,
-} from './public-questionnaire.mjs?v=live-question-config-v8';
-import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=live-question-config-v8';
+} from './public-questionnaire.mjs?v=live-question-config-v9';
+import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=live-question-config-v9';
 
 const STORAGE_KEY_BASE = `bextools:${studyConfig.id}:${studyConfig.version}`;
 const NONE_VALUE = '__none__';
@@ -384,6 +384,16 @@ function beforeTopicModulesAreValid() {
   return !firstInvalidBeforeTopicModule();
 }
 
+function stageNavigationState() {
+  // Derive sidebar recovery from the current draft. Returning from Step 03
+  // intentionally clears qualitativeSectionComplete, but valid Step 02
+  // answers still permit the completed Step 03 -> Step 04 recovery path.
+  return {
+    surveyComplete: allTopicsReviewed(),
+    qualitativeComplete: beforeTopicModulesAreValid(),
+  };
+}
+
 function progressPercent() {
   return factors.length ? Math.round((reviewedCount() / factors.length) * 100) : 0;
 }
@@ -650,14 +660,12 @@ function goTo(screen, { scroll = true } = {}) {
 }
 
 function navigateToStage(targetStage) {
-  const surveyComplete = allTopicsReviewed();
-  const qualitativeComplete = beforeTopicModulesAreValid();
+  const navigationState = stageNavigationState();
   if (!canNavigateToStage(state.screen, targetStage, {
     allowComplete: !state.submissionId,
-    surveyComplete,
-    qualitativeComplete,
+    ...navigationState,
   })) {
-    if (state.screen === 'qualitative' && targetStage === 'complete' && surveyComplete) {
+    if (state.screen === 'qualitative' && targetStage === 'complete' && navigationState.surveyComplete) {
       const invalid = firstInvalidBeforeTopicModule();
       if (invalid) showModuleValidation(invalid, moduleAnswerError(invalid, state.moduleAnswers[invalid.id]));
     }
@@ -681,7 +689,7 @@ function navigateToStage(targetStage) {
   }
 
   if (targetStage === 'survey') {
-    state.currentIndex = surveyComplete
+    state.currentIndex = navigationState.surveyComplete
       ? Math.min(state.currentIndex, factors.length - 1)
       : firstUnreviewedIndex();
     goTo('survey');
@@ -858,6 +866,7 @@ function renderStepper() {
   const steps = [t('stepProfile'), t('stepQualitative'), t('stepSurvey'), t('stepResult')];
   const stageIds = ['profile', 'qualitative', 'survey', 'complete'];
   const stepNumbers = ['01', '02', '03', '04'];
+  const navigationState = stageNavigationState();
   const stageItems = steps.map((label, index) => {
     const stage = stageIds[index];
     const isActive = index === activeIndex;
@@ -865,8 +874,7 @@ function renderStepper() {
     const canGoBack = !state.submissionId
       && canNavigateToStage(state.screen, stage, {
         allowComplete: true,
-        surveyComplete: allTopicsReviewed(),
-        qualitativeComplete: beforeTopicModulesAreValid(),
+        ...navigationState,
       });
     const stepContent = `
       <span>${stepNumbers[index]}</span>

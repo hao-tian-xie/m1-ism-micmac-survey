@@ -8,6 +8,15 @@ export function stageIndex(screen) {
   return stageOrder.indexOf(screen);
 }
 
+function canResumeFromQualitative(targetStage, {
+  surveyComplete = false,
+  qualitativeComplete = false,
+} = {}) {
+  if (targetStage === 'survey') return !surveyComplete;
+  if (targetStage === 'complete') return Boolean(surveyComplete && qualitativeComplete);
+  return false;
+}
+
 export function canNavigateToStage(currentScreen, targetStage, {
   allowComplete = false,
   surveyComplete = false,
@@ -25,9 +34,7 @@ export function canNavigateToStage(currentScreen, targetStage, {
   // Before all topics are reviewed, it may return to Step 03; afterward it
   // may return to Step 04, provided its own required answers are valid.
   if (currentScreen !== 'qualitative') return false;
-  if (targetStage === 'survey') return !surveyComplete;
-  if (targetStage === 'complete') return Boolean(surveyComplete && qualitativeComplete);
-  return false;
+  return canResumeFromQualitative(targetStage, { surveyComplete, qualitativeComplete });
 }
 
 export function topicIsAvailable(index, currentIndex, reviewedIds, factorId) {
