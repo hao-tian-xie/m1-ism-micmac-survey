@@ -6,17 +6,17 @@ import {
   tryWriteStorage,
 } from './survey-core.mjs';
 import { displayTopicName, studyConfig } from './survey-config.mjs?v=topic-definitions-contains-20260908';
-import { copy, languageNames, locales } from './translations.mjs?v=interview-orientation-20261022';
+import { copy, languageNames, locales } from './translations.mjs?v=interview-orientation-20261022-v2';
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
 import { resolveLocale } from './locale-state.mjs';
-import { guideStepsForScreen } from './guide-steps.mjs?v=interview-orientation-20261022';
-import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs?v=interview-orientation-20261022';
+import { guideStepsForScreen } from './guide-steps.mjs?v=interview-orientation-20261022-v2';
+import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs?v=interview-orientation-20261022-v2';
 import {
   clampIndex,
   confirmTopicTransition,
   previousAfterTopicQuestion,
   previousBeforeTopicQuestion,
-} from './m1-state-transitions.mjs?v=interview-orientation-20261022';
+} from './m1-state-transitions.mjs?v=interview-orientation-20261022-v2';
 import { joinTopicTextPages, splitTopicTextByFit, topicNodeFits } from './topic-pagination.mjs';
 import {
   FALLBACK_PUBLIC_QUESTIONNAIRE,
@@ -26,9 +26,15 @@ import {
   moduleAnswerError,
   normalizeModuleValue,
   serializeModuleAnswer,
-} from './public-questionnaire.mjs?v=interview-orientation-20261022';
-import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=interview-orientation-20261022';
-import { orientationContent, renderInterviewOrientation } from './interview-orientation.mjs?v=interview-orientation-20261022';
+} from './public-questionnaire.mjs?v=interview-orientation-20261022-v2';
+import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=interview-orientation-20261022-v2';
+import {
+  ORIENTATION_DEMO_VALUES,
+  orientationContent,
+  orientationDemoFeedback,
+  renderInterviewOrientation,
+  renderOrientationDemo,
+} from './interview-orientation.mjs?v=interview-orientation-20261022-v2';
 
 const STORAGE_KEY_BASE = `bextools:${studyConfig.id}:${studyConfig.version}`;
 const NONE_VALUE = '__none__';
@@ -296,6 +302,8 @@ function loadState() {
 let state = blankState();
 let orientationIndex = 0;
 let orientationReturnScreen = 'welcome';
+let orientationDemoPair = 0;
+let orientationDemoValues = ['', ''];
 let guideIndex = 0;
 let guideReturnScreen = state.screen;
 let guideIsOpen = false;
@@ -676,7 +684,7 @@ function openOrientation() {
   goTo('orientation');
 }
 
-function setOrientationSection(index, { focus = true } = {}) {
+function setOrientationSection(index, { focus = true, scroll = false } = {}) {
   if (state.screen !== 'orientation') return;
   const content = orientationContent(state.locale);
   orientationIndex = clampIndex(index, content.sections.length);
@@ -693,6 +701,25 @@ function setOrientationSection(index, { focus = true } = {}) {
   app.querySelector('[data-action="orientation-previous"]').disabled = orientationIndex === 0;
   app.querySelector('[data-action="orientation-next"]').disabled = orientationIndex === content.sections.length - 1;
   if (focus) app.querySelector(`#orientation-tab-${orientationIndex}`)?.focus({ preventScroll: true });
+  if (scroll) app.querySelector('.orientation-tabs')?.scrollIntoView({ block: 'start' });
+}
+
+function updateOrientationDemo({ pairIndex = orientationDemoPair, value } = {}) {
+  if (state.screen !== 'orientation') return;
+  const pair = clampIndex(pairIndex, 2);
+  if (value !== undefined && !ORIENTATION_DEMO_VALUES.includes(value)) return;
+  orientationDemoPair = pair;
+  if (value !== undefined) orientationDemoValues[pair] = value;
+  const options = { locale: state.locale, pairIndex: pair, values: orientationDemoValues };
+  const view = app.querySelector('[data-orientation-demo-view]');
+  const feedback = app.querySelector('[data-orientation-demo-feedback]');
+  if (!view || !feedback) return;
+  view.innerHTML = renderOrientationDemo(options);
+  feedback.textContent = orientationDemoFeedback(options);
+  const selector = value === undefined
+    ? `[data-action="orientation-demo-pair"][data-pair="${pair}"]`
+    : `[data-action="orientation-demo-choice"][data-value="${value}"]`;
+  view.querySelector(selector)?.focus({ preventScroll: true });
 }
 
 function navigateToStage(targetStage) {
@@ -1056,6 +1083,8 @@ function renderOrientation() {
     locale: state.locale,
     index: orientationIndex,
     returning: orientationReturnScreen !== 'welcome',
+    demoPairIndex: orientationDemoPair,
+    demoValues: orientationDemoValues,
   });
 }
 
@@ -1919,10 +1948,16 @@ app.addEventListener('click', (event) => {
       setOrientationSection(Number(button.dataset.section));
       break;
     case 'orientation-previous':
-      setOrientationSection(orientationIndex - 1);
+      setOrientationSection(orientationIndex - 1, { scroll: true });
       break;
     case 'orientation-next':
-      setOrientationSection(orientationIndex + 1);
+      setOrientationSection(orientationIndex + 1, { scroll: true });
+      break;
+    case 'orientation-demo-pair':
+      updateOrientationDemo({ pairIndex: Number(button.dataset.pair) });
+      break;
+    case 'orientation-demo-choice':
+      updateOrientationDemo({ value: button.dataset.value });
       break;
     case 'orientation-continue':
       goTo(orientationReturnScreen);
@@ -2050,6 +2085,8 @@ app.addEventListener('click', (event) => {
         state = blankState(locale);
         orientationIndex = 0;
         orientationReturnScreen = 'welcome';
+        orientationDemoPair = 0;
+        orientationDemoValues = ['', ''];
         render();
         pageTop();
         focusPageHeading();

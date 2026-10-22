@@ -1,4 +1,4 @@
-/* The introduction uses the questionnaire's existing type, rail and palette. */
+/* Share the questionnaire's typography, research rail and burgundy palette. */
 html:has(body[data-screen="orientation"]) {
   min-width: 0;
 }
@@ -34,6 +34,7 @@ html:has(body[data-screen="orientation"]) {
 
 .orientation-explorer {
   margin-top: 30px;
+  container: orientation / inline-size;
 }
 
 .orientation-browse {
@@ -47,6 +48,7 @@ html:has(body[data-screen="orientation"]) {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   border-top: 1px solid var(--line-strong);
   border-bottom: 1px solid var(--line);
+  scroll-margin-top: 24px;
 }
 
 .orientation-tab {
@@ -95,51 +97,30 @@ html:has(body[data-screen="orientation"]) {
   background: var(--accent-soft);
 }
 
-.orientation-tab[aria-selected="true"] b,
-.orientation-tab[aria-selected="true"] .orientation-number,
-.orientation-tab:hover b,
-#orientation-button[aria-current="page"] {
+.orientation-tab[aria-selected="true"] b, .orientation-tab[aria-selected="true"] .orientation-number, .orientation-tab:hover b, #orientation-button[aria-current="page"] {
   color: var(--accent);
 }
 
 .orientation-panel {
-  min-height: 164px;
-  padding: 22px 0 18px;
+  padding: 26px 0 24px;
 }
 
 .orientation-panel[hidden] {
   display: none;
 }
 
-.orientation-panel > p {
-  max-width: 850px;
+.orientation-panel-title {
+  margin: 0 0 12px;
+  color: var(--ink-strong);
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.orientation-panel-lead, .orientation-context, .orientation-purpose p {
   margin: 0;
   font-size: 17px;
   line-height: 1.55;
-}
-
-.orientation-examples {
-  display: grid;
-  margin: 20px 0 0;
-  padding: 0;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  list-style: none;
-}
-
-.orientation-examples li {
-  padding: 4px 18px;
-  color: var(--ink-strong);
-  font-size: 19px;
-  font-weight: 500;
-  line-height: 1.35;
-}
-
-.orientation-examples li:first-child {
-  padding-left: 0;
-}
-
-.orientation-examples li + li {
-  border-left: 1px solid var(--line);
 }
 
 .orientation-pagination {
@@ -166,34 +147,264 @@ html:has(body[data-screen="orientation"]) {
 }
 
 .orientation-question {
-  margin-top: 22px;
-  padding: 21px 24px;
+  padding: 24px;
   border-left: 2px solid var(--accent);
   background: var(--accent-soft);
 }
 
 .orientation-question .eyebrow {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .orientation-question h2 {
-  max-width: 800px;
   margin: 0;
   color: var(--ink-strong);
   font-size: clamp(24px, 2.3vw, 30px);
   font-weight: 500;
-  line-height: 1.3;
+  line-height: 1.4;
 }
 
 .orientation-question > p:last-child {
-  margin: 14px 0 0;
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.orientation-context {
+  margin-top: 22px;
+  color: var(--muted);
+}
+
+.orientation-purpose {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.orientation-purpose h3 {
+  margin: 0 0 8px;
+  color: var(--accent);
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.orientation-esg-cards {
+  display: grid;
+  margin-top: 24px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.orientation-esg-cards article {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--line);
+}
+
+.orientation-esg-cards article > span {
+  color: var(--accent);
+  font-size: 14px;
+}
+
+.orientation-esg-cards h3 {
+  margin: 10px 0 16px;
+  color: var(--ink-strong);
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.orientation-esg-cards ul {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  gap: 10px;
+  list-style: none;
+  font-size: 17px;
+}
+
+.orientation-principle {
+  margin: 24px 0 0;
+  padding: 18px 0;
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line);
+  font-size: 19px;
+  line-height: 1.5;
+}
+
+.orientation-note, .orientation-researcher {
+  margin: 18px 0 0;
   color: var(--muted);
   font-size: 15px;
   line-height: 1.5;
 }
 
+.orientation-demo {
+  margin-top: 24px;
+}
+
+.orientation-demo > .eyebrow {
+  font-size: 13px;
+}
+
+.orientation-demo-graph {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 58px minmax(0, 1fr) 58px minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.orientation-activity {
+  display: grid;
+  min-width: 0;
+  min-height: 120px;
+  padding: 16px;
+  grid-template-rows: auto 1fr;
+  gap: 12px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.orientation-activity.is-active {
+  border-color: var(--accent);
+}
+
+.orientation-activity > span {
+  color: var(--accent);
+  font-size: 14px;
+}
+
+.orientation-activity h3 {
+  margin: 0;
+  color: var(--ink-strong);
+  font-size: 19px;
+  font-weight: 500;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.orientation-demo-link {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 48px;
+  align-self: center;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-soft);
+}
+
+.orientation-demo-link.is-active {
+  color: var(--accent);
+}
+
+.orientation-demo-link svg {
+  display: block;
+  width: 100%;
+  height: 48px;
+}
+
+.orientation-demo-link > span {
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 18px;
+}
+
+.orientation-demo-link[data-demo-status="none"] > span {
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 26px;
+}
+
+.orientation-demo-pairs {
+  display: flex;
+  margin-top: 18px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+
+.orientation-demo-pairs > span {
+  margin-right: auto;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.orientation-demo-pairs button {
+  min-height: 44px;
+  padding: 8px 4px;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  font-size: 15px;
+}
+
+.orientation-demo-pairs button[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.orientation-demo-question {
+  margin: 18px 0 12px;
+  color: var(--ink-strong);
+  font-size: 19px;
+  font-weight: 500;
+}
+
+.orientation-demo-options {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.orientation-demo-options button {
+  display: grid;
+  min-width: 0;
+  min-height: 72px;
+  padding: 12px 8px;
+  align-content: center;
+  justify-items: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  text-align: center;
+}
+
+.orientation-demo-options b {
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.orientation-demo-options small {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.orientation-demo-options button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.orientation-demo-options button:hover {
+  border-color: var(--accent);
+}
+
+.orientation-demo-feedback {
+  min-height: 72px;
+  margin: 14px 0 0;
+  padding: 14px 16px;
+  border-left: 2px solid var(--accent);
+  background: var(--accent-soft);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
 .orientation-prompt {
-  margin-top: 20px;
+  margin-top: 18px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -223,18 +434,16 @@ html:has(body[data-screen="orientation"]) {
 }
 
 .orientation-prompt > div {
-  max-width: 850px;
-  padding: 0 0 18px;
+  padding: 4px 0 18px;
   font-size: 16px;
   line-height: 1.6;
 }
 
-.orientation-prompt p {
-  margin: 12px 0 0;
-}
-
-.orientation-prompt p:last-child {
-  color: var(--muted);
+.orientation-prompt ol {
+  display: grid;
+  margin: 0;
+  padding-left: 22px;
+  gap: 10px;
 }
 
 .orientation-footer {
@@ -257,6 +466,84 @@ html:has(body[data-screen="orientation"]) {
   flex-shrink: 0;
 }
 
+@container orientation (max-width: 650px) {
+  .orientation-demo-options {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .orientation-demo-graph {
+    grid-template-columns: 1fr;
+  }
+
+  .orientation-activity {
+    min-height: 76px;
+    grid-template-columns: 24px minmax(0, 1fr);
+    grid-template-rows: 1fr;
+    align-items: center;
+  }
+
+  .orientation-demo-link {
+    width: 60px;
+    height: 40px;
+    min-height: 40px;
+    justify-self: center;
+  }
+
+  .orientation-demo-link svg {
+    width: 60px;
+    height: 40px;
+    transform: rotate(90deg);
+  }
+
+  .orientation-demo-link > span {
+    top: 50%;
+    left: calc(50% + 20px);
+    transform: translateY(-50%);
+  }
+
+  .orientation-demo-link[data-demo-status="none"] > span {
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .orientation-esg-cards {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .orientation-esg-cards article {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr);
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .orientation-esg-cards article > span {
+    align-self: center;
+  }
+
+  .orientation-esg-cards h3 {
+    margin: 0;
+  }
+
+  .orientation-esg-cards ul {
+    grid-column: 2;
+    gap: 6px;
+  }
+
+}
+
+@container orientation (max-width: 400px) {
+  .orientation-demo-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .orientation-demo-pairs > span {
+    width: 100%;
+  }
+
+}
+
 @media (max-width: 1000px) and (min-width: 768px) {
   .orientation-tab {
     padding-inline: 10px;
@@ -267,11 +554,18 @@ html:has(body[data-screen="orientation"]) {
   .orientation-tab b {
     font-size: 20px;
   }
+
 }
 
 @media (max-width: 767px) {
+  .orientation-meta {
+    align-items: flex-start;
+  }
+
   .orientation-meta > span {
+    max-width: 50%;
     font-size: 12px;
+    text-align: right;
   }
 
   .orientation-heading h1 {
@@ -286,8 +580,12 @@ html:has(body[data-screen="orientation"]) {
     margin-top: 26px;
   }
 
+  .orientation-tabs {
+    scroll-margin-top: 74px;
+  }
+
   .orientation-tab {
-    min-height: 132px;
+    min-height: 120px;
     padding: 12px 9px;
     grid-template-columns: 1fr;
     gap: 7px;
@@ -308,25 +606,15 @@ html:has(body[data-screen="orientation"]) {
   }
 
   .orientation-panel {
-    min-height: 0;
-    padding-top: 18px;
+    padding-block: 20px;
   }
 
-  .orientation-panel > p {
+  .orientation-panel-title {
+    font-size: 25px;
+  }
+
+  .orientation-panel-lead, .orientation-context, .orientation-purpose p {
     font-size: 16px;
-  }
-
-  .orientation-examples {
-    margin-top: 16px;
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  .orientation-examples li,
-  .orientation-examples li:first-child {
-    padding: 0 0 0 12px;
-    border-left: 1px solid var(--accent);
-    font-size: 17px;
   }
 
   .orientation-pagination {
@@ -341,7 +629,6 @@ html:has(body[data-screen="orientation"]) {
   }
 
   .orientation-question {
-    margin-top: 18px;
     padding: 18px 16px;
   }
 
@@ -349,9 +636,14 @@ html:has(body[data-screen="orientation"]) {
     font-size: 24px;
   }
 
+  .orientation-principle {
+    font-size: 18px;
+  }
+
   .orientation-footer {
     align-items: stretch;
     flex-direction: column;
     gap: 20px;
   }
+
 }
