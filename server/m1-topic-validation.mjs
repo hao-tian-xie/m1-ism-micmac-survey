@@ -1,3 +1,4 @@
+import { expertMatrices, expertSubmissionFields, validateExpertSubmission } from '../expert-protocol.mjs';
 import { toPublicQuestionnaireConfig } from './question-config-model.mjs';
 import { M1_DEFAULT_QUESTIONNAIRE_CONFIG } from './m1-default-question-config.mjs';
 
@@ -173,6 +174,12 @@ export function canonicalTopicSnapshot(context) {
 export function validateM1TopicSubmission(record, context) {
   if (!context || context.ids.length < 2) return 'invalid-topics';
   const ids = context.ids;
+  if (record.protocolVersion !== undefined) {
+    if (!Array.isArray(record.factors) || !topicFactorIdsMatch(record.factors, context.factors)) return 'invalid-factors';
+    if (!topicSnapshotMatches(record.topicSnapshot, context) || !topLevelTopicSnapshotMatches(record, context)) return 'invalid-topic-snapshot';
+    if (record.collectionMethod !== 'guided-source-groups-with-coverage-vt3') return 'invalid-collection-method';
+    return validateExpertSubmission(record, context.factors);
+  }
   const pairs = context.pairs;
   const pairCount = pairs.length;
   if (record.progress?.answered !== pairCount
@@ -231,7 +238,7 @@ export function validateM1TopicSubmission(record, context) {
 }
 
 export function canonicalizeM1TopicFields(record, context) {
-  const next = { ...record };
+  const next = { ...record, ...(record.protocolVersion === 'vt3' ? expertSubmissionFields({ factors: context.factors, assignment: record.assignment, sourceSelections: record.sourceSelections }) : {}) };
   // Topic labels/descriptions are configuration data, not participant input.
   // Persist only the immutable ids; result cards and exports resolve labels
   // from the historical config revision held by the caller.
@@ -248,6 +255,7 @@ export function canonicalizeM1TopicFields(record, context) {
 }
 
 export function directMatrixForM1Submission(record, context) {
+  if (record.protocolVersion === 'vt3') return expertMatrices(context.factors, record.sourceSelections).directInfluenceMatrix;
   const ids = context.ids;
   const indexById = new Map(ids.map((id, index) => [id, index]));
   const matrix = ids.map(() => ids.map(() => 0));

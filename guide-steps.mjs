@@ -23,13 +23,14 @@ const welcomeSteps = [
   { screen: 'welcome', target: '.hero-button', title: 'guideWelcomeTitle', text: 'guideWelcomeText' },
   { screen: 'profile', target: '.profile-form [name="code"]', title: 'guideCodeTitle', text: 'guideCodeText' },
   { screen: 'profile', target: '.profile-form [name="role"]', title: 'guideRoleTitle', text: 'guideRoleText' },
+  { screen: 'profile', target: '[name="task-batch"]', title: 'guideBatchTitle', text: 'assignmentHelp' },
   { screen: 'profile', target: '.profile-form .primary-button', title: 'guideStartTitle', text: 'guideStartText' },
-  { screen: 'qualitative', target: '.qualitative-fields', title: 'guideQualitativeTitle', text: 'guideQualitativeText' },
-  { screen: 'survey', target: '.source-topic', title: 'guideIfTitle', text: 'guideIfText' },
-  { screen: 'survey', target: '.target-fieldset', title: 'guideThenTitle', text: 'guideThenText' },
-  { screen: 'survey', target: '.source-topic p', title: 'guideNotesTitle', text: 'guideNotesText' },
-  { screen: 'survey', target: '.target-list', title: 'guideHoverTitle', text: 'guideHoverText' },
-  { screen: 'survey', target: '.topic-actions .primary-button', title: 'guideNextTitle', text: 'guideNextText' },
+  { screen: 'qualitative', target: '.vt3-context', title: 'guideQualitativeTitle', text: 'guideQualitativeText' },
+  { screen: 'survey', target: '.vt3-source', title: 'guideIfTitle', text: 'guideIfText' },
+  { screen: 'survey', target: '.vt3-targets', title: 'guideThenTitle', text: 'guideThenText' },
+  { screen: 'survey', target: '.vt3-source-meaning', title: 'guideNotesTitle', text: 'guideNotesText' },
+  { screen: 'survey', target: '.vt3-target-group', title: 'guideHoverTitle', text: 'guideHoverText' },
+  { screen: 'survey', target: '.vt3-task-actions .primary-button', title: 'guideNextTitle', text: 'guideNextText' },
   finalQuestionStep,
   stageDirectoryStep,
   finalSubmitStep,
@@ -60,7 +61,7 @@ const localSteps = {
 };
 
 export function guideStepsForScreen(screen, { submitted = false } = {}) {
-  if (screen === 'welcome') return welcomeSteps;
+  if (screen === 'welcome') return [welcomeSteps[0]];
   if (screen === 'complete' && submitted) return [submittedCompleteStep];
   return localSteps[screen] || [];
 }

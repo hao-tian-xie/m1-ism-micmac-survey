@@ -91,48 +91,12 @@ test('public parser keeps complete descriptions including leading/trailing newli
   assert.equal(normalized[0].description.en, description);
 });
 
-test('Section 03 exposes locale/topic keyed page state, trilingual controls, and no scroll clipping', () => {
-  assert.match(app, /const topicDescriptionCache = new Map\(\)/u);
-  assert.match(app, /const key = `\$\{state\.locale\}:\$\{topicId\}`/u);
-  assert.match(app, /descriptionPages/u);
-  assert.match(app, /currentPage/u);
-  assert.match(app, /cached\.currentPage = 0/u);
-  assert.match(app, /topicPagePosition/u);
-  assert.match(app, /previous-topic-page/u);
-  assert.match(app, /next-topic-page/u);
-  assert.match(styles, /source-topic-pagination[\s\S]*?visibility:\s*hidden/u);
-  assert.match(styles, /source-topic-pagination\.is-visible/u);
-  const compactSourceDescriptionRule = styles.match(/body\[data-screen="survey"\]\s+\.source-topic-description p\s*\{[\s\S]*?\}/gu)?.at(-1) || '';
-  assert.match(compactSourceDescriptionRule, /margin:\s*0/u);
-  assert.match(compactSourceDescriptionRule, /white-space:\s*normal/u);
-  const fittedSourceBodyRule = styles.match(/body\[data-screen="survey"\]\s+\.source-topic-body\.is-content-fitted:not\(:has\([^)]*\)\)\s*\{[\s\S]*?\}/u)?.[0] || '';
-  assert.match(fittedSourceBodyRule, /height:\s*auto/u);
-  assert.match(fittedSourceBodyRule, /grid-template-rows:\s*18px\s+4\.4em\s+auto/u);
-  const fittedSourceDescriptionRule = styles.match(/body\[data-screen="survey"\]\s+\.source-topic-body\.is-content-fitted:not\(:has\([^)]*\)\) \.source-topic-description\s*\{[\s\S]*?\}/u)?.[0] || '';
-  assert.match(fittedSourceDescriptionRule, /grid-template-rows:\s*auto\s+0/u);
-  assert.match(fittedSourceDescriptionRule, /gap:\s*0/u);
-  const fittedSourceParagraphRule = styles.match(/body\[data-screen="survey"\]\s+\.source-topic-body\.is-content-fitted:not\(:has\([^)]*\)\) \.source-topic-description p\s*\{[\s\S]*?\}/u)?.[0] || '';
-  assert.match(fittedSourceParagraphRule, /height:\s*auto/u);
-  assert.match(fittedSourceParagraphRule, /align-self:\s*start/u);
-  assert.match(fittedSourceParagraphRule, /padding-block:\s*0/u);
-  assert.match(fittedSourceParagraphRule, /white-space:\s*normal/u);
-  assert.match(styles, /source-topic-pagination:not\(.is-visible\)[\s\S]*?height:\s*0/u);
-  const sourceDescriptionRules = styles.match(/body\[data-screen="survey"\]\s+\.source-topic-description(?:\s*:has\([^)]*\))?\s*\{[\s\S]*?\}/gu) || [];
-  const hiddenSourceDescriptionRule = sourceDescriptionRules.filter((rule) => !rule.includes(':has(')).at(-1) || '';
-  assert.match(hiddenSourceDescriptionRule, /grid-template-rows:\s*minmax\(0,\s*1fr\)\s+0/u);
-  assert.match(hiddenSourceDescriptionRule, /gap:\s*0/u);
-  const visibleSourceDescriptionRule = sourceDescriptionRules.find((rule) => rule.includes(':has(')) || '';
-  assert.match(visibleSourceDescriptionRule, /grid-template-rows:\s*minmax\(0,\s*1fr\)\s+22px/u);
-  assert.match(visibleSourceDescriptionRule, /gap:\s*4px/u);
-  assert.match(styles, /body\[data-screen="survey"\]\s+\.source-topic-pagination\.is-visible\s*\{[\s\S]*?visibility:\s*visible[\s\S]*?pointer-events:\s*auto/u);
-  assert.match(styles, /\.factor-preview p,\s*\.source-topic p\s*\{[\s\S]*?white-space:\s*pre-line/u);
-  assert.match(app, /class="source-topic-description"[\s\S]*?escapeHtml\(source\.description\)/u);
-  assert.doesNotMatch(styles, /body\[data-screen="survey"\]\s+\.source-topic-description\s*\{[^}]*overflow:\s*(?:auto|scroll)/u);
-  assert.doesNotMatch(styles, /body\[data-screen="survey"\]\s+\.source-topic-description\s+p\s*\{[^}]*overflow:\s*(?:auto|scroll)/u);
-  assert.doesNotMatch(styles, /body\[data-screen="survey"\]\s+\.source-topic-body p\s*\{[^}]*-webkit-line-clamp/u);
-  for (const locale of adminLocales) {
-    // The public copy is checked by looking at the rendered-key contract in
-    // the app; admin copy is checked here to keep the test independent of DOM.
-    assert.equal(typeof adminCopy[locale].topicNameSingleLine, 'string');
-  }
+test('vt3 exposes complete explanations in normal flow instead of clipping source text', async () => {
+  const view = await readFile(new URL('../expert-survey-view.mjs', import.meta.url), 'utf8');
+  const styles = await readFile(new URL('../expert-survey.css', import.meta.url), 'utf8');
+  assert.match(view, /local\(factor\.description, locale\)/u);
+  assert.match(view, /managementActivity\(source, locale\)/u);
+  assert.match(styles, /white-space: pre-line/u);
+  assert.match(styles, /height: auto/u);
+  assert.doesNotMatch(styles, /line-clamp/u);
 });

@@ -79,6 +79,7 @@ function sameM1Submission(left, right) {
     'initialReachabilityMatrix', 'directInfluenceMatrix', 'progress',
     'status', 'collectionMethod', 'qualitativeSectionComplete', 'qualitativeAnswers',
     'confirmedTopics', 'sourceSelections', 'questionnaireConfigRevision', 'moduleAnswers',
+    'protocolVersion', 'wordingVersion', 'assignment', 'presentationOrder', 'judgmentStatusMatrix', 'coverage',
   ];
   return topicFactorIdsMatch(left?.factors, right?.factors)
     && fields.every((field) => stableJson(left?.[field]) === stableJson(right?.[field]));
@@ -89,6 +90,7 @@ function sameM1Core(left, right) {
     'schemaVersion', 'studyId', 'locale', 'participant', 'study', 'responses',
     'initialReachabilityMatrix', 'directInfluenceMatrix', 'progress', 'status',
     'confirmedTopics', 'sourceSelections', 'questionnaireConfigRevision', 'moduleAnswers',
+    'protocolVersion', 'wordingVersion', 'assignment', 'presentationOrder', 'judgmentStatusMatrix', 'coverage',
   ];
   return topicFactorIdsMatch(left?.factors, right?.factors)
     && fields.every((field) => stableJson(left?.[field]) === stableJson(right?.[field]));
@@ -163,6 +165,7 @@ function serverResultCard(record, submissionId, receivedAt, topicContext) {
     frozenAt: receivedAt,
     factors,
     directInfluenceMatrix,
+    protocolVersion: submission.protocolVersion, coverage: submission.coverage,
   });
 }
 
@@ -306,6 +309,7 @@ export function createM1SubmissionStore({ dataFile = defaultDataFile() } = {}) {
             directInfluenceMatrix: topicContext
               ? directMatrixForM1Submission(submission, topicContext)
               : submission.directInfluenceMatrix,
+            protocolVersion: submission.protocolVersion, coverage: submission.coverage,
           })
           : null;
         record = { submissionId, receivedAt, resultCard, submission: { ...submission } };
@@ -357,7 +361,7 @@ export function createM1SubmissionHandler(options = {}) {
     const pathname = new URL(request.url, 'http://localhost').pathname;
 
     if (request.method === 'GET' && pathname === HEALTH_PATH) {
-      sendJson(response, 200, { ok: true, service: 'm1-submissions' });
+      sendJson(response, 200, { ok: true, service: 'm1-submissions' }, { 'x-m1-questionnaire-version': 'vt3' });
       return;
     }
 

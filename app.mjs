@@ -6,17 +6,17 @@ import {
   tryWriteStorage,
 } from './survey-core.mjs';
 import { displayTopicName, studyConfig } from './survey-config.mjs?v=topic-definitions-contains-20260908';
-import { copy, languageNames, locales } from './translations.mjs?v=interview-orientation-20261022-v3';
+import { copy, languageNames, locales } from './translations.mjs?v=vt3-20261023-r1';
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
 import { resolveLocale } from './locale-state.mjs';
-import { guideStepsForScreen } from './guide-steps.mjs?v=interview-orientation-20261022-v3';
-import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs?v=interview-orientation-20261022-v3';
+import { guideStepsForScreen } from './guide-steps.mjs?v=vt3-20261023-r1';
+import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs?v=vt3-20261023-r1';
 import {
   clampIndex,
   confirmTopicTransition,
   previousAfterTopicQuestion,
   previousBeforeTopicQuestion,
-} from './m1-state-transitions.mjs?v=interview-orientation-20261022-v3';
+} from './m1-state-transitions.mjs?v=vt3-20261023-r1';
 import { joinTopicTextPages, splitTopicTextByFit, topicNodeFits } from './topic-pagination.mjs';
 import {
   FALLBACK_PUBLIC_QUESTIONNAIRE,
@@ -26,17 +26,22 @@ import {
   moduleAnswerError,
   normalizeModuleValue,
   serializeModuleAnswer,
-} from './public-questionnaire.mjs?v=interview-orientation-20261022-v3';
-import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=interview-orientation-20261022-v3';
+} from './public-questionnaire.mjs?v=vt3-20261023-r1';
+import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=vt3-20261023-r1';
 import {
   ORIENTATION_DEMO_VALUES,
   orientationContent,
   orientationDemoFeedback,
   renderInterviewOrientation,
   renderOrientationDemo,
-} from './interview-orientation.mjs?v=interview-orientation-20261022-v3';
+} from './interview-orientation.mjs?v=vt3-20261023-r1';
 
-const STORAGE_KEY_BASE = `bextools:${studyConfig.id}:${studyConfig.version}`;
+const STORAGE_KEY_BASE = `bextools:${studyConfig.id}:${studyConfig.version}:vt3`;
+
+import { blankSourceJudgment, expertMatrices, expertSubmissionFields, sourceAssignment, sourceJudgmentError, targetGroups, topicGroup } from './expert-protocol.mjs?v=vt3-20261023-r1';
+import { managementActivity } from './management-activities.mjs?v=vt3-20261023-r1';
+import { vt3Copy, expertErrorKey } from './vt3-copy.mjs?v=vt3-20261023-r1';
+import { renderExpertSurvey, renderExpertReview } from './expert-survey-view.mjs?v=vt3-20261023-r1';
 const NONE_VALUE = '__none__';
 let factors = studyConfig.factors;
 let factorIds = factors.map((factor) => factor.id);
@@ -180,6 +185,12 @@ function moduleVersions() {
 function blankState(locale = preferredLocale()) {
   return {
     locale,
+    protocolVersion: 'vt3',
+    assignment: sourceAssignment(factors, Number(new URLSearchParams(window.location.search).get('batch'))),
+    sourceJudgments: {},
+    startingSourceId: '',
+    taskError: '',
+    confirmReset: false,
     screen: 'orientation',
     participant: { code: '', role: '', experience: '' },
     answers: {},
@@ -232,6 +243,8 @@ function loadState() {
         && savedTopicIds.every((id, index) => id === factorIds[index]));
     if (!revisionMatches || !topicIdsMatch) return blankState();
 
+    if (saved.protocolVersion !== 'vt3' && !saved.submissionId) return blankState();
+    const assignment = sourceAssignment(factors, saved.assignment?.batch);
     const answers = saved.answers || {};
     const factorSelections = Object.fromEntries(factorIds.map((sourceId) => {
       const stored = saved.factorSelections?.[sourceId];
@@ -262,11 +275,27 @@ function loadState() {
       ...next.participant,
       ...(saved.participant && typeof saved.participant === 'object' ? saved.participant : {}),
     };
+    next.assignment = assignment;
+    next.startingSourceId = assignment?.sourceIds.includes(saved.startingSourceId) ? saved.startingSourceId : '';
+    next.sourceJudgments = {};
+    if (assignment && saved.sourceJudgments && typeof saved.sourceJudgments === 'object') {
+      for (const id of assignment.sourceIds) {
+        const row = saved.sourceJudgments[id];
+        if (!row || row.sourceId !== id || !Array.isArray(row.targetIds)) continue;
+        next.sourceJudgments[id] = {
+          sourceId: id, status: row.status || '', targetIds: validTargetIds(id, row.targetIds),
+          groupReviews: Object.fromEntries(targetGroups(factors, id).map((group) => [group, row.groupReviews?.[group] || ''])),
+          ...(row.explanation && validTargetIds(id, row.targetIds).includes(row.explanation.targetId) ? {
+            explanation: { targetId: row.explanation.targetId, note: String(row.explanation.note || '').slice(0, 800), reverse: row.explanation.reverse || 'not_asked' },
+          } : {}),
+        };
+      }
+    }
     next.answers = answers;
     next.factorSelections = factorSelections;
     next.noInfluenceFactors = noInfluenceFactors;
-    next.reviewedFactors = reviewedFactors;
-    next.currentIndex = Math.min(Math.max(Number(saved.currentIndex) || 0, 0), factors.length - 1);
+    next.reviewedFactors = assignment ? assignment.sourceIds.filter((id) => reviewedFactors.includes(id) && !sourceJudgmentError(next.sourceJudgments[id], factors)) : [];
+    next.currentIndex = clampIndex(Number(saved.currentIndex) || 0, assignment?.sourceIds.length || 1);
     next.qualitativeIndex = Math.min(
       Math.max(Number(saved.qualitativeIndex) || 0, 0),
       Math.max(0, beforeTopicModules().length - 1),
@@ -314,7 +343,7 @@ let sourceTopicPagination = null;
 const topicDescriptionCache = new Map();
 
 function t(key, values = {}) {
-  const template = copy[state.locale][key] || copy.en[key] || key;
+  const template = vt3Copy[state.locale]?.[key] || copy[state.locale][key] || vt3Copy.en[key] || copy.en[key] || key;
   return Object.entries(values).reduce(
     (result, [name, value]) => result.replaceAll(`{${name}}`, String(value)),
     template,
@@ -327,11 +356,10 @@ function localeText(value) {
 }
 
 function moduleCopy(module) {
-  return module.translations?.[state.locale] || module.translations?.en || {
-    prompt: module.id,
-    helpText: '',
-    placeholder: '',
-  };
+  const localized = module.translations?.[state.locale] || module.translations?.en || {};
+  const legacy = questionnaireConfig.revision === 0 && module.version === 1
+    && /^q[1-7]$/.test(module.id) && module.type === 'subjective_text';
+  return { ...localized, ...(legacy ? { prompt: t(`qualitativeQ${module.id.slice(1)}`) } : {}) };
 }
 
 function optionLabel(option) {
@@ -377,12 +405,19 @@ function escapeAttribute(value) {
   return escapeHtml(value);
 }
 
+function taskFactors() {
+  const ids = state.assignment?.sourceIds || [];
+  const ordered = ids.includes(state.startingSourceId) ? [state.startingSourceId, ...ids.filter((id) => id !== state.startingSourceId)] : ids;
+  return ordered.map((id) => factors.find((factor) => factor.id === id)).filter(Boolean);
+}
+function currentSource() { return taskFactors()[state.currentIndex]; }
+function sourceRow(id) { return state.sourceJudgments[id] || blankSourceJudgment(factors, id); }
 function reviewedCount() {
-  return state.reviewedFactors.length;
+  return taskFactors().filter((factor) => state.reviewedFactors.includes(factor.id) && !sourceJudgmentError(sourceRow(factor.id), factors)).length;
 }
 
 function allTopicsReviewed() {
-  return reviewedCount() === factors.length;
+  return Boolean(state.assignment && reviewedCount() === state.assignment.sourceIds.length);
 }
 
 function firstInvalidBeforeTopicModule() {
@@ -408,7 +443,7 @@ function stageNavigationState() {
 }
 
 function progressPercent() {
-  return factors.length ? Math.round((reviewedCount() / factors.length) * 100) : 0;
+  return state.assignment?.sourceIds.length ? Math.round(reviewedCount() / state.assignment.sourceIds.length * 100) : 0;
 }
 
 function directLinkCount() {
@@ -425,7 +460,7 @@ function factorFor(id) {
 }
 
 function selectedTargets(sourceId) {
-  return validTargetIds(sourceId, state.factorSelections[sourceId]);
+  return validTargetIds(sourceId, state.sourceJudgments[sourceId]?.targetIds);
 }
 
 function createClientSubmissionId() {
@@ -443,7 +478,7 @@ function createClientSubmissionId() {
 }
 
 function hasExplicitNone(sourceId) {
-  return state.noInfluenceFactors.includes(sourceId);
+  return state.sourceJudgments[sourceId]?.status === 'none';
 }
 
 function persistedSnapshot() {
@@ -452,6 +487,9 @@ function persistedSnapshot() {
   if (state.submissionId) {
     return JSON.stringify({
       locale: state.locale,
+      protocolVersion: 'vt3',
+      questionnaireConfigRevision: questionnaireConfig.revision,
+      topicSnapshot: topicSnapshot(),
       submissionId: state.submissionId,
       completedAt: state.completedAt,
       resultCard: state.resultCard,
@@ -749,7 +787,7 @@ function navigateToStage(targetStage) {
 
   if (targetStage === 'survey') {
     state.currentIndex = navigationState.surveyComplete
-      ? Math.min(state.currentIndex, factors.length - 1)
+      ? Math.min(state.currentIndex, taskFactors().length - 1)
       : firstUnreviewedIndex();
     goTo('survey');
     return;
@@ -765,8 +803,8 @@ function navigateToStage(targetStage) {
 }
 
 function navigateToTopic(index) {
-  if (state.screen !== 'survey' || !Number.isInteger(index) || !factors[index]) return;
-  const factor = factors[index];
+  if (state.screen !== 'survey' || !Number.isInteger(index) || !taskFactors()[index]) return;
+  const factor = taskFactors()[index];
   if (!topicIsAvailable(index, state.currentIndex, state.reviewedFactors, factor.id)) return;
   state.currentIndex = index;
   persist();
@@ -952,15 +990,15 @@ function renderStepper() {
     `;
   }).join('');
   const topicDirectory = state.screen === 'survey' ? `
-    <nav class="topic-index" aria-label="${escapeAttribute(t('topicDirectoryLabel', { total: factors.length }))}">
+    <nav class="topic-index" aria-label="${escapeAttribute(t('taskDirectory'))}">
       <div class="topic-index-heading">
         <span class="topic-index-step">03</span>
-        <span class="topic-index-title">${escapeHtml(t('topicDirectoryLabel', { total: factors.length }))}</span>
-        <strong aria-live="polite">${escapeHtml(t('topicPosition', { i: state.currentIndex + 1, total: factors.length }))}</strong>
+        <span class="topic-index-title">${escapeHtml(t('taskDirectory'))}</span>
+        <strong aria-live="polite">${escapeHtml(t('topicPosition', { i: state.currentIndex + 1, total: taskFactors().length }))}</strong>
       </div>
-      <p class="topic-index-hint">${escapeHtml(t('topicDirectoryHint'))}</p>
+      <p class="topic-index-hint">${escapeHtml(t('taskDirectoryHelp'))}</p>
       <div class="topic-index-grid">
-        ${factors.map((factor, index) => {
+        ${taskFactors().map((factor, index) => {
           const number = String(index + 1).padStart(2, '0');
           const isActive = index === state.currentIndex;
           const isDone = state.reviewedFactors.includes(factor.id);
@@ -994,7 +1032,7 @@ function renderStepper() {
           <span>${escapeHtml(t('progressLabel'))}</span>
           <b data-progress-percent>${progressPercent()}%</b>
         </div>
-        <progress class="native-progress" max="${factors.length}" value="${reviewedCount()}" aria-label="${escapeHtml(t('progressLabel'))}"></progress>
+        <progress class="native-progress" max="${taskFactors().length}" value="${reviewedCount()}" aria-label="${escapeHtml(t('progressLabel'))}"></progress>
       </div>
       ${topicDirectory}
     </aside>
@@ -1033,7 +1071,7 @@ function renderWelcome() {
     const cards = categoryFactors.map((factor) => `
       <details class="factor-preview">
         <summary><span>${escapeHtml(factor.id)}</span><b>${escapeHtml(activeFactorLabel(factor, state.locale))}</b><i aria-hidden="true">+</i></summary>
-        <p>${escapeHtml(activeFactorDescription(factor, state.locale))}</p>
+        <p><b>${escapeHtml(managementActivity(factor, state.locale).title)}</b></p><p>${escapeHtml(managementActivity(factor, state.locale).meaning)}</p><p>${escapeHtml(managementActivity(factor, state.locale).example)}</p><p>${escapeHtml(activeFactorDescription(factor, state.locale))}</p>
       </details>
     `).join('');
     return `
@@ -1052,9 +1090,10 @@ function renderWelcome() {
           <h1 data-page-title tabindex="-1">${escapeHtml(t('heroTitle'))}</h1>
           <div class="scope-card">
             <span>${escapeHtml(t('scopeLabel'))}</span>
-            <p>${escapeHtml(localeText(studyConfig.scope))}</p>
+            <p>${escapeHtml(t('studyScope'))}</p>
           </div>
 
+          <p class="vt3-welcome-method">${escapeHtml(t('welcomeMethod'))}</p><p>${escapeHtml(t('welcomeCoverage'))}</p><p>${escapeHtml(t('welcomeTime'))}</p>
           <div class="study-stats" aria-label="${escapeHtml(t('overviewLabel'))}">
             <span class="study-summary">${escapeHtml(t('minutesUnit', {
               topicCount: factors.length,
@@ -1091,7 +1130,7 @@ function renderOrientation() {
 function renderProfile() {
   const codeHasError = state.showValidation && !state.participant.code.trim();
   const roleHasError = state.showValidation && !state.participant.role;
-  const hasError = codeHasError || roleHasError;
+  const hasError = codeHasError || roleHasError || (state.showValidation && !state.assignment);
   const roleOptions = roleKeys.map((key) => `
     <option value="${key}" ${state.participant.role === key ? 'selected' : ''}>${escapeHtml(t(key))}</option>
   `).join('');
@@ -1128,7 +1167,20 @@ function renderProfile() {
           <div class="radio-grid">${experiences}</div>
         </fieldset>
 
-        ${hasError ? `<p class="form-error" id="profile-error" role="alert">${escapeHtml(t('requiredMessage'))}</p>` : ''}
+
+        <label class="field-group vt3-assignment">
+          <span>${escapeHtml(t('assignmentLabel'))}<em>*</em></span>
+          <select name="task-batch" required aria-required="true" aria-invalid="${state.showValidation && !state.assignment}" aria-describedby="assignment-help" ${Object.keys(state.sourceJudgments).length ? 'disabled' : ''}>
+            <option value="">${escapeHtml(t('assignmentPlaceholder'))}</option>
+            ${Array.from({ length: 10 }, (_, index) => { const batch = index + 1; return `<option value="${batch}" ${state.assignment?.batch === batch ? 'selected' : ''}>${escapeHtml(t('assignmentOption', { n: String(batch).padStart(2, '0'), count: Math.min(12, factors.length) }))}</option>`; }).join('')}
+          </select>
+          <small id="assignment-help">${escapeHtml(t(Object.keys(state.sourceJudgments).length ? 'assignmentLocked' : 'assignmentHelp'))}</small>
+        </label>
+        ${state.assignment ? `<label class="field-group"><span>${escapeHtml(t('firstSourceLabel'))}</span><select name="first-source" ${Object.keys(state.sourceJudgments).length ? 'disabled' : ''}><option value="">${escapeHtml(t('firstSourceDefault'))}</option>${state.assignment.sourceIds.map((id) => `<option value="${id}" ${state.startingSourceId === id ? 'selected' : ''}>${escapeHtml(id)} · ${escapeHtml(managementActivity(factors.find((factor) => factor.id === id), state.locale).title)}</option>`).join('')}</select><small>${escapeHtml(t('firstSourceHelp'))}</small></label>` : ''}
+        ${state.assignment ? `<details class="vt3-assignment-preview"><summary>${escapeHtml(t('assignmentPreview'))}</summary><ol>${taskFactors().map((factor) => `<li>${escapeHtml(factor.id)} · ${escapeHtml(managementActivity(factor, state.locale).title)}</li>`).join('')}</ol></details>` : ''}
+        ${Object.keys(state.sourceJudgments).length ? `<button type="button" class="text-button" data-action="reset-draft">${escapeHtml(t(state.confirmReset ? 'resetDraftConfirm' : 'resetDraft'))}</button>` : ''}
+
+        ${hasError ? `<p class="form-error" id="profile-error" role="alert">${escapeHtml(t('profileError'))}</p>` : ''}
 
         <div class="form-actions">
           <button class="text-button" type="button" data-action="back-welcome"><span aria-hidden="true">←</span>${escapeHtml(t('back'))}</button>
@@ -1190,95 +1242,12 @@ function topicGridStyle() {
 }
 
 function renderSurvey() {
-  const source = factorFor(factors[state.currentIndex].id);
-  const targets = factors
-    .filter((factor) => factor.id !== source.id)
-    .map((factor) => factorFor(factor.id));
-  const noneSelected = hasExplicitNone(source.id);
-  const hasChoice = selectedTargets(source.id).length > 0 || noneSelected;
-  const isLast = state.currentIndex === factors.length - 1;
-  const legacyQ7Finish = afterTopicModules().length === 1 && afterTopicModules()[0].id === 'q7';
-  const finishLabel = legacyQ7Finish
-    ? t('confirmAndSubmit')
-    : (afterTopicModules().length ? t('continueAfterTopics') : t('submitResponse'));
-  const topicNotes = targets.map((target) => `
-    <li><b>${escapeHtml(target.id)} · ${escapeHtml(target.label)}</b><span>${escapeHtml(target.description)}</span></li>
-  `).join('');
-  return renderShell(`
-    <div class="survey-page topic-survey">
-      <header class="survey-topline">
-        <p class="eyebrow">${escapeHtml(t('surveyEyebrow'))}</p>
-      </header>
-
-      <div class="topic-workspace">
-        <section class="source-topic" aria-labelledby="source-topic-name">
-          <span class="topic-kicker">${escapeHtml(t('ifLabel'))}</span>
-          <div class="source-topic-main">
-            <div class="source-topic-head">
-              <div class="source-topic-body" data-source-topic-body data-source-topic-id="${escapeAttribute(source.id)}">
-                <span class="source-code">${source.id}</span>
-                <h2 id="source-topic-name" data-source-topic-title>${escapeHtml(source.label)}</h2>
-                <div class="source-topic-description" data-source-topic-description>
-                  <p>${escapeHtml(source.description)}</p>
-                  <div class="source-topic-pagination" data-topic-description-pagination aria-hidden="true">
-                    <button class="icon-button" type="button" data-action="previous-topic-page" aria-label="${escapeAttribute(t('topicPagePrevious'))}" title="${escapeAttribute(t('topicPagePrevious'))}" disabled>←</button>
-                    <span data-topic-description-page aria-live="polite">${escapeHtml(t('topicPagePosition', { i: 1, total: 1 }))}</span>
-                    <button class="icon-button" type="button" data-action="next-topic-page" aria-label="${escapeAttribute(t('topicPageNext'))}" title="${escapeAttribute(t('topicPageNext'))}" disabled>→</button>
-                  </div>
-                </div>
-              </div>
-              <div class="source-progress">
-                <div class="source-progress-copy">
-                  <span class="pair-position">${escapeHtml(t('topicPosition', { i: state.currentIndex + 1, total: factors.length }))}</span>
-                </div>
-                <progress max="${factors.length}" value="${reviewedCount()}" aria-label="${escapeHtml(t('progressLabel'))}"></progress>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section class="topic-decision">
-          <div class="topic-question">
-            <div class="topic-question-line">
-              <span class="question-kicker">${escapeHtml(t('thenLabel'))}</span>
-              <h1 data-page-title tabindex="-1">${escapeHtml(t('topicQuestion'))}</h1>
-            </div>
-            <p class="choice-hint" id="choice-help">${escapeHtml(t('selectTargets'))}</p>
-          </div>
-
-          <fieldset class="target-fieldset" aria-describedby="choice-help">
-            <legend class="visually-hidden">${escapeHtml(t('targetLegend'))}</legend>
-            <div class="target-list" style="${topicGridStyle()}">
-              ${targets.map((target) => targetOption(source, target)).join('')}
-              <label class="target-option none-option ${noneSelected ? 'is-selected' : ''}">
-                <input type="checkbox" name="direct-target" value="${NONE_VALUE}" data-source-id="${source.id}" ${noneSelected ? 'checked' : ''} />
-                <span class="target-code">—</span>
-                <span class="target-copy">
-                  <strong>${escapeHtml(t('noneOption'))}</strong>
-                </span>
-              </label>
-            </div>
-          </fieldset>
-        </section>
-      </div>
-
-      <div class="survey-actions topic-actions">
-        <button class="text-button" type="button" data-action="previous-topic" ${state.currentIndex === 0 ? 'disabled' : ''}>
-          <span aria-hidden="true">←</span>${escapeHtml(t('previousTopic'))}
-        </button>
-        <button class="text-button topic-notes-toggle" type="button" data-action="toggle-topic-notes" aria-controls="topic-notes" aria-expanded="false">
-          <span aria-hidden="true">i</span>${escapeHtml(t('topicNotesButton'))}
-        </button>
-        <button class="primary-button" type="button" data-action="confirm-topic" ${hasChoice ? '' : 'disabled'}>
-          ${escapeHtml(isLast ? finishLabel : t('confirmAndNext'))}<span aria-hidden="true">→</span>
-        </button>
-      </div>
-      <section class="topic-notes" id="topic-notes" aria-label="${escapeAttribute(t('candidateNotes'))}" hidden tabindex="-1">
-        <h2>${escapeHtml(t('candidateNotes'))}</h2>
-        <ul>${topicNotes}</ul>
-      </section>
-    </div>
-  `, 'survey-shell');
+  const source = currentSource();
+  if (!source) return renderProfile();
+  return renderShell(renderExpertSurvey({
+    factors, sourceId: source.id, row: sourceRow(source.id), locale: state.locale, t,
+    position: state.currentIndex + 1, total: taskFactors().length, error: state.taskError,
+  }), 'vt3-shell');
 }
 
 function answerErrorText(module, errorCode) {
@@ -1437,12 +1406,23 @@ function renderWrittenQuestionScreen({ final = false } = {}) {
 }
 
 function renderQualitative() {
-  return renderWrittenQuestionScreen();
+  const modules = beforeTopicModules();
+  return renderShell(`<div class="vt3-page vt3-context"><header class="vt3-page-heading"><p class="eyebrow">${escapeHtml(t('versionLabel'))}</p><h1 data-page-title tabindex="-1">${escapeHtml(t('qualitativeTitle'))}</h1><p>${escapeHtml(t('qualitativeIntro'))}</p></header><p class="qualitative-privacy">${escapeHtml(t('qualitativePrivacy'))}</p><form id="qualitative-form" novalidate>
+    ${modules.map((module, index) => index === 0 || module.required ? renderModuleField(module, index + 1) : `<details class="vt3-context-extra" ${state.questionValidationId === module.id ? 'open' : ''}><summary>${escapeHtml(moduleCopy(module).prompt)}</summary>${renderModuleField(module, index + 1)}</details>`).join('')}
+    <div class="form-actions"><button class="text-button" type="button" data-action="stage-nav" data-stage="profile">← ${escapeHtml(t('back'))}</button><button class="primary-button" type="submit">${escapeHtml(t('contextContinue'))} →</button></div></form></div>`, 'vt3-shell');
 }
 
 function renderComplete() {
   const submitted = Boolean(state.submissionId);
-  if (!submitted) return renderWrittenQuestionScreen({ final: true });
+  if (!submitted) {
+    let coverage = null;
+    try { coverage = expertMatrices(factors, taskFactors().map(({ id }) => sourceRow(id))).coverage; } catch { /* conflict shown on review */ }
+    return renderShell(renderExpertReview({ factors, assignment: { ...state.assignment, sourceIds: taskFactors().map(({ id }) => id) }, rows: taskFactors().map(({ id }) => sourceRow(id)), reviewedIds: state.reviewedFactors, coverage, locale: state.locale, t,
+      moduleFields: afterTopicModules().map((module) => renderModuleField(module, moduleGlobalPosition(module))).join(''),
+      valid: allTopicsReviewed() && Boolean(coverage), submitting: state.submitState === 'submitting',
+      errorHtml: state.submitState === 'error' ? `<p class="submit-error" role="alert">${escapeHtml(t('submitError'))}</p>` : (!coverage ? `<p role="alert">${escapeHtml(t('errorReverse'))}</p>` : ''),
+    }), 'vt3-shell');
+  }
 
   return renderShell(`
     <div class="complete-page">
@@ -1483,14 +1463,14 @@ function render() {
     complete: renderComplete,
   }[state.screen]();
   detachTopicDefinitionHints = state.screen === 'survey'
-    ? attachTopicDefinitionHints(document.querySelector('.target-list'))
+    ? () => {}
     : () => {};
   renderGuide();
-  if (state.screen === 'survey') requestAnimationFrame(fitTopicSourceSlot);
+  // vt3 keeps descriptions in normal document flow; no fixed-slot fitting is needed.
 }
 
 function profileIsReady() {
-  return Boolean(state.participant.code.trim() && state.participant.role);
+  return Boolean(state.participant.code.trim() && state.participant.role && state.assignment);
 }
 
 function updateProfileValidation() {
@@ -1505,14 +1485,14 @@ function updateProfileValidation() {
   roleSelect?.setAttribute('aria-invalid', String(!roleIsValid));
   if (roleIsValid) roleSelect?.removeAttribute('aria-describedby');
   else roleSelect?.setAttribute('aria-describedby', 'profile-error');
-  if (codeIsValid && roleIsValid) {
+  if (codeIsValid && roleIsValid && state.assignment) {
     state.showValidation = false;
     document.querySelector('#profile-error')?.remove();
   }
 }
 
 function firstUnreviewedIndex() {
-  const index = factors.findIndex((factor) => !state.reviewedFactors.includes(factor.id));
+  const index = taskFactors().findIndex((factor) => !state.reviewedFactors.includes(factor.id));
   return index < 0 ? 0 : index;
 }
 
@@ -1546,120 +1526,40 @@ function updateSurveySelectionUi(sourceId) {
 }
 
 function confirmCurrentTopic() {
-  const source = factors[state.currentIndex];
+  const source = currentSource();
   if (!source) return;
-  const sourceId = source.id;
-  const selected = selectedTargets(sourceId);
-  if (!selected.length && !hasExplicitNone(sourceId)) return;
-
-  state.answers = applySourceSelections(state.answers, pairs, sourceId, selected);
-  const isLastTopic = state.currentIndex >= factors.length - 1;
-  const transition = confirmTopicTransition({
-    currentIndex: state.currentIndex,
-    total: factors.length,
-    hasAfterTopics: afterTopicModules().length > 0,
-    reviewedIds: state.reviewedFactors,
-    currentId: sourceId,
-    isLastTopic,
-  });
-  state.reviewedFactors = factorIds.filter((id) => transition.reviewedIds.includes(id));
+  const row = sourceRow(source.id);
+  state.taskError = sourceJudgmentError(row, factors) || '';
+  if (!state.taskError) {
+    try { expertMatrices(factors, [...taskFactors().filter(({ id }) => id !== source.id && state.reviewedFactors.includes(id)).map(({ id }) => sourceRow(id)), row]); }
+    catch (error) { state.taskError = error.message; }
+  }
+  if (state.taskError) { render(); document.querySelector('#task-validation')?.scrollIntoView({ block: 'center' }); return; }
+  state.sourceJudgments[source.id] = row;
+  state.reviewedFactors = state.assignment.sourceIds.filter((id) => id === source.id || state.reviewedFactors.includes(id));
+  const transition = confirmTopicTransition({ currentIndex: state.currentIndex, total: taskFactors().length,
+    hasAfterTopics: true, reviewedIds: state.reviewedFactors, currentId: source.id });
   state.currentIndex = transition.currentIndex;
-  if (!isLastTopic) {
-    persist({ immediate: true });
-    render();
-    pageTop();
-    focusPageHeading();
-    return;
-  }
-  if (transition.screen === 'complete') {
-    state.afterTopicsIndex = Math.min(state.afterTopicsIndex, Math.max(0, afterTopicModules().length - 1));
-    persist({ immediate: true });
-    goTo('complete');
-    return;
-  }
   persist({ immediate: true });
-  if (transition.screen === 'submit') {
-    void submitResponse();
-    return;
-  }
-  render();
-  pageTop();
-  focusPageHeading();
+  goTo(transition.screen === 'complete' ? 'complete' : 'survey');
 }
 
 function buildCurrentSubmission() {
-  const participant = {
-    code: state.participant.code.trim(),
-    role: state.participant.role ? t(state.participant.role) : '',
-    roleCode: state.participant.role,
-    experience: state.participant.experience ? t(state.participant.experience) : '',
-    experienceCode: state.participant.experience,
-  };
-  const compactPairRows = questionnaireConfig.revision !== 0
-    || Array.isArray(questionnaireConfig.topics);
-  const submission = buildSubmission({
-    studyId: studyConfig.id,
-    locale: state.locale,
-    participant,
-    factors: localisedActiveFactors(state.locale),
-    answers: state.answers,
-    // Revision 0 retains the historical labelled pair rows. Once a public
-    // topic snapshot is loaded, the server can canonicalize labels from that
-    // immutable snapshot; omitting repeated names keeps the 40-topic body
-    // below the submission limit.
-    includeResponseLabels: !compactPairRows,
-    submittedAt: new Date().toISOString(),
-  });
   const loadedTopicSnapshot = topicSnapshot();
-  const responses = compactPairRows
-    ? submission.responses.map((response) => ({
-      pairId: response.pairId,
-      leftId: response.leftId,
-      rightId: response.rightId,
-      relation: response.relation,
-      leftToRight: response.leftToRight,
-      rightToLeft: response.rightToLeft,
-      ...(response.note ? { note: response.note } : {}),
-    }))
-    : submission.responses;
-
+  const { responses, initialReachabilityMatrix, directInfluenceMatrix, judgmentStatusMatrix, ...expertFields } = expertSubmissionFields({ factors, assignment: state.assignment, sourceSelections: state.assignment.sourceIds.map((id) => sourceRow(id)) });
   return {
-    ...submission,
-    // The loaded revision and topic snapshot are the source of truth for
-    // labels/descriptions.  Sending only ordered stable ids keeps a 40-topic
-    // submission bounded and lets the server canonicalize historical text.
-    factors: factorIds.map((id) => ({ id })),
-    responses,
-    clientSubmissionId: state.clientSubmissionId,
-    status: 'complete',
-    collectionMethod: 'source-topic-multi-select-plus-qualitative-v2',
-    qualitativeSectionComplete: true,
-    qualitativeAnswers: legacyQualitativeAnswers(questionModules, state.moduleAnswers),
-    questionnaireConfigRevision: questionnaireConfig.revision,
-    topicSnapshot: loadedTopicSnapshot,
-    topicSnapshotId: loadedTopicSnapshot.snapshotId,
-    topicRevision: loadedTopicSnapshot.revision,
-    topicIds: [...loadedTopicSnapshot.ids],
-    moduleAnswers: questionModules.map((module) => (
-      serializeModuleAnswer(module, state.moduleAnswers[module.id])
-    )),
-    confirmedTopics: {
-      ids: [...state.reviewedFactors],
-      total: factors.length,
-      complete: allTopicsReviewed(),
-    },
-    sourceSelections: factorIds.map((sourceId) => ({
-      sourceId,
-      targetIds: selectedTargets(sourceId),
-      noDirectInfluence: hasExplicitNone(sourceId),
-    })),
-    study: {
-      title: localeText(studyConfig.title),
-      scope: localeText(studyConfig.scope),
-      factorVersion: studyConfig.version,
-      relationDefinition: t('directOnly'),
-      coding: { V: 'i→j', A: 'j→i', X: 'i↔j', O: 'no direct influence' },
-    },
+    schemaVersion: 1, studyId: studyConfig.id, locale: state.locale, submittedAt: new Date().toISOString(),
+    participant: { code: state.participant.code.trim(), role: t(state.participant.role), roleCode: state.participant.role,
+      experience: state.participant.experience ? t(state.participant.experience) : '', experienceCode: state.participant.experience },
+    ...expertFields,
+    presentationOrder: taskFactors().map(({ id }) => id),
+    factors: factorIds.map((id) => ({ id })), clientSubmissionId: state.clientSubmissionId, status: 'complete',
+    collectionMethod: 'guided-source-groups-with-coverage-vt3', qualitativeSectionComplete: true,
+    questionnaireConfigRevision: questionnaireConfig.revision, topicSnapshot: loadedTopicSnapshot,
+    topicSnapshotId: loadedTopicSnapshot.snapshotId, topicRevision: loadedTopicSnapshot.revision, topicIds: [...factorIds],
+    moduleAnswers: questionModules.map((module) => serializeModuleAnswer(module, state.moduleAnswers[module.id])),
+    study: { title: localeText(studyConfig.title), scope: t('studyScope'), factorVersion: studyConfig.version,
+      relationDefinition: t('relationRule'), coding: { V: 'i→j', A: 'j→i', X: 'i↔j', O: 'no clear support in either direction', U: 'unjudged; null' } },
   };
 }
 
@@ -1693,7 +1593,7 @@ function validateModule(module) {
 
 function isResultCard(value, submissionId = '') {
   return value && typeof value === 'object'
-    && value.version === 'm1-direct-structure-card-v1'
+    && value.version === 'm1-expert-observations-vt3'
     && (!submissionId || value.submissionId === submissionId)
     && typeof value.frozenAt === 'string'
     && value.topicCount === factors.length
@@ -1704,6 +1604,7 @@ function isResultCard(value, submissionId = '') {
 
 async function submitResponse() {
   if (!allTopicsReviewed() || state.submitState === 'submitting') return;
+  try { expertMatrices(factors, state.assignment.sourceIds.map((id) => sourceRow(id))); } catch { state.taskError = 'reverse-conflict'; render(); return; }
   if (!beforeTopicModulesAreValid()) {
     const invalid = firstInvalidBeforeTopicModule();
     if (invalid) showModuleValidation(invalid, moduleAnswerError(invalid, state.moduleAnswers[invalid.id]));
@@ -1791,7 +1692,7 @@ guideOverlay?.addEventListener('keydown', (event) => {
 });
 window.addEventListener('resize', () => {
   positionGuide();
-  if (state.screen === 'survey') requestAnimationFrame(fitTopicSourceSlot);
+  // vt3 keeps descriptions in normal document flow; no fixed-slot fitting is needed.
 });
 window.addEventListener('scroll', positionGuide, { passive: true });
 window.addEventListener('pagehide', flushPersist);
@@ -1807,14 +1708,8 @@ app.addEventListener('submit', (event) => {
     if (!validateModule(module)) return;
     state.questionValidationId = '';
     state.questionValidationError = '';
-    if (index < modules.length - 1) {
-      state.qualitativeIndex += 1;
-      persist({ immediate: true });
-      render();
-      pageTop();
-      focusPageHeading();
-      return;
-    }
+    const invalid = firstInvalidBeforeTopicModule();
+    if (invalid) { showModuleValidation(invalid, moduleAnswerError(invalid, state.moduleAnswers[invalid.id])); return; }
     state.qualitativeSectionComplete = true;
     state.currentIndex = firstUnreviewedIndex();
     persist({ immediate: true });
@@ -1830,14 +1725,8 @@ app.addEventListener('submit', (event) => {
     if (!validateModule(module)) return;
     state.questionValidationId = '';
     state.questionValidationError = '';
-    if (index < modules.length - 1) {
-      state.afterTopicsIndex += 1;
-      persist({ immediate: true });
-      render();
-      pageTop();
-      focusPageHeading();
-      return;
-    }
+    const invalid = firstInvalidModule(modules);
+    if (invalid) { showModuleValidation(invalid, moduleAnswerError(invalid, state.moduleAnswers[invalid.id])); return; }
     persist({ immediate: true });
     void submitResponse();
     return;
@@ -1870,6 +1759,12 @@ app.addEventListener('input', (event) => {
     persistSoon();
     return;
   }
+  if (event.target.name === 'relationship-explanation') {
+    const id = event.target.dataset.sourceId;
+    const row = state.sourceJudgments[id];
+    if (row?.explanation) { row.explanation.note = event.target.value; markCurrentTopicPending(id); persistSoon(); }
+    return;
+  }
   if (event.target.name === 'module-text-answer') {
     const module = activeModuleById(event.target.dataset.moduleId);
     if (!module || module.type !== 'subjective_text') return;
@@ -1888,6 +1783,46 @@ app.addEventListener('input', (event) => {
 
 app.addEventListener('change', (event) => {
   const target = event.target;
+  if (target.name === 'first-source') {
+    if (Object.keys(state.sourceJudgments).length) return;
+    state.startingSourceId = state.assignment?.sourceIds.includes(target.value) ? target.value : '';
+    state.currentIndex = 0; persist({ immediate: true }); render(); return;
+  }
+  if (target.name === 'task-batch') {
+    if (Object.keys(state.sourceJudgments).length) return;
+    state.assignment = sourceAssignment(factors, Number(target.value));
+    state.currentIndex = 0; state.reviewedFactors = []; state.startingSourceId = '';
+    persist({ immediate: true }); render(); return;
+  }
+  if (['expert-target', 'group-review', 'source-status', 'explanation-target', 'reverse-judgment'].includes(target.name)) {
+    const sourceId = target.dataset.sourceId;
+    if (!state.assignment?.sourceIds.includes(sourceId)) return;
+    const row = structuredClone(sourceRow(sourceId));
+    if (target.name === 'expert-target') {
+      if (row.status === 'unable') return;
+      const selected = new Set(row.targetIds);
+      if (target.checked) selected.add(target.value); else selected.delete(target.value);
+      row.targetIds = validTargetIds(sourceId, [...selected]);
+      row.status = row.targetIds.length ? 'selected' : '';
+      if (row.explanation && !row.targetIds.includes(row.explanation.targetId)) delete row.explanation;
+    } else if (target.name === 'group-review') {
+      row.groupReviews[target.dataset.group] = target.value;
+    } else if (target.name === 'source-status') {
+      const previous = row.status;
+      row.status = target.value;
+      if (row.status !== 'selected') { row.targetIds = []; delete row.explanation; }
+      if (row.status === 'unable') row.groupReviews = Object.fromEntries(targetGroups(factors, sourceId).map((group) => [group, 'unable']));
+      else if (previous === 'unable') row.groupReviews = Object.fromEntries(targetGroups(factors, sourceId).map((group) => [group, '']));
+    } else if (target.name === 'explanation-target') {
+      if (row.targetIds.includes(target.value)) row.explanation = { targetId: target.value, note: '', reverse: 'not_asked' };
+      else delete row.explanation;
+    } else if (row.explanation) row.explanation.reverse = target.value;
+    state.sourceJudgments[sourceId] = row; state.taskError = '';
+    markCurrentTopicPending(sourceId); persist({ immediate: true }); render();
+    const focus = [...app.querySelectorAll(`[name="${target.name}"]`)].find((node) => node.value === target.value && (!target.dataset.group || node.dataset.group === target.dataset.group));
+    focus?.focus({ preventScroll: true });
+    return;
+  }
   if (target.name === 'role') {
     state.participant.role = target.value;
     updateProfileValidation();
@@ -1962,6 +1897,21 @@ app.addEventListener('click', (event) => {
     case 'orientation-continue':
       goTo(orientationReturnScreen);
       break;
+    case 'source-unable': {
+      const source = currentSource();
+      if (!source) break;
+      state.sourceJudgments[source.id] = { sourceId: source.id, status: 'unable', targetIds: [], groupReviews: Object.fromEntries(targetGroups(factors, source.id).map((group) => [group, 'unable'])) };
+      markCurrentTopicPending(source.id); confirmCurrentTopic();
+      break;
+    }
+    case 'reset-draft':
+      if (!state.confirmReset) { state.confirmReset = true; render(); break; }
+      { const participant = state.participant; const locale = state.locale; state = blankState(locale); state.assignment = null; state.participant = participant; persist({ immediate: true }); goTo('profile'); }
+      break;
+    case 'review-topic':
+      if (!state.assignment?.sourceIds[Number(button.dataset.topicIndex)]) break;
+      state.currentIndex = Number(button.dataset.topicIndex); state.taskError = ''; goTo('survey');
+      break;
     case 'stage-nav':
       navigateToStage(button.dataset.stage);
       break;
@@ -1992,6 +1942,7 @@ app.addEventListener('click', (event) => {
       break;
     case 'previous-topic':
       if (state.currentIndex > 0) state.currentIndex -= 1;
+      state.taskError = '';
       persist({ immediate: true });
       render();
       pageTop();
@@ -2047,14 +1998,14 @@ app.addEventListener('click', (event) => {
         state.afterTopicsIndex = transition.index;
         persist({ immediate: true });
         if (transition.screen === 'survey') {
-          state.currentIndex = Math.min(state.currentIndex, factors.length - 1);
+          state.currentIndex = Math.min(state.currentIndex, taskFactors().length - 1);
         }
         goTo(transition.screen);
       }
       break;
     case 'back-to-survey':
       state.qualitativeSectionComplete = true;
-      state.currentIndex = Math.min(state.currentIndex, factors.length - 1);
+      state.currentIndex = Math.min(state.currentIndex, taskFactors().length - 1);
       persist({ immediate: true });
       goTo('survey');
       break;

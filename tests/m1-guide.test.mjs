@@ -1,11 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { guideStepsForScreen } from '../guide-steps.mjs';
+import { vt3Copy } from '../vt3-copy.mjs';
 import { copy, locales } from '../translations.mjs';
 
-test('welcome keeps the full guide while other screens use local steps', () => {
-  assert.equal(guideStepsForScreen('welcome').length, 13);
-  assert.equal(guideStepsForScreen('profile').length, 3);
+test('the guide stays on the current screen and includes assigned task groups', () => {
+  assert.equal(guideStepsForScreen('welcome').length, 1);
+  assert.equal(guideStepsForScreen('profile').length, 4);
   assert.equal(guideStepsForScreen('survey').length, 5);
   assert.equal(guideStepsForScreen('qualitative').length, 1);
   assert.deepEqual(guideStepsForScreen('review'), []);
@@ -41,8 +42,9 @@ test('the guide covers the updated subjective-question and submission flow', () 
   assert.match(copy.en.guideHoverText, /full IF explanation/);
   assert.deepEqual(
     guideStepsForScreen('survey').map((step) => step.target),
-    ['.source-topic', '.target-fieldset', '.source-topic p', '.target-list', '.topic-actions .primary-button'],
+    ['.vt3-source', '.vt3-targets', '.vt3-source-meaning', '.vt3-target-group', '.vt3-task-actions .primary-button'],
   );
   assert.equal(copy['zh-CN'].guideFinalSubmitTitle, '提交您的问卷');
-  assert.match(copy.en.guideFinalQuestionText, /earlier judgements/);
+  assert.match(vt3Copy.en.guideFinalQuestionText, /12 source tasks/);
+  assert.match(vt3Copy.en.guideHoverText, /reviewed/);
 });

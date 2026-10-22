@@ -229,6 +229,7 @@ test('health, admin export, and old feedback routes behave as expected', async (
 
   const health = await fetch(`${origin}/api/m1-submissions/health`);
   assert.equal(health.status, 200);
+  assert.equal(health.headers.get('x-m1-questionnaire-version'), 'vt3');
   assert.deepEqual(await health.json(), { ok: true, service: 'm1-submissions' });
   const oldRoute = await fetch(`${origin}/api/m1-submissions/example/frozen-result`);
   assert.equal(oldRoute.status, 404);

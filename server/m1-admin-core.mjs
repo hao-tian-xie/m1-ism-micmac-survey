@@ -1,3 +1,4 @@
+import { vt3Copy } from '../vt3-copy.mjs';
 const ALLOWED_LOCALES = new Set(['zh-CN', 'zh-HK', 'en']);
 const QUALITATIVE_IDS = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7'];
 const DEFAULT_PAGE_SIZE = 25;
@@ -180,6 +181,22 @@ function pickedResponses(value) {
   }));
 }
 
+function pickedCoverage(value) {
+  if (!isObject(value)) return null;
+  return Object.fromEntries(['support', 'no_support', 'unable', 'unreviewed', 'unassigned', 'judged', 'total']
+    .map((key) => [key, finiteNumberOrNull(value[key])]));
+}
+function pickedSourceTasks(value) {
+  return (Array.isArray(value) ? value : []).map((row) => ({
+    sourceId: stringOrEmpty(row?.sourceId),
+    targetIds: Array.isArray(row?.targetIds) ? row.targetIds.filter((id) => typeof id === 'string') : [],
+    noDirectInfluence: row?.noDirectInfluence === true,
+    ...(row?.status ? { status: ['selected', 'none', 'unable'].includes(row.status) ? row.status : '',
+      groupReviews: isObject(row.groupReviews) ? Object.fromEntries(Object.entries(row.groupReviews).filter(([key, state]) => /^[a-zA-Z0-9_-]{1,64}$/.test(key) && ['reviewed', 'unable', 'unreviewed'].includes(state))) : {},
+      ...(isObject(row.explanation) ? { explanation: { targetId: stringOrEmpty(row.explanation.targetId), note: stringOrEmpty(row.explanation.note), reverse: stringOrEmpty(row.explanation.reverse) } } : {}),
+    } : {}),
+  }));
+}
 function pickedMatrix(value) {
   if (!Array.isArray(value)) return [];
   return value.map((row) => (Array.isArray(row)
@@ -246,6 +263,17 @@ export function m1AdminDetail(record) {
     submittedAt: stringOrEmpty(submission.submittedAt),
     status: stringOrEmpty(submission.status) || 'unknown',
     collectionMethod: stringOrEmpty(submission.collectionMethod),
+    ...(submission.protocolVersion === 'vt3' ? {
+      protocolVersion: 'vt3', presentationOrder: Array.isArray(submission.presentationOrder) ? submission.presentationOrder.filter((id) => typeof id === 'string') : [], wordingVersion: stringOrEmpty(submission.wordingVersion),
+      assignment: { planId: stringOrEmpty(submission.assignment?.planId), batch: finiteNumberOrNull(submission.assignment?.batch), sourceIds: Array.isArray(submission.assignment?.sourceIds) ? submission.assignment.sourceIds.filter((id) => typeof id === 'string') : [] },
+      coverage: pickedCoverage(submission.coverage),
+      presentedPrompts: submission.questionnaireConfigRevision === 0
+        ? (Array.isArray(submission.moduleAnswers) ? submission.moduleAnswers : [])
+          .filter((answer) => /^q[1-7]$/.test(answer?.moduleId) && answer.moduleVersion === 1 && answer.type === 'subjective_text')
+          .map((answer) => ({ moduleId: answer.moduleId, prompt: vt3Copy[submission.locale]?.[`qualitativeQ${answer.moduleId.slice(1)}`] || '' }))
+        : [],
+      judgmentStatusMatrix: Array.isArray(submission.judgmentStatusMatrix) ? submission.judgmentStatusMatrix.map((row) => Array.isArray(row) ? row.map((cell) => ['self', 'support', 'no_support', 'unable', 'unreviewed', 'unassigned'].includes(cell) ? cell : null) : []) : [],
+    } : {}),
     participant: {
       code: stringOrEmpty(submission.participant?.code),
       role: stringOrEmpty(submission.participant?.role),
@@ -280,14 +308,7 @@ export function m1AdminDetail(record) {
       complete: submission.confirmedTopics?.complete === true,
     },
     factors: pickedFactors(submission.factors),
-    sourceSelections: (Array.isArray(submission.sourceSelections) ? submission.sourceSelections : [])
-      .map((selection) => ({
-        sourceId: stringOrEmpty(selection?.sourceId),
-        targetIds: Array.isArray(selection?.targetIds)
-          ? selection.targetIds.filter((id) => typeof id === 'string')
-          : [],
-        noDirectInfluence: selection?.noDirectInfluence === true,
-      })),
+    sourceSelections: pickedSourceTasks(submission.sourceSelections),
     responses: pickedResponses(submission.responses),
     initialReachabilityMatrix: pickedMatrix(submission.initialReachabilityMatrix),
     directInfluenceMatrix: pickedMatrix(submission.directInfluenceMatrix),
@@ -334,13 +355,18 @@ export function m1AdminCsv(records) {
     ...QUALITATIVE_IDS.map((id) => `qualitative_${id}`),
     'pair_id', 'left_id', 'left_label', 'right_id', 'right_label', 'relation_code',
     'left_to_right', 'right_to_left', 'note',
+    'protocol_version', 'task_group', 'left_judgment_status', 'right_judgment_status',
+    'left_to_right_explanation', 'right_to_left_explanation', 'source_tasks_json',
   ];
   const rows = [header];
   for (const record of records) {
     const detail = m1AdminDetail(record);
     if (!detail) continue;
     const responses = detail.responses.length ? detail.responses : [{}];
-    for (const response of responses) {
+    for (const [responseIndex, response] of responses.entries()) {
+      const left = detail.factors.findIndex((factor) => factor.id === response.leftId);
+      const right = detail.factors.findIndex((factor) => factor.id === response.rightId);
+      const explanation = (sourceId, targetId) => detail.sourceSelections.find((row) => row.sourceId === sourceId && row.explanation?.targetId === targetId)?.explanation?.note || '';
       rows.push([
         detail.submissionId,
         detail.receivedAt,
@@ -365,6 +391,10 @@ export function m1AdminCsv(records) {
         response.leftToRight,
         response.rightToLeft,
         response.note,
+        detail.protocolVersion, detail.assignment?.batch,
+        detail.judgmentStatusMatrix?.[left]?.[right], detail.judgmentStatusMatrix?.[right]?.[left],
+        explanation(response.leftId, response.rightId), explanation(response.rightId, response.leftId),
+        detail.protocolVersion === 'vt3' && responseIndex === 0 ? JSON.stringify(detail.sourceSelections) : '',
       ]);
     }
   }

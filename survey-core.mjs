@@ -140,6 +140,8 @@ export function buildM1ResultCard({
   frozenAt,
   factors = [],
   directInfluenceMatrix = [],
+  protocolVersion,
+  coverage,
 }) {
   const topics = factors.map((factor, index) => {
     const outgoing = directInfluenceMatrix[index] || [];
@@ -167,8 +169,12 @@ export function buildM1ResultCard({
     frozenAt,
     topicCount: topics.length,
     directLinkCount: topics.reduce((total, topic) => total + topic.outgoing, 0),
-    leadingTopics: ranked('outgoing'),
-    receivingTopics: ranked('incoming'),
+    leadingTopics: protocolVersion === 'vt3' ? [] : ranked('outgoing'),
+    receivingTopics: protocolVersion === 'vt3' ? [] : ranked('incoming'),
+    ...(protocolVersion === 'vt3' ? {
+      version: 'm1-expert-observations-vt3', protocolVersion, coverage: { ...coverage },
+      analysisStatus: 'partial-independent-judgments',
+    } : {}),
   };
 }
 

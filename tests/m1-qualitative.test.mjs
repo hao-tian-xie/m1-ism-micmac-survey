@@ -42,54 +42,21 @@ test('all locales include the indexed written-question flow and final-submit cop
   assert.match(copy['zh-CN'].qualitativePrivacy, /机密。\n未提交/);
 });
 
-test('active configured modules render one indexed field at a time and submit their revision', () => {
-  assert.equal(M1_DEFAULT_QUESTIONNAIRE_CONFIG.modules.length, 7);
-  assert.deepEqual(
-    M1_DEFAULT_QUESTIONNAIRE_CONFIG.modules.filter(({ stage }) => stage === 'before_topics').map(({ id }) => id),
-    ['q1', 'q2', 'q3', 'q4', 'q5', 'q6'],
-  );
-  assert.deepEqual(
-    M1_DEFAULT_QUESTIONNAIRE_CONFIG.modules.filter(({ stage }) => stage === 'after_topics').map(({ id }) => id),
-    ['q7'],
-  );
-  assert.match(app, /loadPublicQuestionnaireConfig/);
-  assert.match(app, /beforeTopicModules\(\)/);
-  assert.match(app, /afterTopicModules\(\)/);
-  assert.match(app, /const indexKey = final \? 'afterTopicsIndex' : 'qualitativeIndex'/);
-  assert.match(app, /const index = clampIndex\(state\[indexKey\], modules\.length\)/);
-  assert.match(app, /const module = modules\[index\]/);
-  assert.match(app, /renderModuleField\(module, position\)/);
-  assert.doesNotMatch(app, /modules\.map\(\(candidate\) => renderModuleField/);
-  assert.match(app, /const module = modules\[index\];[\s\S]*?if \(!validateModule\(module\)\) return;[\s\S]*?if \(index < modules\.length - 1\)/);
-  assert.doesNotMatch(app, /function validateModules\(modules\)/);
-  assert.doesNotMatch(app, /validateAllModules\(\)/);
-  assert.match(app, /previousAfterTopicQuestion\(state\.afterTopicsIndex\)/);
-  assert.match(app, /const isLastTopic = state\.currentIndex >= factors\.length - 1/);
-  assert.match(app, /id="final-submit-form"/);
-  assert.match(app, /function renderModuleField/);
-  assert.match(app, /displayedModuleOptions\(module\)/);
-  assert.match(app, /data-action="qualitative-na"/);
-  assert.match(app, /normalizeModuleValue\(module, 'NA'\)/);
-  assert.match(app, /qualitativeAnswers: legacyQualitativeAnswers\(questionModules, state\.moduleAnswers\)/);
-  assert.match(app, /questionnaireConfigRevision: questionnaireConfig\.revision/);
+test('vt3 retains all configured modules and validates their versioned values', () => {
+  assert.match(app, /modules\.map\(\(module, index\)/);
+  assert.match(app, /renderModuleField\(module, index \+ 1\)/);
   assert.match(app, /moduleAnswers: questionModules\.map/);
-  assert.doesNotMatch(app, /renderReview/);
-  assert.doesNotMatch(app, /renderResultCard|class="result-card"/);
-  assert.doesNotMatch(app, /completeIntro/);
-  assert.match(app, /stepNumbers = \['01', '02', '03', '04'\]/);
-  assert.doesNotMatch(app, /feedbackToken|loadFrozenResult|submitFeedback/);
-  assert.doesNotMatch(app, /data-action="verify-result"|data-action="save-feedback"/);
+  assert.match(app, /serializeModuleAnswer\(module, state\.moduleAnswers\[module\.id\]\)/);
+  assert.match(app, /firstInvalidBeforeTopicModule\(\)/);
+  assert.match(app, /vt3-context-extra/);
 });
 
-test('Step 03 keeps a full 38-topic directory with direct accessible jumps', () => {
-  assert.equal(M1_DEFAULT_QUESTIONNAIRE_CONFIG.topics.length, 38);
-  assert.match(app, /topicDirectoryLabel', \{ total: factors\.length \}/);
-  assert.match(app, /factors\.map\(\(factor, index\) =>/);
+test('source directory shows assigned tasks while the full catalogue remains available', () => {
+  assert.match(app, /taskFactors\(\)\.map\(\(factor, index\)/);
   assert.match(app, /data-action="topic-index"/);
-  assert.match(app, /data-topic-index="\$\{index\}"/);
-  assert.match(app, /topicDirectoryItem', \{ n: number, topic: label \}/);
-  assert.match(styles, /\.topic-index-heading\s*\{/);
-  assert.match(styles, /\.topic-index-hint\s*\{/);
+  assert.match(app, /data-topic-index=/);
+  assert.match(app, /topicIsAvailable\(index/);
+  assert.match(app, /aria-current="step"/);
 });
 
 test('02 and 04 use one scrollable field region with an anchored action row', () => {

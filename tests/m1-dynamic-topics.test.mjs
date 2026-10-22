@@ -41,21 +41,14 @@ test('core pairing, matrix, result inputs, and submission progress use the loade
   }
 });
 
-test('public topic snapshot drives the complete Section 03 client path', () => {
+test('public snapshot supplies full factors while source tasks use the assigned subset', () => {
   assert.match(app, /function activeFactorsFromConfig\(config\)/);
-  assert.match(app, /factorIds = factors\.map\(\(factor\) => factor\.id\)/);
-  assert.match(app, /pairs = createPairs\(factors\)/);
-  assert.match(app, /factors: localisedActiveFactors\(state\.locale\)/);
-  assert.match(app, /factors: factorIds\.map\(\(id\) => \(\{ id \}\)\)/);
-  assert.match(app, /const responses = compactPairRows[\s\S]*?pairId: response\.pairId/);
-  assert.match(app, /\.\.\.\(response\.note \? \{ note: response\.note \} : \{\}\)/);
+  assert.match(app, /function taskFactors\(\)/);
+  assert.match(app, /state\.assignment\?\.sourceIds/);
+  assert.match(app, /expertSubmissionFields/);
   assert.match(app, /questionnaireConfigRevision: questionnaireConfig\.revision/);
   assert.match(app, /topicSnapshot: loadedTopicSnapshot/);
-  assert.match(app, /topicIds: \[\.\.\.loadedTopicSnapshot\.ids\]/);
-  assert.match(app, /confirmedTopics:[\s\S]*?total: factors\.length/);
-  assert.match(app, /style="\$\{topicGridStyle\(\)\}"/);
-  assert.match(app, /data-category="\$\{escapeAttribute\(category\)\}"/);
-  assert.doesNotMatch(app, /703/);
+  assert.match(app, /factors: factorIds\.map/);
 });
 
 test('public topic and fixed-layout contracts cap the supported payload', () => {
@@ -119,38 +112,13 @@ test('the 40-topic worst-case submission remains below the JSON body budget', ()
   assert.ok(Buffer.byteLength(JSON.stringify(submission)) < 256 * 1024);
 });
 
-test('Section 03 keeps one complete IF explanation and separates candidate hints', () => {
-  assert.match(app, /class="source-topic-body"[^>]*data-source-topic-body/);
-  assert.match(app, /<h2 id="source-topic-name"[^>]*data-source-topic-title/);
-  assert.match(app, /<p>\$\{escapeHtml\(source\.description\)\}<\/p>/);
-  assert.match(app, /const descriptionId = `topic-description-\$\{source\.id\}-\$\{target\.id\}`/);
-  assert.match(app, /aria-describedby="\$\{escapeAttribute\(descriptionId\)\}"/);
-  assert.match(app, /class="target-definition"[^>]*role="tooltip"/);
-  const descriptionRules = [...styles.matchAll(/body\[data-screen="survey"\]\s+\.source-topic-body p\s*\{[^}]*\}/g)]
-    .map(([rule]) => rule);
-  assert.ok(descriptionRules.length >= 2, 'desktop and mobile explanation rules should be explicit');
-  for (const rule of descriptionRules) {
-    assert.doesNotMatch(rule, /overflow:\s*(?:hidden|auto|scroll)/);
-    assert.doesNotMatch(rule, /text-overflow\s*:/);
-  }
-  assert.doesNotMatch(styles, /body\[data-screen="survey"\]\s+\.source-topic-body p\s*\{[^}]*overflow:\s*auto/);
-  assert.doesNotMatch(styles, /body\[data-screen="survey"\]\s+\.source-topic-body p\s*\{[^}]*-webkit-line-clamp/);
-  assert.match(app, /const topicNotes = targets\.map\(\(target\) =>[\s\S]*?target\.description/);
-  assert.match(app, /data-action="toggle-topic-notes"/);
-  assert.match(app, /aria-controls="topic-notes"/);
-  assert.match(app, /t\('topicNotesButton'\)/);
-  assert.equal(copy['zh-CN'].topicNotesButton, '主题说明全览');
-  assert.equal(copy['zh-HK'].topicNotesButton, '主題說明全覽');
-  assert.equal(copy.en.topicNotesButton, 'All topic notes');
-  assert.match(app, /<section class="topic-notes" id="topic-notes" aria-label="\$\{escapeAttribute\(t\('candidateNotes'\)\)\}" hidden/);
-  assert.match(app, /<h2>\$\{escapeHtml\(t\('candidateNotes'\)\)\}<\/h2>/);
-  assert.match(app, /<ul>\$\{topicNotes\}<\/ul>/);
-  assert.match(app, /<button class="primary-button" type="button" data-action="confirm-topic"/);
-  assert.match(app, /isLast \? finishLabel : t\('confirmAndNext'\)/);
-  assert.match(styles, /body\[data-screen="survey"\] \.topic-actions \.topic-notes-toggle\s*\{[^}]*justify-self:\s*center/);
-  assert.match(styles, /\.topic-actions\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto\s+minmax\(0,\s*1fr\)/);
-  assert.match(styles, /\.topic-actions \.primary-button\s*\{[^}]*justify-self:\s*end/);
-  assert.match(styles, /body\[data-screen="survey"\] \.topic-notes\s*\{[^}]*overflow:\s*auto/);
+test('vt3 source page uses full configured factors and native expandable definitions', async () => {
+  const view = await readFile(new URL('../expert-survey-view.mjs', import.meta.url), 'utf8');
+  assert.match(view, /factors\.filter\(\(factor\) => factor\.id !== sourceId\)/);
+  assert.match(view, /local\(factor\.description, locale\)/);
+  assert.match(view, /vt3-target-detail/);
+  assert.match(view, /vt3-original/);
+  assert.match(view, /targetGroups\(factors, sourceId\)/);
 });
 
 test('dynamic grid has a snapshot-sized row contract for counts above 38', () => {

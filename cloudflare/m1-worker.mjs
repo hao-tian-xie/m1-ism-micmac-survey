@@ -225,6 +225,7 @@ function sameM1Submission(left, right) {
     'initialReachabilityMatrix', 'directInfluenceMatrix', 'progress',
     'status', 'collectionMethod', 'qualitativeSectionComplete', 'qualitativeAnswers',
     'confirmedTopics', 'sourceSelections', 'questionnaireConfigRevision', 'moduleAnswers',
+    'protocolVersion', 'wordingVersion', 'assignment', 'presentationOrder', 'judgmentStatusMatrix', 'coverage',
   ];
   return topicFactorIdsMatch(left?.factors, right?.factors)
     && fields.every((field) => stableJson(left?.[field]) === stableJson(right?.[field]));
@@ -235,6 +236,7 @@ function sameM1Core(left, right) {
     'schemaVersion', 'studyId', 'locale', 'participant', 'study', 'responses',
     'initialReachabilityMatrix', 'directInfluenceMatrix', 'progress', 'status',
     'confirmedTopics', 'sourceSelections', 'questionnaireConfigRevision', 'moduleAnswers',
+    'protocolVersion', 'wordingVersion', 'assignment', 'presentationOrder', 'judgmentStatusMatrix', 'coverage',
   ];
   return topicFactorIdsMatch(left?.factors, right?.factors)
     && fields.every((field) => stableJson(left?.[field]) === stableJson(right?.[field]));
@@ -291,6 +293,7 @@ function resultCardFor(record, submissionId, receivedAt, topicContext) {
       frozenAt: receivedAt,
       factors,
       directInfluenceMatrix,
+      protocolVersion: submission.protocolVersion, coverage: submission.coverage,
   });
 }
 
@@ -360,6 +363,7 @@ async function submit(request, env) {
     frozenAt: candidateReceivedAt,
     factors: topicContext.factors,
     directInfluenceMatrix: directMatrixForM1Submission(canonicalRecord, topicContext),
+    protocolVersion: canonicalRecord.protocolVersion, coverage: canonicalRecord.coverage,
   });
   await env.DB.prepare(
     `INSERT OR IGNORE INTO submissions
@@ -438,7 +442,7 @@ export default {
     if (!originIsAllowed(request, env)) return json(request, env, { error: 'origin-not-allowed' }, 403);
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders(request, env) });
     if (url.pathname === `${API_PATH}/health` && request.method === 'GET') {
-      return json(request, env, { ok: true, service: 'm1-ism-micmac-survey-api' });
+      return json(request, env, { ok: true, service: 'm1-ism-micmac-survey-api' }, 200, { 'x-m1-questionnaire-version': 'vt3' });
     }
     if (url.pathname === API_PATH && request.method === 'POST') {
       try {
