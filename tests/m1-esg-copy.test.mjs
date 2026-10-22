@@ -58,5 +58,5 @@ test('ESG copy, grouped welcome topics, and survey candidate grid match the inte
     appSource.match(/public-questionnaire\.mjs\?v=([^"']+)/)?.[1],
     publicQuestionnaireSource.match(/translations\.mjs\?v=([^"']+)/)?.[1],
   ];
-  assert.deepEqual(cacheBusts, Array(9).fill('interview-orientation-20261022-v2'));
+  assert.deepEqual(cacheBusts, Array(9).fill('interview-orientation-20261022-v3'));
 });

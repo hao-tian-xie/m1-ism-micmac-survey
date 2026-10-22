@@ -6,17 +6,17 @@ import {
   tryWriteStorage,
 } from './survey-core.mjs';
 import { displayTopicName, studyConfig } from './survey-config.mjs?v=topic-definitions-contains-20260908';
-import { copy, languageNames, locales } from './translations.mjs?v=interview-orientation-20261022-v2';
+import { copy, languageNames, locales } from './translations.mjs?v=interview-orientation-20261022-v3';
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
 import { resolveLocale } from './locale-state.mjs';
-import { guideStepsForScreen } from './guide-steps.mjs?v=interview-orientation-20261022-v2';
-import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs?v=interview-orientation-20261022-v2';
+import { guideStepsForScreen } from './guide-steps.mjs?v=interview-orientation-20261022-v3';
+import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs?v=interview-orientation-20261022-v3';
 import {
   clampIndex,
   confirmTopicTransition,
   previousAfterTopicQuestion,
   previousBeforeTopicQuestion,
-} from './m1-state-transitions.mjs?v=interview-orientation-20261022-v2';
+} from './m1-state-transitions.mjs?v=interview-orientation-20261022-v3';
 import { joinTopicTextPages, splitTopicTextByFit, topicNodeFits } from './topic-pagination.mjs';
 import {
   FALLBACK_PUBLIC_QUESTIONNAIRE,
@@ -26,15 +26,15 @@ import {
   moduleAnswerError,
   normalizeModuleValue,
   serializeModuleAnswer,
-} from './public-questionnaire.mjs?v=interview-orientation-20261022-v2';
-import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=interview-orientation-20261022-v2';
+} from './public-questionnaire.mjs?v=interview-orientation-20261022-v3';
+import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=interview-orientation-20261022-v3';
 import {
   ORIENTATION_DEMO_VALUES,
   orientationContent,
   orientationDemoFeedback,
   renderInterviewOrientation,
   renderOrientationDemo,
-} from './interview-orientation.mjs?v=interview-orientation-20261022-v2';
+} from './interview-orientation.mjs?v=interview-orientation-20261022-v3';
 
 const STORAGE_KEY_BASE = `bextools:${studyConfig.id}:${studyConfig.version}`;
 const NONE_VALUE = '__none__';

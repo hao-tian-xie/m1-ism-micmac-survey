@@ -1,5 +1,5 @@
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
-import { copy, locales } from './translations.mjs?v=interview-orientation-20261022-v2';
+import { copy, locales } from './translations.mjs?v=interview-orientation-20261022-v3';
 
 export const PUBLIC_QUESTION_MODULE_TYPES = Object.freeze([
   'subjective_text',
