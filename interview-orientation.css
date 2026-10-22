@@ -1,0 +1,357 @@
+/* The introduction uses the questionnaire's existing type, rail and palette. */
+html:has(body[data-screen="orientation"]) {
+  min-width: 0;
+}
+
+.orientation-heading {
+  max-width: none;
+}
+
+.orientation-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.orientation-meta > span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.orientation-heading h1 {
+  max-width: 880px;
+  line-height: 1.12;
+}
+
+.orientation-lead {
+  max-width: 800px;
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 19px;
+  line-height: 1.5;
+}
+
+.orientation-explorer {
+  margin-top: 30px;
+}
+
+.orientation-browse {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.orientation-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line);
+}
+
+.orientation-tab {
+  display: grid;
+  min-width: 0;
+  min-height: 110px;
+  padding: 18px 16px;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-content: start;
+  gap: 10px;
+  border-bottom: 2px solid transparent;
+  background: var(--paper);
+  text-align: left;
+}
+
+.orientation-tab + .orientation-tab {
+  border-left: 1px solid var(--line);
+}
+
+.orientation-number {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.orientation-tab b {
+  display: block;
+  color: var(--ink-strong);
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.orientation-tab small {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.3;
+}
+
+.orientation-tab[aria-selected="true"] {
+  border-bottom-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.orientation-tab[aria-selected="true"] b,
+.orientation-tab[aria-selected="true"] .orientation-number,
+.orientation-tab:hover b,
+#orientation-button[aria-current="page"] {
+  color: var(--accent);
+}
+
+.orientation-panel {
+  min-height: 164px;
+  padding: 22px 0 18px;
+}
+
+.orientation-panel[hidden] {
+  display: none;
+}
+
+.orientation-panel > p {
+  max-width: 850px;
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.orientation-examples {
+  display: grid;
+  margin: 20px 0 0;
+  padding: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+}
+
+.orientation-examples li {
+  padding: 4px 18px;
+  color: var(--ink-strong);
+  font-size: 19px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.orientation-examples li:first-child {
+  padding-left: 0;
+}
+
+.orientation-examples li + li {
+  border-left: 1px solid var(--line);
+}
+
+.orientation-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.orientation-pagination > span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.orientation-pagination > div {
+  display: flex;
+  gap: 24px;
+}
+
+.orientation-pagination .text-button {
+  gap: 5px;
+  font-size: 14px;
+}
+
+.orientation-question {
+  margin-top: 22px;
+  padding: 21px 24px;
+  border-left: 2px solid var(--accent);
+  background: var(--accent-soft);
+}
+
+.orientation-question .eyebrow {
+  margin-bottom: 10px;
+}
+
+.orientation-question h2 {
+  max-width: 800px;
+  margin: 0;
+  color: var(--ink-strong);
+  font-size: clamp(24px, 2.3vw, 30px);
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.orientation-question > p:last-child {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.orientation-prompt {
+  margin-top: 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.orientation-prompt summary {
+  display: flex;
+  min-height: 48px;
+  padding: 10px 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--ink);
+  font-size: 16px;
+  list-style: none;
+}
+
+.orientation-prompt summary::-webkit-details-marker {
+  display: none;
+}
+
+.orientation-prompt summary span {
+  color: var(--accent);
+  font-size: 20px;
+}
+
+.orientation-prompt[open] summary span {
+  transform: rotate(45deg);
+}
+
+.orientation-prompt > div {
+  max-width: 850px;
+  padding: 0 0 18px;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.orientation-prompt p {
+  margin: 12px 0 0;
+}
+
+.orientation-prompt p:last-child {
+  color: var(--muted);
+}
+
+.orientation-footer {
+  display: flex;
+  margin-top: 24px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+}
+
+.orientation-footer p {
+  max-width: 480px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.orientation-footer .primary-button {
+  flex-shrink: 0;
+}
+
+@media (max-width: 1000px) and (min-width: 768px) {
+  .orientation-tab {
+    padding-inline: 10px;
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .orientation-tab b {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 767px) {
+  .orientation-meta > span {
+    font-size: 12px;
+  }
+
+  .orientation-heading h1 {
+    font-size: clamp(32px, 8.5vw, 42px);
+  }
+
+  .orientation-lead {
+    font-size: 17px;
+  }
+
+  .orientation-explorer {
+    margin-top: 26px;
+  }
+
+  .orientation-tab {
+    min-height: 132px;
+    padding: 12px 9px;
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .orientation-tab b {
+    font-size: 18px;
+  }
+
+  .orientation-tab small {
+    margin-top: 6px;
+    font-size: 12px;
+  }
+
+  .orientation-number {
+    margin-top: 0;
+    font-size: 12px;
+  }
+
+  .orientation-panel {
+    min-height: 0;
+    padding-top: 18px;
+  }
+
+  .orientation-panel > p {
+    font-size: 16px;
+  }
+
+  .orientation-examples {
+    margin-top: 16px;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .orientation-examples li,
+  .orientation-examples li:first-child {
+    padding: 0 0 0 12px;
+    border-left: 1px solid var(--accent);
+    font-size: 17px;
+  }
+
+  .orientation-pagination {
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0 10px;
+  }
+
+  .orientation-pagination > div {
+    margin-left: auto;
+    gap: 12px;
+  }
+
+  .orientation-question {
+    margin-top: 18px;
+    padding: 18px 16px;
+  }
+
+  .orientation-question h2 {
+    font-size: 24px;
+  }
+
+  .orientation-footer {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 20px;
+  }
+}

@@ -3,6 +3,7 @@
 独立的 ESG 主题关系问卷平台。
 
 - 在线问卷：[hao-tian-xie.github.io/m1-ism-micmac-survey](https://hao-tian-xie.github.io/m1-ism-micmac-survey/)
+- 问卷入口先展示交互式研究介绍：依次浏览 ESG 议题、业务活动与待判断的联系，再进入原问卷首页。介绍支持三语切换、键盘切换和侧栏回看；介绍内容及样式分别位于 `interview-orientation.mjs` 和 `interview-orientation.css`，不作为问卷答案收集。
 - 收集 API：[m1-ism-micmac-survey-api.bolly-express-website.workers.dev](https://m1-ism-micmac-survey-api.bolly-express-website.workers.dev/api/m1-submissions)
 - 题库：38 个 ESRS Set 1 sustainability matters（环境 19 个、社会 12 个、治理 7 个；包括 G1 腐败和贿赂的两个官方 sub-subtopics），支持简体中文、繁体中文和英文
 - 流程：先逐页填写 6 道主观问题，再完成 38 个主题判断，随后填写第 7 题；最后一次提交会将 Q1–Q7、主题判断和结构摘要一起保存。结构摘要是个人答卷摘要，不是全体专家汇总

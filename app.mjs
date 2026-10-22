@@ -6,17 +6,17 @@ import {
   tryWriteStorage,
 } from './survey-core.mjs';
 import { displayTopicName, studyConfig } from './survey-config.mjs?v=topic-definitions-contains-20260908';
-import { copy, languageNames, locales } from './translations.mjs?v=live-question-config-v10';
+import { copy, languageNames, locales } from './translations.mjs?v=interview-orientation-20261022';
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
 import { resolveLocale } from './locale-state.mjs';
-import { guideStepsForScreen } from './guide-steps.mjs?v=live-question-config-v10';
-import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs?v=live-question-config-v10';
+import { guideStepsForScreen } from './guide-steps.mjs?v=interview-orientation-20261022';
+import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs?v=interview-orientation-20261022';
 import {
   clampIndex,
   confirmTopicTransition,
   previousAfterTopicQuestion,
   previousBeforeTopicQuestion,
-} from './m1-state-transitions.mjs?v=live-question-config-v10';
+} from './m1-state-transitions.mjs?v=interview-orientation-20261022';
 import { joinTopicTextPages, splitTopicTextByFit, topicNodeFits } from './topic-pagination.mjs';
 import {
   FALLBACK_PUBLIC_QUESTIONNAIRE,
@@ -26,8 +26,9 @@ import {
   moduleAnswerError,
   normalizeModuleValue,
   serializeModuleAnswer,
-} from './public-questionnaire.mjs?v=live-question-config-v10';
-import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=live-question-config-v10';
+} from './public-questionnaire.mjs?v=interview-orientation-20261022';
+import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=interview-orientation-20261022';
+import { orientationContent, renderInterviewOrientation } from './interview-orientation.mjs?v=interview-orientation-20261022';
 
 const STORAGE_KEY_BASE = `bextools:${studyConfig.id}:${studyConfig.version}`;
 const NONE_VALUE = '__none__';
@@ -38,6 +39,8 @@ const app = document.querySelector('#app');
 const languageSwitch = document.querySelector('#language-switch');
 const guideButton = document.querySelector('#guide-button');
 const guideButtonLabel = document.querySelector('#guide-button-label');
+const orientationButton = document.querySelector('#orientation-button');
+const orientationButtonLabel = document.querySelector('#orientation-button-label');
 const esrsPdfLink = document.querySelector('#esrs-pdf-link');
 const esrsPdfLinkLabel = document.querySelector('#esrs-pdf-link-label');
 const guideOverlay = document.querySelector('#guide-overlay');
@@ -171,7 +174,7 @@ function moduleVersions() {
 function blankState(locale = preferredLocale()) {
   return {
     locale,
-    screen: 'welcome',
+    screen: 'orientation',
     participant: { code: '', role: '', experience: '' },
     answers: {},
     factorSelections: emptySelections(),
@@ -291,6 +294,8 @@ function loadState() {
 }
 
 let state = blankState();
+let orientationIndex = 0;
+let orientationReturnScreen = 'welcome';
 let guideIndex = 0;
 let guideReturnScreen = state.screen;
 let guideIsOpen = false;
@@ -665,6 +670,31 @@ function goTo(screen, { scroll = true } = {}) {
   focusPageHeading();
 }
 
+function openOrientation() {
+  if (state.screen === 'orientation' || state.submitState === 'submitting') return;
+  orientationReturnScreen = state.screen;
+  goTo('orientation');
+}
+
+function setOrientationSection(index, { focus = true } = {}) {
+  if (state.screen !== 'orientation') return;
+  const content = orientationContent(state.locale);
+  orientationIndex = clampIndex(index, content.sections.length);
+  app.querySelectorAll('.orientation-tab').forEach((tab, tabIndex) => {
+    const selected = tabIndex === orientationIndex;
+    tab.setAttribute('aria-selected', String(selected));
+    tab.tabIndex = selected ? 0 : -1;
+  });
+  app.querySelectorAll('.orientation-panel').forEach((panel, panelIndex) => {
+    panel.hidden = panelIndex !== orientationIndex;
+  });
+  app.querySelector('[data-orientation-position]').textContent = content.position
+    .replace('{i}', orientationIndex + 1).replace('{total}', content.sections.length);
+  app.querySelector('[data-action="orientation-previous"]').disabled = orientationIndex === 0;
+  app.querySelector('[data-action="orientation-next"]').disabled = orientationIndex === content.sections.length - 1;
+  if (focus) app.querySelector(`#orientation-tab-${orientationIndex}`)?.focus({ preventScroll: true });
+}
+
 function navigateToStage(targetStage) {
   const navigationState = stageNavigationState();
   if (!canNavigateToStage(state.screen, targetStage, {
@@ -742,6 +772,14 @@ function renderHomeLink() {
 
 function renderGuide() {
   if (!guideOverlay) return;
+  const introduction = orientationContent(state.locale);
+  if (orientationButtonLabel) orientationButtonLabel.textContent = introduction.reopen;
+  if (orientationButton) {
+    orientationButton.title = introduction.reopen;
+    orientationButton.setAttribute('aria-label', introduction.reopen);
+    if (state.screen === 'orientation') orientationButton.setAttribute('aria-current', 'page');
+    else orientationButton.removeAttribute('aria-current');
+  }
   guideButtonLabel.textContent = t('guideButton');
   guideButton.title = t('guideTitle');
   guideButton.setAttribute('aria-label', t('guideTitle'));
@@ -1011,6 +1049,14 @@ function renderWelcome() {
       </section>
     </main>
   `;
+}
+
+function renderOrientation() {
+  return renderInterviewOrientation({
+    locale: state.locale,
+    index: orientationIndex,
+    returning: orientationReturnScreen !== 'welcome',
+  });
 }
 
 function renderProfile() {
@@ -1400,6 +1446,7 @@ function render() {
 
   detachTopicDefinitionHints();
   app.innerHTML = {
+    orientation: renderOrientation,
     welcome: renderWelcome,
     profile: renderProfile,
     qualitative: renderQualitative,
@@ -1691,6 +1738,7 @@ languageSwitch.addEventListener('click', (event) => {
 });
 
 guideButton?.addEventListener('click', openGuide);
+orientationButton?.addEventListener('click', openOrientation);
 guideClose?.addEventListener('click', closeGuide);
 guidePrevious?.addEventListener('click', () => {
   if (guideIndex === 0) return;
@@ -1867,6 +1915,18 @@ app.addEventListener('click', (event) => {
   if (state.submitState === 'submitting') return;
 
   switch (button.dataset.action) {
+    case 'orientation-section':
+      setOrientationSection(Number(button.dataset.section));
+      break;
+    case 'orientation-previous':
+      setOrientationSection(orientationIndex - 1);
+      break;
+    case 'orientation-next':
+      setOrientationSection(orientationIndex + 1);
+      break;
+    case 'orientation-continue':
+      goTo(orientationReturnScreen);
+      break;
     case 'stage-nav':
       navigateToStage(button.dataset.stage);
       break;
@@ -1988,6 +2048,8 @@ app.addEventListener('click', (event) => {
           storageAvailable = false;
         }
         state = blankState(locale);
+        orientationIndex = 0;
+        orientationReturnScreen = 'welcome';
         render();
         pageTop();
         focusPageHeading();
@@ -1996,6 +2058,21 @@ app.addEventListener('click', (event) => {
     default:
       break;
   }
+});
+
+app.addEventListener('keydown', (event) => {
+  const tab = event.target.closest('[role="tab"][data-action="orientation-section"]');
+  if (!tab || state.screen !== 'orientation') return;
+  const count = orientationContent(state.locale).sections.length;
+  const nextIndex = {
+    ArrowRight: (orientationIndex + 1) % count,
+    ArrowLeft: (orientationIndex + count - 1) % count,
+    Home: 0,
+    End: count - 1,
+  }[event.key];
+  if (nextIndex === undefined) return;
+  event.preventDefault();
+  setOrientationSection(nextIndex);
 });
 
 document.addEventListener('click', (event) => {

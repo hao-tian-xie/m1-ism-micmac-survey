@@ -49,6 +49,10 @@ const completeSteps = [
 ];
 
 const localSteps = {
+  orientation: [
+    { screen: 'orientation', target: '.orientation-tabs', title: 'guideOrientationTitle', text: 'guideOrientationText' },
+    { screen: 'orientation', target: '[data-action="orientation-continue"]', title: 'guideOrientationContinueTitle', text: 'guideOrientationContinueText' },
+  ],
   profile: welcomeSteps.filter((step) => step.screen === 'profile'),
   survey: welcomeSteps.filter((step) => step.screen === 'survey'),
   qualitative: welcomeSteps.filter((step) => step.screen === 'qualitative'),
