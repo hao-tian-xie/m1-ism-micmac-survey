@@ -6,17 +6,17 @@ import {
   tryWriteStorage,
 } from './survey-core.mjs';
 import { displayTopicName, studyConfig } from './survey-config.mjs?v=topic-definitions-contains-20260908';
-import { copy, languageNames, locales } from './translations.mjs?v=vt3-20261023-r1';
+import { copy, languageNames, locales } from './translations.mjs?v=vt3-20261023-r2';
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
 import { resolveLocale } from './locale-state.mjs';
-import { guideStepsForScreen } from './guide-steps.mjs?v=vt3-20261023-r1';
-import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs?v=vt3-20261023-r1';
+import { guideStepsForScreen } from './guide-steps.mjs?v=vt3-20261023-r2';
+import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs?v=vt3-20261023-r2';
 import {
   clampIndex,
   confirmTopicTransition,
   previousAfterTopicQuestion,
   previousBeforeTopicQuestion,
-} from './m1-state-transitions.mjs?v=vt3-20261023-r1';
+} from './m1-state-transitions.mjs?v=vt3-20261023-r2';
 import { joinTopicTextPages, splitTopicTextByFit, topicNodeFits } from './topic-pagination.mjs';
 import {
   FALLBACK_PUBLIC_QUESTIONNAIRE,
@@ -26,22 +26,22 @@ import {
   moduleAnswerError,
   normalizeModuleValue,
   serializeModuleAnswer,
-} from './public-questionnaire.mjs?v=vt3-20261023-r1';
-import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=vt3-20261023-r1';
+} from './public-questionnaire.mjs?v=vt3-20261023-r2';
+import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=vt3-20261023-r2';
 import {
   ORIENTATION_DEMO_VALUES,
   orientationContent,
   orientationDemoFeedback,
   renderInterviewOrientation,
   renderOrientationDemo,
-} from './interview-orientation.mjs?v=vt3-20261023-r1';
+} from './interview-orientation.mjs?v=vt3-20261023-r2';
 
 const STORAGE_KEY_BASE = `bextools:${studyConfig.id}:${studyConfig.version}:vt3`;
 
-import { blankSourceJudgment, expertMatrices, expertSubmissionFields, sourceAssignment, sourceJudgmentError, targetGroups, topicGroup } from './expert-protocol.mjs?v=vt3-20261023-r1';
-import { managementActivity } from './management-activities.mjs?v=vt3-20261023-r1';
-import { vt3Copy, expertErrorKey } from './vt3-copy.mjs?v=vt3-20261023-r1';
-import { renderExpertSurvey, renderExpertReview } from './expert-survey-view.mjs?v=vt3-20261023-r1';
+import { blankSourceJudgment, expertMatrices, expertSubmissionFields, sourceAssignment, sourceJudgmentError, targetGroups, topicGroup } from './expert-protocol.mjs?v=vt3-20261023-r2';
+import { managementActivity } from './management-activities.mjs?v=vt3-20261023-r2';
+import { vt3Copy, expertErrorKey } from './vt3-copy.mjs?v=vt3-20261023-r2';
+import { renderExpertSurvey, renderExpertReview } from './expert-survey-view.mjs?v=vt3-20261023-r2';
 const NONE_VALUE = '__none__';
 let factors = studyConfig.factors;
 let factorIds = factors.map((factor) => factor.id);

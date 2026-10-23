@@ -16,7 +16,7 @@ export const orientationCopy = {
     openingHelp: '可以先想一想，或和访谈员聊一聊，再看后两部分。这里不用输入答案。',
     context: '请根据行业经验，考虑一家具有相关业务的中小物流企业。您所在企业尚未开展某项业务，不等于行业中没有这种联系。',
     purposeLabel: '这次希望了解什么',
-    purpose: '哪些实际管理工作能够支持其他工作，哪些活动没有明显联系，以及背后的原因。没有预设答案。',
+    purpose: '哪些实际管理工作能够支持其他工作，哪些活动没有明显联系，以及背后的原因。',
     esrsTitle: '物流企业在日常运营中如何回应 ESG 议题',
     esrsLead: '我们以《欧洲可持续发展报告标准》（ESRS）为共同起点，识别可持续发展议题。',
     categories: [
@@ -25,9 +25,9 @@ export const orientationCopy = {
       { code: 'G', name: '商业行为／治理', items: ['供应商关系', '商业道德'] },
     ],
     principle: '这些议题为讨论提供共同语言。实际运营中，回应这些议题可能需要人员、数据、流程和合作伙伴相互支持。',
-    esrsNote: '本项目依据 ESRS 整理了38项来源议题，并非 ESRS 官方规定的固定38因素模型。ESRS 在这里用作议题参考；具体联系由实际经验判断。',
+    esrsNote: '本项目依据 ESRS 整理了38项来源议题；具体联系由实际经验判断。',
     demoTitle: '做好哪项工作，会让其他工作更容易？',
-    demoLead: '下面是物流场景中可能存在的联系，用来说明讨论方式，还不是研究结论。',
+    demoLead: '下面用物流场景中可能存在的联系，说明如何判断活动之间的关系。',
     demo: {
       activities: ['承运商运输记录', '运输排放核算', '回应客户数据要求'],
       pairLabel: '选择一组示例活动', pairTemplate: '{from} 与 {to}',
@@ -72,7 +72,7 @@ export const orientationCopy = {
     openingHelp: '可以先想一想，或和訪談員談一談，再看後兩部分。這裡不用輸入答案。',
     context: '請根據行業經驗，考慮一家具相關業務的中小物流企業。您所在企業尚未開展某項業務，不等於行業中沒有這種聯繫。',
     purposeLabel: '這次希望了解甚麼',
-    purpose: '哪些實際管理工作能夠支持其他工作，哪些活動沒有明顯聯繫，以及背後的原因。沒有預設答案。',
+    purpose: '哪些實際管理工作能夠支持其他工作，哪些活動沒有明顯聯繫，以及背後的原因。',
     esrsTitle: '物流企業在日常營運中如何回應 ESG 議題',
     esrsLead: '我們以《歐洲可持續發展報告準則》（ESRS）為共同起點，識別可持續發展議題。',
     categories: [
@@ -81,9 +81,9 @@ export const orientationCopy = {
       { code: 'G', name: '商業行為／治理', items: ['供應商關係', '商業道德'] },
     ],
     principle: '這些議題為討論提供共同語言。實際營運中，回應這些議題可能需要人員、數據、流程和合作夥伴互相支持。',
-    esrsNote: '本項目依據 ESRS 整理了38項來源議題，並非 ESRS 官方規定的固定38因素模型。ESRS 在這裡用作議題參考；具體聯繫由實際經驗判斷。',
+    esrsNote: '本項目依據 ESRS 整理了38項來源議題；具體聯繫由實際經驗判斷。',
     demoTitle: '做好哪項工作，會讓其他工作更容易？',
-    demoLead: '下面是物流情境中可能存在的聯繫，用來說明討論方式，還不是研究結論。',
+    demoLead: '下面用物流情境中可能存在的聯繫，說明如何判斷活動之間的關係。',
     demo: {
       activities: ['承運商運輸記錄', '運輸排放核算', '回應客戶數據要求'],
       pairLabel: '選擇一組示例活動', pairTemplate: '{from} 與 {to}',
@@ -128,7 +128,7 @@ export const orientationCopy = {
     openingHelp: 'Take a moment to reflect or discuss this with the interviewer before moving on. You do not need to enter an answer here.',
     context: 'Use your industry experience to consider a small or medium-sized logistics business with the relevant operations. An activity absent from your own business may still matter elsewhere in the industry.',
     purposeLabel: 'What we hope to understand',
-    purpose: 'Which practical management activities support others, where there is little or no connection, and why. There are no predefined answers.',
+    purpose: 'Which practical management activities support others, where there is little or no connection, and why.',
     esrsTitle: 'ESG topics in day-to-day logistics operations',
     esrsLead: 'We use the European Sustainability Reporting Standards (ESRS) as a common starting point for sustainability topics.',
     categories: [
@@ -137,9 +137,9 @@ export const orientationCopy = {
       { code: 'G', name: 'Business conduct', items: ['Supplier relationships', 'Ethical business practices'] },
     ],
     principle: 'The topics provide a shared language. In practice, addressing them may involve connected activities, people, data and partners.',
-    esrsNote: 'This project’s 38-topic catalogue is derived from ESRS; it is not an official fixed 38-factor model. Use your experience to judge the actual connections.',
+    esrsNote: 'This project’s 38-topic catalogue is derived from ESRS. Use your experience to judge the actual connections.',
     demoTitle: 'Which activities make other activities easier?',
-    demoLead: 'This simple logistics example shows possible links for discussion. They are not research findings.',
+    demoLead: 'This logistics example uses possible links to show how to judge connections between activities.',
     demo: {
       activities: ['Carrier shipment records', 'Transport emissions calculation', "Responding to customers' data requests"],
       pairLabel: 'Choose a pair of example activities', pairTemplate: '{from} and {to}',

@@ -1,6 +1,6 @@
-import { managementActivity } from './management-activities.mjs?v=vt3-20261023-r1';
-import { sourceJudgmentError, targetGroups, topicGroup } from './expert-protocol.mjs?v=vt3-20261023-r1';
-import { expertErrorKey } from './vt3-copy.mjs?v=vt3-20261023-r1';
+import { managementActivity } from './management-activities.mjs?v=vt3-20261023-r2';
+import { sourceJudgmentError, targetGroups, topicGroup } from './expert-protocol.mjs?v=vt3-20261023-r2';
+import { expertErrorKey } from './vt3-copy.mjs?v=vt3-20261023-r2';
 
 const h = (value) => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 const local = (value, locale) => typeof value === 'string' ? value : value?.[locale] || value?.en || '';
@@ -67,7 +67,7 @@ export function renderExpertReview({ factors, assignment, rows, reviewedIds, cov
   return `<div class="vt3-page vt3-review">
     <header class="vt3-page-heading"><p class="eyebrow">${h(t('versionLabel'))}</p><h1 data-page-title tabindex="-1">${h(t('reviewTitle'))}</h1><p>${h(t('reviewLead'))}</p></header>
     <section class="vt3-review-summary"><h2>${h(t('reviewCounts', { done: reviewedIds.length, total: assignment.sourceIds.length, links: coverage?.support || 0 }))}</h2>
-      ${coverage ? `<p>${h(t('coverageSummary', coverage))}</p>` : ''}<p>${h(t('coverageBoundary'))}</p></section>
+      ${coverage ? `<p>${h(t('coverageSummary', coverage))}</p>` : ''}</section>
     <ol class="vt3-review-tasks">${assignment.sourceIds.map((id, index) => {
       const factor = factors.find((item) => item.id === id);
       const row = byId.get(id);

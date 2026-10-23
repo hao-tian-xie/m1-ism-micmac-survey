@@ -4,13 +4,13 @@ import {
   AdminAuthError,
   extractListPayload,
   extractSession,
-} from './admin-api.mjs?v=vt3-20261023-r1';
+} from './admin-api.mjs?v=vt3-20261023-r2';
 import {
   adminCopy,
   adminLanguageNames,
   adminLocales,
   createAdminTranslator,
-} from './admin-translations.mjs?v=vt3-20261023-r1';
+} from './admin-translations.mjs?v=vt3-20261023-r2';
 
 const app = document.querySelector('#admin-app');
 const LOCALE_QUERY_KEY = 'lang';
