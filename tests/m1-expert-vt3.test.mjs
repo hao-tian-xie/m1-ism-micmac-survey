@@ -159,7 +159,7 @@ test('all 38 management interpretations and all participant keys exist in three 
       assert.ok(activity.title && activity.meaning && activity.example);
       assert.notEqual(activity.title, factor.id);
     }
-    assert.match(vt3Copy[locale].welcomeTime, /30–45/);
+    assert.match(vt3Copy[locale].minutesUnit, /30–45/);
   }
   const custom = { id: 'F1', name: { en: 'A revised custom factor' }, description: { en: 'Its actual custom definition' } };
   assert.equal(managementActivity(custom, 'en').meaning, custom.description.en);

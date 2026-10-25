@@ -6,17 +6,17 @@ import {
   tryWriteStorage,
 } from './survey-core.mjs';
 import { displayTopicName, studyConfig } from './survey-config.mjs?v=topic-definitions-contains-20260908';
-import { copy, languageNames, locales } from './translations.mjs?v=vt3-guided-20261025';
+import { copy, languageNames, locales } from './translations.mjs?v=vt3-editorial-20261025';
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
 import { resolveLocale } from './locale-state.mjs';
-import { guideStepsForScreen } from './guide-steps.mjs?v=vt3-guided-20261025';
-import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs?v=vt3-guided-20261025';
+import { guideStepsForScreen } from './guide-steps.mjs?v=vt3-editorial-20261025';
+import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs?v=vt3-editorial-20261025';
 import {
   clampIndex,
   confirmTopicTransition,
   previousAfterTopicQuestion,
   previousBeforeTopicQuestion,
-} from './m1-state-transitions.mjs?v=vt3-guided-20261025';
+} from './m1-state-transitions.mjs?v=vt3-editorial-20261025';
 import { joinTopicTextPages, splitTopicTextByFit, topicNodeFits } from './topic-pagination.mjs';
 import {
   FALLBACK_PUBLIC_QUESTIONNAIRE,
@@ -26,24 +26,24 @@ import {
   moduleAnswerError,
   normalizeModuleValue,
   serializeModuleAnswer,
-} from './public-questionnaire.mjs?v=vt3-guided-20261025';
-import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=vt3-guided-20261025';
+} from './public-questionnaire.mjs?v=vt3-editorial-20261025';
+import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=vt3-editorial-20261025';
 import {
   ORIENTATION_DEMO_VALUES,
   orientationContent,
   orientationDemoFeedback,
   renderInterviewOrientation,
   renderOrientationDemo,
-} from './interview-orientation.mjs?v=vt3-guided-20261025';
+} from './interview-orientation.mjs?v=vt3-editorial-20261025';
 
 const STORAGE_KEY_BASE = `bextools:${studyConfig.id}:${studyConfig.version}:vt3-guided-20261025`;
 
-import { blankSourceJudgment, expertMatrices, expertSubmissionFields, sourceAssignment, sourceJudgmentError, targetGroups, topicGroup } from './expert-protocol.mjs?v=vt3-guided-20261025';
-import { managementActivity } from './management-activities.mjs?v=vt3-guided-20261025';
-import { vt3Copy, expertErrorKey } from './vt3-copy.mjs?v=vt3-guided-20261025';
-import { renderExpertSurvey, renderExpertReview } from './expert-survey-view.mjs?v=vt3-guided-20261025';
-import { ASSIGNMENT_FOCI, TASK_COUNTS, GUIDED_WORDING_VERSION, blankGuidedSource, syncGuidedRow, setTargetReview, targetPages, checkpointPositions } from './guided-elicitation.mjs?v=vt3-guided-20261025';
-import { renderGuidedSurvey, renderGuidedPractice, renderGuidedCheckpoint } from './guided-survey-view.mjs?v=vt3-guided-20261025';
+import { blankSourceJudgment, expertMatrices, expertSubmissionFields, sourceAssignment, sourceJudgmentError, targetGroups, topicGroup } from './expert-protocol.mjs?v=vt3-editorial-20261025';
+import { managementActivity, managementBoundary } from './management-activities.mjs?v=vt3-editorial-20261025';
+import { vt3Copy, expertErrorKey } from './vt3-copy.mjs?v=vt3-editorial-20261025';
+import { renderExpertSurvey, renderExpertReview } from './expert-survey-view.mjs?v=vt3-editorial-20261025';
+import { ASSIGNMENT_FOCI, TASK_COUNTS, GUIDED_WORDING_VERSION, blankGuidedSource, syncGuidedRow, setTargetReview, targetPages, checkpointPositions } from './guided-elicitation.mjs?v=vt3-editorial-20261025';
+import { renderGuidedSurvey, renderGuidedPractice, renderGuidedCheckpoint } from './guided-survey-view.mjs?v=vt3-editorial-20261025';
 const NONE_VALUE = '__none__';
 let factors = studyConfig.factors;
 let factorIds = factors.map((factor) => factor.id);
@@ -865,6 +865,7 @@ function renderHomeLink() {
   const url = new URL('./', window.location.href);
   url.searchParams.set('lang', state.locale);
   homeLink.href = `${url.pathname}${url.search}${url.hash}`;
+  homeLink.setAttribute('aria-label', t('homeLabel'));
 }
 
 function renderGuide() {
@@ -1103,7 +1104,10 @@ function renderWelcome() {
     const cards = categoryFactors.map((factor) => `
       <details class="factor-preview">
         <summary><span>${escapeHtml(factor.id)}</span><b>${escapeHtml(activeFactorLabel(factor, state.locale))}</b><i aria-hidden="true">+</i></summary>
-        <p><b>${escapeHtml(managementActivity(factor, state.locale).title)}</b></p><p>${escapeHtml(managementActivity(factor, state.locale).meaning)}</p><p>${escapeHtml(managementActivity(factor, state.locale).example)}</p><p>${escapeHtml(activeFactorDescription(factor, state.locale))}</p>
+        <p><b>${escapeHtml(managementActivity(factor, state.locale).title)}</b></p><p>${escapeHtml(managementActivity(factor, state.locale).meaning)}</p>
+        <section class="activity-reference"><h4>${escapeHtml(t('logisticsExampleLabel'))}</h4><p>${escapeHtml(managementActivity(factor, state.locale).example)}</p></section>
+        ${managementBoundary(factor, state.locale) ? `<section class="activity-reference"><h4>${escapeHtml(t('topicBoundaryLabel'))}</h4><p>${escapeHtml(managementBoundary(factor, state.locale))}</p></section>` : ''}
+        <section class="activity-reference"><h4>${escapeHtml(t('esrsDefinitionLabel'))}</h4><p>${escapeHtml(activeFactorDescription(factor, state.locale))}</p></section>
       </details>
     `).join('');
     return `
@@ -1125,7 +1129,9 @@ function renderWelcome() {
             <p>${escapeHtml(t('studyScope'))}</p>
           </div>
 
-          <p class="vt3-welcome-method">${escapeHtml(t('welcomeMethod'))}</p><p>${escapeHtml(t('welcomeCoverage'))}</p><p>${escapeHtml(t('welcomeTime'))}</p>
+          <p class="vt3-welcome-method">${escapeHtml(t('welcomeMethod'))}</p>
+          <section class="vt3-workflow" aria-labelledby="workflow-title"><h2 id="workflow-title">${escapeHtml(t('welcomeTaskFlowTitle'))}</h2><ol>${[['welcomeRecallTitle', 'welcomeRecallText'], ['welcomeReviewTitle', 'welcomeReviewText'], ['welcomeConfirmTitle', 'welcomeConfirmText']].map(([title, text]) => `<li><b>${escapeHtml(t(title))}</b><p>${escapeHtml(t(text))}</p></li>`).join('')}</ol></section>
+          <p>${escapeHtml(t('welcomeCoverage'))}</p><p>${escapeHtml(t('welcomeTime'))}</p>
           <div class="study-stats" aria-label="${escapeHtml(t('overviewLabel'))}">
             <span class="study-summary">${escapeHtml(t('minutesUnit', {
               topicCount: factors.length,
@@ -1484,7 +1490,7 @@ function renderComplete() {
 function render() {
   document.documentElement.lang = state.locale;
   document.body.dataset.screen = state.screen;
-  document.title = `${localeText(studyConfig.title)} | ESG Study`;
+  document.title = t('documentTitle');
   document.querySelector('meta[name="description"]').content = t('heroTitle');
   document.querySelector('#brand-subtitle').textContent = t('brand').replace('BEXtools', '').trim();
   renderHomeLink();

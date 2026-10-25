@@ -1,7 +1,7 @@
-import { managementActivity } from './management-activities.mjs?v=vt3-guided-20261025';
-import { sourceJudgmentError, targetGroups, topicGroup } from './expert-protocol.mjs?v=vt3-guided-20261025';
-import { expertErrorKey } from './vt3-copy.mjs?v=vt3-guided-20261025';
-import { guidedCounts } from './guided-elicitation.mjs?v=vt3-guided-20261025';
+import { managementActivity } from './management-activities.mjs?v=vt3-editorial-20261025';
+import { sourceJudgmentError, targetGroups, topicGroup } from './expert-protocol.mjs?v=vt3-editorial-20261025';
+import { expertErrorKey } from './vt3-copy.mjs?v=vt3-editorial-20261025';
+import { guidedCounts } from './guided-elicitation.mjs?v=vt3-editorial-20261025';
 
 const h = (value) => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 const local = (value, locale) => typeof value === 'string' ? value : value?.[locale] || value?.en || '';
@@ -54,7 +54,7 @@ export function renderExpertSurvey({ factors, sourceId, row, locale, t, position
       <p class="vt3-kicker">${h(t('explanationStep'))}</p><p>${h(t('explanationHelp'))}</p>
       <label>${h(t('explanationTarget'))}<select name="explanation-target" data-source-id="${h(sourceId)}"><option value="">${h(t('explanationPlaceholder'))}</option>${targets.filter((factor) => selected.has(factor.id)).map((factor) => `<option value="${h(factor.id)}" ${row.explanation?.targetId === factor.id ? 'selected' : ''}>${h(factor.id)} · ${h(managementActivity(factor, locale).title)}</option>`).join('')}</select></label>
       <div data-explanation-fields ${row.explanation ? '' : 'hidden'}><label>${h(t('mechanismLabel'))}<textarea name="relationship-explanation" data-source-id="${h(sourceId)}" maxlength="800" rows="3" placeholder="${h(t('mechanismPlaceholder'))}">${h(row.explanation?.note || '')}</textarea></label>
-      <label>${h(t('reverseLabel'))}<select name="reverse-judgment" data-source-id="${h(sourceId)}">${[['not_asked', 'reverseNotAsked'], ['support', 'reverseSupport'], ['no_support', 'reverseNoSupport'], ['unable', 'reverseUnable']].map(([value, key]) => `<option value="${value}" ${(row.explanation?.reverse || 'not_asked') === value ? 'selected' : ''}>${h(t(key))}</option>`).join('')}</select></label></div>
+      <label>${h(t('reverseLabel', { source: activity.title, target: managementActivity(factors.find((factor) => factor.id === row.explanation?.targetId), locale).title || t('explanationTarget') }))}<select name="reverse-judgment" data-source-id="${h(sourceId)}">${[['not_asked', 'reverseNotAsked'], ['support', 'reverseSupport'], ['no_support', 'reverseNoSupport'], ['unable', 'reverseUnable']].map(([value, key]) => `<option value="${value}" ${(row.explanation?.reverse || 'not_asked') === value ? 'selected' : ''}>${h(t(key))}</option>`).join('')}</select></label></div>
     </section>
     <fieldset class="vt3-source-state"><legend>${h(t('stateStep'))}</legend>${[['selected', 'stateSelected'], ['none', 'stateNone'], ['unable', 'stateUnable']].map(([value, key]) => `<label><input type="radio" name="source-status" data-source-id="${h(sourceId)}" value="${value}" ${row.status === value ? 'checked' : ''} /><span>${h(t(key))}</span></label>`).join('')}<p>${h(t('stateUnableHelp'))}</p></fieldset>
     <details class="vt3-host-guide"><summary>${h(t('hostGuide'))}</summary><ul>${['hostStart', 'hostCross', 'hostMechanism', 'hostUncertain'].map((key) => `<li>${h(t(key))}</li>`).join('')}</ul></details>

@@ -1,174 +1,306 @@
 // Participant-facing adaptation of ESGr2_M1_ESRS_ISM_CEO_Interview_Slides_Guide.md.
 // The example is a reading aid. Its state never enters questionnaire answers.
 export const orientationCopy = {
-  'zh-CN': {
-    eyebrow: '访谈介绍', readingTime: '背景与示例 · 约 90–120 秒',
-    title: '理解物流运营中 ESG 管理活动的联系',
-    subtitle: '先从您的实际经验谈起，再了解研究背景和如何判断活动之间的联系。',
-    browse: '按顺序浏览，也可以点击各部分回看。', sectionsLabel: '研究介绍的三个部分',
-    sections: [
-      { title: '先聊经验', subtitle: '从熟悉的工作开始' },
-      { title: '认识 ESRS', subtitle: '日常运营如何回应这些议题' },
-      { title: '理解联系', subtitle: '用物流示例了解联系的方向' },
-    ],
-    openingLabel: '在看议题与示例之前，先想一想',
-    opening: '过去一两年，物流客户提出过哪些 ESG 相关工作要求，或者哪些管理工作让您感到特别困难？',
-    openingHelp: '可以先想一想，或和访谈员聊一聊，再看后两部分。这里不用输入答案。',
-    context: '请根据行业经验，考虑一家具有相关业务的中小物流企业。您所在企业尚未开展某项业务，不等于行业中没有这种联系。',
-    purposeLabel: '这次希望了解什么',
-    purpose: '哪些实际管理工作能够支持其他工作，哪些活动没有明显联系，以及背后的原因。',
-    esrsTitle: '物流企业在日常运营中如何回应 ESG 议题',
-    esrsLead: '我们以《欧洲可持续发展报告标准》（ESRS）为共同起点，识别可持续发展议题。',
-    categories: [
-      { code: 'E', name: '环境', items: ['排放与能源', '资源使用'] },
-      { code: 'S', name: '人员／社会', items: ['员工健康与安全', '供应链工人'] },
-      { code: 'G', name: '商业行为／治理', items: ['供应商关系', '商业道德'] },
-    ],
-    principle: '这些议题为讨论提供共同语言。实际运营中，回应这些议题可能需要人员、数据、流程和合作伙伴相互支持。',
-    esrsNote: '本项目依据 ESRS 整理了38项来源议题；具体联系由实际经验判断。',
-    demoTitle: '做好哪项工作，会让其他工作更容易？',
-    demoLead: '下面用物流场景中可能存在的联系，说明如何判断活动之间的关系。',
-    demo: {
-      activities: ['承运商运输记录', '运输排放核算', '回应客户数据要求'],
-      pairLabel: '选择一组示例活动', pairTemplate: '{from} 与 {to}',
-      question: '把 {from} 做得更好，会有助于 {to} 吗？把 {to} 做得更好，也会有助于 {from} 吗？',
-      practice: '方向演示 · 不计入问卷答案',
-      choiceLabel: '选择一种情况，查看说明',
-      forward: '仅 {from} 帮助 {to}', reverse: '仅 {to} 帮助 {from}', both: '两个方向都支持',
-      none: '没有促进关系', unknown: '暂时无法判断',
-      idle: '还没有选择演示选项。请根据经验判断；“没有促进关系”也是有用的意见。',
-      feedback: {
-        forward: '演示：{from} → {to}。请说明改善 {from} 如何帮助 {to}；反过来是否成立，要单独确认。',
-        reverse: '演示：{to} → {from}。请说明改善 {to} 如何帮助 {from}；反过来是否成立，要单独确认。',
-        both: '演示：{from} ↔ {to}。两个方向需要分别确认，并用实际例子说明理由。',
-        none: '演示：没有实际促进关系。不能仅凭两项活动都重要，或先后发生，就认为它们之间有促进关系。',
-        unknown: '演示：经验或信息不足，暂时无法判断。这不能记作“没有促进关系”。',
+  "zh-CN": {
+    "eyebrow": "访谈介绍",
+    "readingTime": "背景与示例 · 约 90–120 秒",
+    "title": "一项 ESG 工作怎样帮助另一项工作？",
+    "subtitle": "这次访谈关注中小物流企业日常管理工作之间的联系。先回想业务经验，再了解议题和判断方式。",
+    "browse": "依次浏览三个部分，也可点击标题回看。",
+    "sectionsLabel": "研究介绍的三个部分",
+    "sections": [
+      {
+        "title": "先回想业务经验",
+        "subtitle": "从实际工作中的要求与困难谈起"
       },
-      rulesLabel: '访谈时如何确认一条联系？',
-      rules: [
-        '先判断 A 是否帮助 B，再单独考虑 B 是否也能帮助 A。',
-        '对重要、不清楚或跨领域的联系，可说明帮助怎样产生：通过数据、人员技能、管理控制、协作，还是其他方式？不必逐条解释。',
-        '两项活动都重要，或先后发生，不等于它们之间有方向的促进关系。',
-        '不熟悉时，可以告诉访谈员暂时无法判断；两项活动之间的关系如果还没讨论过，也不能记作没有关系。',
-      ],
-      researcher: '您提供关系判断和简短例子；研究团队随后用 ISM 整理获得支持的联系与层级。您不用计算或排列层级。',
-    },
-    footer: '正式访谈约30–45分钟。研究者按背景和时间分配8–12项来源任务。先自由回想，再分组检查全部目标，关键关系可补充方向与路径说明；每隔几题安排简短回顾。',
-    previous: '上一部分', next: '下一部分', position: '第 {i} 部分，共 {total} 部分',
-    continue: '了解了，进入问卷', return: '返回问卷', reopen: '研究介绍',
-  },
-  'zh-HK': {
-    eyebrow: '訪談介紹', readingTime: '背景與示例 · 約 90–120 秒',
-    title: '理解物流營運中 ESG 管理活動的聯繫',
-    subtitle: '先從您的實際經驗談起，再了解研究背景和如何判斷活動之間的聯繫。',
-    browse: '按順序瀏覽，也可以點擊各部分回看。', sectionsLabel: '研究介紹的三個部分',
-    sections: [
-      { title: '先談經驗', subtitle: '從熟悉的工作開始' },
-      { title: '認識 ESRS', subtitle: '日常營運如何回應這些議題' },
-      { title: '理解聯繫', subtitle: '用物流示例了解聯繫的方向' },
-    ],
-    openingLabel: '在看議題與示例之前，先想一想',
-    opening: '過去一兩年，物流客戶提出過哪些 ESG 相關工作要求，或者哪些管理工作讓您感到特別困難？',
-    openingHelp: '可以先想一想，或和訪談員談一談，再看後兩部分。這裡不用輸入答案。',
-    context: '請根據行業經驗，考慮一家具相關業務的中小物流企業。您所在企業尚未開展某項業務，不等於行業中沒有這種聯繫。',
-    purposeLabel: '這次希望了解甚麼',
-    purpose: '哪些實際管理工作能夠支持其他工作，哪些活動沒有明顯聯繫，以及背後的原因。',
-    esrsTitle: '物流企業在日常營運中如何回應 ESG 議題',
-    esrsLead: '我們以《歐洲可持續發展報告準則》（ESRS）為共同起點，識別可持續發展議題。',
-    categories: [
-      { code: 'E', name: '環境', items: ['排放與能源', '資源使用'] },
-      { code: 'S', name: '人員／社會', items: ['員工健康與安全', '供應鏈工人'] },
-      { code: 'G', name: '商業行為／治理', items: ['供應商關係', '商業道德'] },
-    ],
-    principle: '這些議題為討論提供共同語言。實際營運中，回應這些議題可能需要人員、數據、流程和合作夥伴互相支持。',
-    esrsNote: '本項目依據 ESRS 整理了38項來源議題；具體聯繫由實際經驗判斷。',
-    demoTitle: '做好哪項工作，會讓其他工作更容易？',
-    demoLead: '下面用物流情境中可能存在的聯繫，說明如何判斷活動之間的關係。',
-    demo: {
-      activities: ['承運商運輸記錄', '運輸排放核算', '回應客戶數據要求'],
-      pairLabel: '選擇一組示例活動', pairTemplate: '{from} 與 {to}',
-      question: '把 {from} 做得更好，會有助於 {to} 嗎？把 {to} 做得更好，也會有助於 {from} 嗎？',
-      practice: '方向演示 · 不計入問卷答案',
-      choiceLabel: '選擇一種情況，查看說明',
-      forward: '僅 {from} 幫助 {to}', reverse: '僅 {to} 幫助 {from}', both: '兩個方向都支持',
-      none: '沒有促進關係', unknown: '暫時無法判斷',
-      idle: '還沒有選擇演示選項。請根據經驗判斷；「沒有促進關係」也是有用的意見。',
-      feedback: {
-        forward: '演示：{from} → {to}。請說明改善 {from} 如何幫助 {to}；反過來是否成立，要單獨確認。',
-        reverse: '演示：{to} → {from}。請說明改善 {to} 如何幫助 {from}；反過來是否成立，要單獨確認。',
-        both: '演示：{from} ↔ {to}。兩個方向需要分別確認，並用實際例子說明理由。',
-        none: '演示：沒有實際促進關係。不能僅憑兩項活動都重要，或先後發生，就認為它們之間有促進關係。',
-        unknown: '演示：經驗或資訊不足，暫時無法判斷。這不能記作「沒有促進關係」。',
+      {
+        "title": "了解这38项议题",
+        "subtitle": "用 ESRS 整理环境、社会与治理工作"
       },
-      rulesLabel: '訪談時如何確認一條聯繫？',
-      rules: [
-        '先判斷 A 是否幫助 B，再單獨考慮 B 是否也能幫助 A。',
-        '對重要、不清楚或跨領域的聯繫，可說明幫助怎樣產生：透過數據、人員技能、管理控制、協作，還是其他方式？不必逐條解釋。',
-        '兩項活動都重要，或先後發生，不等於它們之間有方向的促進關係。',
-        '不熟悉時，可以告訴訪談員暫時無法判斷；兩項活動之間的關係如果還沒討論過，也不能記作沒有關係。',
-      ],
-      researcher: '您提供關係判斷和簡短例子；研究團隊隨後用 ISM 整理獲得支持的聯繫與層級。您不用計算或排列層級。',
-    },
-    footer: '正式訪談約30–45分鐘。研究者按背景和時間分配8–12項來源任務。先自由回想，再分組檢查全部目標，關鍵關係可補充方向與路徑說明；每隔幾題安排簡短回顧。',
-    previous: '上一部分', next: '下一部分', position: '第 {i} 部分，共 {total} 部分',
-    continue: '了解了，進入問卷', return: '返回問卷', reopen: '研究介紹',
-  },
-  en: {
-    eyebrow: 'Interview introduction', readingTime: 'Background & example · about 90–120 seconds',
-    title: 'Understanding ESG activities in everyday logistics',
-    subtitle: 'Start with your experience, then learn about the study background and how to judge connections between activities.',
-    browse: 'Read in order, or select a section to revisit it.', sectionsLabel: 'Three parts of the study introduction',
-    sections: [
-      { title: 'Your experience', subtitle: 'Start with familiar work' },
-      { title: 'About ESRS', subtitle: 'Topics in everyday operations' },
-      { title: 'Explore links', subtitle: 'Try a logistics example' },
+      {
+        "title": "试着判断方向",
+        "subtitle": "操作物流示例，查看每种回答的含义"
+      }
     ],
-    openingLabel: 'Before you look at topics or examples, consider this:',
-    opening: 'Over the past year or two, what ESG-related work have logistics customers asked for, or which management activities have you found particularly difficult?',
-    openingHelp: 'Take a moment to reflect or discuss this with the interviewer before moving on. You do not need to enter an answer here.',
-    context: 'Use your industry experience to consider a small or medium-sized logistics business with the relevant operations. An activity absent from your own business may still matter elsewhere in the industry.',
-    purposeLabel: 'What we hope to understand',
-    purpose: 'Which practical management activities support others, where there is little or no connection, and why.',
-    esrsTitle: 'ESG topics in day-to-day logistics operations',
-    esrsLead: 'We use the European Sustainability Reporting Standards (ESRS) as a common starting point for sustainability topics.',
-    categories: [
-      { code: 'E', name: 'Environment', items: ['Emissions & energy', 'Resource use'] },
-      { code: 'S', name: 'People', items: ['Employee health & safety', 'Workers across the supply chain'] },
-      { code: 'G', name: 'Business conduct', items: ['Supplier relationships', 'Ethical business practices'] },
-    ],
-    principle: 'The topics provide a shared language. In practice, addressing them may involve connected activities, people, data and partners.',
-    esrsNote: 'This project’s 38-topic catalogue is derived from ESRS. Use your experience to judge the actual connections.',
-    demoTitle: 'Which activities make other activities easier?',
-    demoLead: 'This logistics example uses possible links to show how to judge connections between activities.',
-    demo: {
-      activities: ['Carrier shipment records', 'Transport emissions calculation', "Responding to customers' data requests"],
-      pairLabel: 'Choose a pair of example activities', pairTemplate: '{from} and {to}',
-      question: 'Would improving {from} help {to}? Could improving {to} also help {from}?',
-      practice: 'Direction demo · not part of your survey answers',
-      choiceLabel: 'Select an option to see what it means',
-      forward: 'Only {from} helps {to}', reverse: 'Only {to} helps {from}', both: 'Support in both directions',
-      none: 'No supporting link', unknown: 'Unable to judge yet',
-      idle: 'No demo option selected yet. Use your experience; “no link” is a useful answer too.',
-      feedback: {
-        forward: 'Demo: {from} → {to}. Explain how improving {from} could help {to}; separately check whether improving {to} could help {from}.',
-        reverse: 'Demo: {to} → {from}. Explain how improving {to} could help {from}; separately check whether improving {from} could help {to}.',
-        both: 'Demo: {from} ↔ {to}. Confirm each direction separately and give a practical example explaining why.',
-        none: 'Demo: no practical support. You cannot conclude that one activity supports the other just because both are important or one happens before the other.',
-        unknown: 'Demo: there is not enough experience or information to judge. This must not be recorded as “no link”.',
+    "openingLabel": "先从您熟悉的工作谈起",
+    "opening": "过去一两年，物流客户提出过哪些 ESG 相关工作要求，或者哪些管理工作让您感到特别困难？",
+    "openingHelp": "先想一想，或与访谈员聊一聊，再进入后两部分。这一页供口头交流，无需输入答案。",
+    "context": "请按行业经验，考虑一家具有相关业务的中小物流企业。相关经验也可来自您了解的其他企业。",
+    "purposeLabel": "这次访谈要了解什么",
+    "purpose": "哪些管理工作能帮助其他工作，哪些工作之间没有明确的帮助，以及这些判断来自什么业务经验。",
+    "esrsTitle": "把 ESG 议题放回日常物流工作中",
+    "esrsLead": "本问卷以《欧洲可持续发展报告标准》（ESRS）整理讨论的议题，并为每项议题提供管理含义和物流示例。",
+    "categories": [
+      {
+        "code": "E",
+        "name": "环境",
+        "items": [
+          "排放与能源",
+          "资源使用"
+        ]
       },
-      rulesLabel: 'How do we confirm a connection in the interview?',
-      rules: [
-        'First consider whether A helps B, then judge separately whether B could also help A.',
-        'For an important, unclear or cross-domain link, explain how support occurs: through information, staff skills, controls, coordination or another route. You do not need to explain every link.',
-        'You cannot conclude that one activity supports the other just because both are important or happen in sequence.',
-        'Tell the interviewer if a link is outside your experience. A pair that has not been discussed must not be marked “no link”.',
+      {
+        "code": "S",
+        "name": "人员／社会",
+        "items": [
+          "员工健康与安全",
+          "供应链工人"
+        ]
+      },
+      {
+        "code": "G",
+        "name": "商业行为／治理",
+        "items": [
+          "供应商关系",
+          "商业道德"
+        ]
+      }
+    ],
+    "principle": "实际开展这些工作时，人员、数据、流程和合作伙伴可能需要相互配合。接下来要判断的，就是一项工作怎样帮助另一项工作。",
+    "esrsNote": "题库共38项议题。请根据实际经验判断它们之间的联系。",
+    "demoTitle": "先判断 A 帮助 B，再看反方向",
+    "demoLead": "选择一组活动，再选择一种情况。箭头与下方说明会随您的选择变化。",
+    "demo": {
+      "activities": [
+        "承运商运输记录",
+        "运输排放核算",
+        "回应客户数据要求"
       ],
-      researcher: 'You provide judgments and brief examples. The research team then uses ISM to organize supported connections and levels. You do not need to calculate or rank the levels.',
+      "pairLabel": "选择一组示例活动",
+      "pairTemplate": "{from} 与 {to}",
+      "question": "把 {from} 做得更好，会有助于 {to} 吗？把 {to} 做得更好，也会有助于 {from} 吗？",
+      "practice": "交互示例 · 与正式答案分开",
+      "choiceLabel": "选择一种情况，查看方向与说明",
+      "forward": "仅 {from} 帮助 {to}",
+      "reverse": "仅 {to} 帮助 {from}",
+      "both": "两个方向都支持",
+      "none": "无明确帮助",
+      "unknown": "暂时无法判断",
+      "idle": "选择一个选项，查看这个方向怎样记录。",
+      "feedback": {
+        "forward": "{from} → {to}：改善 {from} 会帮助 {to}。反方向需要单独判断。",
+        "reverse": "{to} → {from}：改善 {to} 会帮助 {from}。反方向需要单独判断。",
+        "both": "{from} ↔ {to}：两个方向都有帮助。分别确认每个方向，可用业务例子说明怎样产生帮助。",
+        "none": "无明确帮助：已考虑这组活动，未发现一项工作帮助另一项工作的明确联系。两项工作都重要或先后发生，本身不能说明有帮助。",
+        "unknown": "无法判断：经验或信息不足，关系保留为未判断；它与已判断“无明确帮助”的情况分别记录。"
+      },
+      "rulesLabel": "正式访谈怎样记录一条关系？",
+      "rules": [
+        "先判断 A 是否帮助 B，再单独判断 B 是否帮助 A。",
+        "可选一条重要、不清楚或跨领域的关系，说明数据、人员技能、管理控制、协作或其他方式怎样产生帮助。其余关系直接记录。",
+        "两项工作都重要或先后发生，本身不能说明一项工作会帮助另一项工作。",
+        "经验不足时记录为无法判断；尚未讨论的关系保留为未判断。"
+      ],
+      "researcher": "您提供方向判断和简短例子。研究团队随后用解释结构模型（ISM）整理获得支持的联系与层级。"
     },
-    footer: 'Allow about 30–45 minutes. The researcher assigns 8–12 source tasks to fit expertise and time. Recall activities first, review all targets in small groups, and optionally explain a key link’s direction and path. Short reviews are spaced through the tasks.',
-    previous: 'Previous section', next: 'Next section', position: 'Section {i} of {total}',
-    continue: 'Continue to the survey', return: 'Return to the survey', reopen: 'Study introduction',
+    "footer": "访谈约30–45分钟，按您的背景和时间安排8–12项来源任务。每项任务先回想、再分组检查目标，最后可补充关键关系的路径与方向。每隔几题安排一次简短回顾。",
+    "previous": "上一部分",
+    "next": "下一部分",
+    "position": "第 {i} 部分，共 {total} 部分",
+    "continue": "进入问卷",
+    "return": "返回问卷",
+    "reopen": "研究介绍"
   },
+  "zh-HK": {
+    "eyebrow": "訪談介紹",
+    "readingTime": "背景與示例 · 約 90–120 秒",
+    "title": "一項 ESG 工作怎樣幫助另一項工作？",
+    "subtitle": "這次訪談關注中小物流企業日常管理工作之間的聯繫。先回想業務經驗，再了解議題和判斷方式。",
+    "browse": "依次瀏覽三個部分，也可點擊標題回看。",
+    "sectionsLabel": "研究介紹的三個部分",
+    "sections": [
+      {
+        "title": "先回想業務經驗",
+        "subtitle": "從實際工作中的要求與困難談起"
+      },
+      {
+        "title": "了解這38項議題",
+        "subtitle": "用 ESRS 整理環境、社會與治理工作"
+      },
+      {
+        "title": "試着判斷方向",
+        "subtitle": "操作物流示例，查看每種回答的含義"
+      }
+    ],
+    "openingLabel": "先從您熟悉的工作談起",
+    "opening": "過去一兩年，物流客戶提出過哪些 ESG 相關工作要求，或者哪些管理工作讓您感到特別困難？",
+    "openingHelp": "先想一想，或與訪談員談一談，再進入後兩部分。這一頁供口頭交流，無需輸入答案。",
+    "context": "請按行業經驗，考慮一家具相關業務的中小物流企業。相關經驗也可來自您了解的其他企業。",
+    "purposeLabel": "這次訪談要了解甚麼",
+    "purpose": "哪些管理工作能幫助其他工作，哪些工作之間沒有明確的幫助，以及這些判斷來自甚麼業務經驗。",
+    "esrsTitle": "把 ESG 議題放回日常物流工作中",
+    "esrsLead": "本問卷以《歐洲可持續發展報告準則》（ESRS）整理討論的議題，並為每項議題提供管理含義和物流示例。",
+    "categories": [
+      {
+        "code": "E",
+        "name": "環境",
+        "items": [
+          "排放與能源",
+          "資源使用"
+        ]
+      },
+      {
+        "code": "S",
+        "name": "人員／社會",
+        "items": [
+          "員工健康與安全",
+          "供應鏈工人"
+        ]
+      },
+      {
+        "code": "G",
+        "name": "商業行為／治理",
+        "items": [
+          "供應商關係",
+          "商業道德"
+        ]
+      }
+    ],
+    "principle": "實際開展這些工作時，人員、數據、流程和合作夥伴可能需要互相配合。接下來要判斷的，就是一項工作怎樣幫助另一項工作。",
+    "esrsNote": "題庫共38項議題。請根據實際經驗判斷它們之間的聯繫。",
+    "demoTitle": "先判斷 A 幫助 B，再看反方向",
+    "demoLead": "選擇一組活動，再選擇一種情況。箭頭與下方說明會隨您的選擇變化。",
+    "demo": {
+      "activities": [
+        "承運商運輸記錄",
+        "運輸排放核算",
+        "回應客戶數據要求"
+      ],
+      "pairLabel": "選擇一組示例活動",
+      "pairTemplate": "{from} 與 {to}",
+      "question": "把 {from} 做得更好，會有助於 {to} 嗎？把 {to} 做得更好，也會有助於 {from} 嗎？",
+      "practice": "互動示例 · 與正式答案分開",
+      "choiceLabel": "選擇一種情況，查看方向與說明",
+      "forward": "僅 {from} 幫助 {to}",
+      "reverse": "僅 {to} 幫助 {from}",
+      "both": "兩個方向都支持",
+      "none": "無明確幫助",
+      "unknown": "暫時無法判斷",
+      "idle": "選擇一個選項，查看這個方向怎樣記錄。",
+      "feedback": {
+        "forward": "{from} → {to}：改善 {from} 會幫助 {to}。反方向需要獨立判斷。",
+        "reverse": "{to} → {from}：改善 {to} 會幫助 {from}。反方向需要獨立判斷。",
+        "both": "{from} ↔ {to}：兩個方向都有幫助。分別確認每個方向，可用業務例子說明怎樣產生幫助。",
+        "none": "無明確幫助：已考慮這組活動，未發現一項工作幫助另一項工作的明確聯繫。兩項工作都重要或先後發生，本身不能說明有幫助。",
+        "unknown": "無法判斷：經驗或資訊不足，關係保留為未判斷；它與已判斷「無明確幫助」的情況分別記錄。"
+      },
+      "rulesLabel": "正式訪談怎樣記錄一條關係？",
+      "rules": [
+        "先判斷 A 是否幫助 B，再獨立判斷 B 是否幫助 A。",
+        "可選一條重要、不清楚或跨領域的關係，說明數據、人員技能、管理控制、協作或其他方式怎樣產生幫助。其餘關係直接記錄。",
+        "兩項工作都重要或先後發生，本身不能說明一項工作會幫助另一項工作。",
+        "經驗不足時記錄為無法判斷；尚未討論的關係保留為未判斷。"
+      ],
+      "researcher": "您提供方向判斷和簡短例子。研究團隊隨後用解釋結構模型（ISM）整理獲得支持的聯繫與層級。"
+    },
+    "footer": "訪談約30–45分鐘，按您的背景和時間安排8–12項來源任務。每項任務先回想、再分組檢查目標，最後可補充關鍵關係的路徑與方向。每隔幾題安排一次簡短回顧。",
+    "previous": "上一部分",
+    "next": "下一部分",
+    "position": "第 {i} 部分，共 {total} 部分",
+    "continue": "進入問卷",
+    "return": "返回問卷",
+    "reopen": "研究介紹"
+  },
+  "en": {
+    "eyebrow": "Interview introduction",
+    "readingTime": "Background & example · about 90–120 seconds",
+    "title": "How does one ESG activity help another?",
+    "subtitle": "This interview explores links between everyday management activities in small and medium-sized logistics businesses. Start with your experience, then explore the topics and how to judge a link.",
+    "browse": "Read the three sections in order, or select a heading to revisit one.",
+    "sectionsLabel": "Three parts of the study introduction",
+    "sections": [
+      {
+        "title": "Recall your experience",
+        "subtitle": "Start with practical demands and difficulties"
+      },
+      {
+        "title": "Explore the 38 topics",
+        "subtitle": "Environment, social issues and governance"
+      },
+      {
+        "title": "Try judging direction",
+        "subtitle": "Use a logistics example to explore the choices"
+      }
+    ],
+    "openingLabel": "Start with work you know",
+    "opening": "Over the past year or two, what ESG-related work have logistics customers asked for, or which management activities have you found particularly difficult?",
+    "openingHelp": "Reflect or discuss this with the interviewer before moving on. This page is for conversation; there is no answer field.",
+    "context": "Draw on your industry experience to consider a small or medium-sized logistics business with the relevant operations. You may use experience of other businesses you know.",
+    "purposeLabel": "What the interview explores",
+    "purpose": "Which activities support others, where there is no clear support, and the operating experience behind those judgments.",
+    "esrsTitle": "Relate ESG topics to everyday logistics work",
+    "esrsLead": "The questionnaire uses the European Sustainability Reporting Standards (ESRS) to organise the topics for discussion. Each topic has a management definition and a logistics example.",
+    "categories": [
+      {
+        "code": "E",
+        "name": "Environment",
+        "items": [
+          "Emissions & energy",
+          "Resource use"
+        ]
+      },
+      {
+        "code": "S",
+        "name": "People",
+        "items": [
+          "Employee health & safety",
+          "Workers across the supply chain"
+        ]
+      },
+      {
+        "code": "G",
+        "name": "Business conduct",
+        "items": [
+          "Supplier relationships",
+          "Ethical business practices"
+        ]
+      }
+    ],
+    "principle": "In practice, these activities may involve people, data, procedures and partners working together. You will judge how one activity helps another.",
+    "esrsNote": "The catalogue contains 38 topics. Use your experience to judge the links between them.",
+    "demoTitle": "Judge A → B, then consider the reverse",
+    "demoLead": "Choose a pair of activities, then select an option. The arrows and explanation change with your choice.",
+    "demo": {
+      "activities": [
+        "Carrier shipment records",
+        "Transport emissions calculation",
+        "Responding to customers' data requests"
+      ],
+      "pairLabel": "Choose a pair of example activities",
+      "pairTemplate": "{from} and {to}",
+      "question": "Would improving {from} help {to}? Could improving {to} also help {from}?",
+      "practice": "Interactive example · separate from survey answers",
+      "choiceLabel": "Choose an option to explore its direction and meaning",
+      "forward": "Only {from} helps {to}",
+      "reverse": "Only {to} helps {from}",
+      "both": "Support in both directions",
+      "none": "No clear support",
+      "unknown": "Unable to judge yet",
+      "idle": "Select an option to see how that direction is recorded.",
+      "feedback": {
+        "forward": "{from} → {to}: improving {from} helps {to}. Judge the reverse direction separately.",
+        "reverse": "{to} → {from}: improving {to} helps {from}. Judge the reverse direction separately.",
+        "both": "{from} ↔ {to}: support works in both directions. Confirm each one separately and use an operating example to explain how.",
+        "none": "No clear support: you have considered the pair and found no clear supporting link. Importance or sequence alone does not establish support.",
+        "unknown": "Unable to judge: experience or information is insufficient, so the link remains unjudged. This is recorded separately from a reviewed judgment of no clear support."
+      },
+      "rulesLabel": "How is a link recorded in the interview?",
+      "rules": [
+        "Judge whether A helps B, then separately judge whether B helps A.",
+        "Choose an important, unclear or cross-domain link to explain how information, staff skills, controls, coordination or another route provides support. Record other links directly.",
+        "Importance or sequence alone does not establish that one activity supports another.",
+        "Record insufficient experience as unable to judge. Leave an undiscussed link unjudged."
+      ],
+      "researcher": "You provide directional judgments and brief examples. The research team then uses interpretive structural modelling (ISM) to organise supported links and levels."
+    },
+    "footer": "Allow about 30–45 minutes for 8–12 source tasks matched to your expertise and time. Recall first, review targets in groups, then optionally explain a key link’s path and direction. Short reviews are spaced through the tasks.",
+    "previous": "Previous section",
+    "next": "Next section",
+    "position": "Section {i} of {total}",
+    "continue": "Continue to the questionnaire",
+    "return": "Return to the survey",
+    "reopen": "Study introduction"
+  }
 };
 
 export const ORIENTATION_DEMO_VALUES = Object.freeze(['forward', 'reverse', 'both', 'none', 'unknown']);

@@ -1,6 +1,6 @@
-import { managementActivity, managementBoundary } from './management-activities.mjs?v=vt3-guided-20261025';
-import { targetPages, guidedCounts } from './guided-elicitation.mjs?v=vt3-guided-20261025';
-import { expertErrorKey } from './vt3-copy.mjs?v=vt3-guided-20261025';
+import { managementActivity, managementBoundary } from './management-activities.mjs?v=vt3-editorial-20261025';
+import { targetPages, guidedCounts } from './guided-elicitation.mjs?v=vt3-editorial-20261025';
+import { expertErrorKey } from './vt3-copy.mjs?v=vt3-editorial-20261025';
 
 const h = (value) => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 const local = (value, locale) => typeof value === 'string' ? value : value?.[locale] || value?.en || '';
@@ -10,9 +10,9 @@ const stateKey = { support: 'targetSupport', no_support: 'targetNoSupport', unab
 function topicDetails(factor, locale, t) {
   const activity = managementActivity(factor, locale);
   return `<details class="vt3-target-detail"><summary>${h(t('detailsLabel'))}</summary>
-    ${activity.example ? `<p>${h(activity.example)}</p>` : ''}
-    ${managementBoundary(factor, locale) ? `<p>${h(managementBoundary(factor, locale))}</p>` : ''}
-    <p><b>${h(local(factor.name, locale))}</b></p><p>${h(local(factor.description, locale))}</p></details>`;
+    ${activity.example ? `<section class="activity-reference"><h4>${h(t('logisticsExampleLabel'))}</h4><p>${h(activity.example)}</p></section>` : ''}
+    ${managementBoundary(factor, locale) ? `<section class="activity-reference"><h4>${h(t('topicBoundaryLabel'))}</h4><p>${h(managementBoundary(factor, locale))}</p></section>` : ''}
+    <section class="activity-reference"><h4>${h(t('esrsDefinitionLabel'))}</h4><p><b>${h(local(factor.name, locale))}</b></p><p>${h(local(factor.description, locale))}</p></section></details>`;
 }
 
 export function renderGuidedPractice({ t, answers = {} }) {
@@ -49,7 +49,8 @@ export function renderGuidedSurvey({ factors, sourceId, row, locale, t, position
   } else if (phase === 'targets') {
     const remaining = page.ids.filter((id) => row.targetReviews[id] === 'unreviewed').length;
     body = `<section class="vt3-targets"><p class="vt3-kicker">${h(t('targetStep'))}</p><h2 class="vt3-question">${h(t('relationPrompt', { source: activity.title }))}</h2><p>${h(t('relationRule'))}</p>
-      <details class="guided-direct-help"><summary>${h(t('pathwayLabel'))}</summary><p>${h(t('directMeaning'))}</p></details>
+      <details class="guided-direct-help"><summary>${h(t('directHelpTitle'))}</summary><p>${h(t('directMeaning'))}</p></details>
+      <details class="guided-choice-help"><summary>${h(t('choiceHelpTitle'))}</summary><dl>${Object.entries(stateKey).map(([value, key]) => `<div><dt>${h(t(key))}</dt><dd>${h(t({ support: 'choiceSupportMeaning', no_support: 'choiceNoSupportMeaning', unable: 'choiceUnableMeaning', unreviewed: 'choiceUnreviewedMeaning' }[value]))}</dd></div>`).join('')}</dl></details>
       <nav class="guided-pages" aria-label="${h(t('targetStep'))}">${pages.map((item, i) => `<button type="button" data-action="target-page" data-page="${i}" aria-current="${i === pageIndex ? 'step' : 'false'}">${h(t(groupKey[item.group] || 'groupOther'))} <span>${i + 1}</span></button>`).join('')}</nav>
       <section class="vt3-target-group"><div class="vt3-group-heading"><h2>${h(t(groupKey[page.group] || 'groupOther'))}</h2><span>${h(t('pagePosition', { n: pageIndex + 1, total: pages.length, count: page.ids.length }))}</span></div>
       <div class="vt3-target-grid">${page.ids.map((id) => {
@@ -57,7 +58,7 @@ export function renderGuidedSurvey({ factors, sourceId, row, locale, t, position
         return `<article class="vt3-target guided-target ${status === 'support' ? 'is-selected' : ''}" data-target-card="${h(id)}"><small>${h(id)}</small><h3>${h(item.title)}</h3><p>${h(item.meaning)}</p>${topicDetails(factor, locale, t)}
           <fieldset class="guided-target-options"><legend class="visually-hidden">${h(id)} · ${h(item.title)}</legend>${Object.entries(stateKey).map(([value, key]) => `<label><input type="radio" name="guided-target-${h(sourceId)}-${h(id)}" data-guided-target="${h(id)}" data-source-id="${h(sourceId)}" value="${value}" ${status === value ? 'checked' : ''}><span>${h(t(key))}</span></label>`).join('')}</fieldset></article>`;
       }).join('')}</div></section>
-      <div class="guided-bulk"><button type="button" class="secondary-button" data-action="page-review" data-value="no_support">${h(t('pageNone'))}</button><button type="button" class="text-button" data-action="page-review" data-value="unable">${h(t('pageUnable'))}</button></div>
+      <section class="guided-bulk" aria-labelledby="bulk-title" aria-describedby="bulk-help"><h3 id="bulk-title">${h(t('bulkTitle'))}</h3><p id="bulk-help">${h(t('bulkHelp'))}</p><div class="guided-bulk-actions"><button type="button" class="secondary-button" data-action="page-review" data-value="no_support">${h(t('pageNone'))}</button><button type="button" class="text-button" data-action="page-review" data-value="unable">${h(t('pageUnable'))}</button></div></section>
       <details class="vt3-host-guide"><summary>${h(t('crossPrompt'))}</summary><p>${h(t('crossHelp'))}</p></details>
       ${remaining ? `<p class="vt3-review-state-detail" role="status">${h(t('pageDeferred', { count: remaining }))}</p>` : ''}
       <div class="vt3-task-actions"><button type="button" class="text-button" data-action="target-page" data-page="${pageIndex - 1}">← ${h(t(pageIndex ? 'pagePrevious' : 'recallEdit'))}</button>
@@ -65,14 +66,14 @@ export function renderGuidedSurvey({ factors, sourceId, row, locale, t, position
   } else {
     const explanation = row.explanation;
     const candidates = factors.filter(({ id }) => row.targetIds.includes(id) || id === explanation?.targetId);
-    body = `<section class="vt3-explanation"><p class="vt3-kicker">${h(t('explanationStep'))}</p><p>${h(t('keyLinkHelp'))}</p><p class="guided-answer-summary">${h(t('pageSummary', counts))}</p>
-      <label>${h(t('explanationTarget'))}<select name="explanation-target" data-source-id="${h(sourceId)}"><option value="">${h(t('explanationPlaceholder'))}</option>${candidates.map((factor) => `<option value="${h(factor.id)}" ${explanation?.targetId === factor.id ? 'selected' : ''}>${h(factor.id)} · ${h(managementActivity(factor, locale).title)}</option>`).join('')}</select></label>
+    body = `<section class="vt3-explanation"><p class="vt3-kicker">${h(t('explanationStep'))}</p><h2 class="vt3-question">${h(t(candidates.length ? 'keyLinkTitle' : 'keyLinkEmptyTitle'))}</h2><p>${h(t(candidates.length ? 'keyLinkHelp' : 'keyLinkEmpty'))}</p><p class="guided-answer-summary">${h(t('pageSummary', counts))}</p>
+      ${candidates.length ? `<label>${h(t('explanationTarget'))}<select name="explanation-target" data-source-id="${h(sourceId)}"><option value="">${h(t('explanationPlaceholder'))}</option>${candidates.map((factor) => `<option value="${h(factor.id)}" ${explanation?.targetId === factor.id ? 'selected' : ''}>${h(factor.id)} · ${h(managementActivity(factor, locale).title)}</option>`).join('')}</select></label>` : ''}
       ${explanation ? `<p class="guided-path">${h(sourceId)} → ${explanation.linkType === 'via' && explanation.viaId ? `${h(explanation.viaId)} → ` : ''}${h(explanation.targetId)}</p>
         <label>${h(t('pathwayLabel'))}<select name="link-type" data-source-id="${h(sourceId)}">${[['direct','pathwayDirect'],['via','pathwayVia'],['unclear','pathwayUnclear']].map(([value,key]) => `<option value="${value}" ${explanation.linkType === value ? 'selected' : ''}>${h(t(key))}</option>`).join('')}</select></label>
         ${explanation.linkType === 'via' ? `<label>${h(t('viaLabel'))}<select name="via-topic" data-source-id="${h(sourceId)}"><option value="">${h(t('viaPlaceholder'))}</option>${factors.filter(({ id }) => id !== sourceId && id !== explanation.targetId).map((factor) => `<option value="${h(factor.id)}" ${explanation.viaId === factor.id ? 'selected' : ''}>${h(factor.id)} · ${h(managementActivity(factor, locale).title)}</option>`).join('')}</select></label><p role="status">${h(t('viaSaved'))}</p>` : ''}
         ${explanation.linkType === 'unclear' ? `<p role="status">${h(t('unclearSaved'))}</p>` : ''}
         <label>${h(t('mechanismLabel'))}<textarea name="relationship-explanation" data-source-id="${h(sourceId)}" maxlength="800" rows="4" placeholder="${h(t('mechanismPlaceholder'))}">${h(explanation.note)}</textarea></label>
-        <label>${h(t('reverseLabel'))}<select name="reverse-judgment" data-source-id="${h(sourceId)}">${[['not_asked','reverseNotAsked'],['support','reverseSupport'],['no_support','reverseNoSupport'],['unable','reverseUnable']].map(([value,key]) => `<option value="${value}" ${explanation.reverse === value ? 'selected' : ''}>${h(t(key))}</option>`).join('')}</select></label>` : ''}
+        <label>${h(t('reverseLabel', { source: activity.title, target: managementActivity(byId.get(explanation.targetId), locale).title }))}<select name="reverse-judgment" data-source-id="${h(sourceId)}">${[['not_asked','reverseNotAsked'],['support','reverseSupport'],['no_support','reverseNoSupport'],['unable','reverseUnable']].map(([value,key]) => `<option value="${value}" ${explanation.reverse === value ? 'selected' : ''}>${h(t(key))}</option>`).join('')}</select></label>` : ''}
       </section><p class="vt3-task-error" id="task-validation" ${error ? 'role="alert"' : 'role="status"'}>${error ? h(t(expertErrorKey(error))) : h(t('pageSummary', counts))}</p>
       <div class="vt3-task-actions"><button type="button" class="text-button" data-action="target-page" data-page="${pages.length - 1}">← ${h(t('targetStep'))}</button><button type="button" class="primary-button" data-action="confirm-topic">${h(t('confirmSource'))} →</button></div>`;
   }

@@ -79,8 +79,8 @@ const rows = [
     ['Effects on ecosystems', 'Manage how depots, warehouses and transport infrastructure affect the extent and condition of ecosystems.', 'Examples: habitat checks before construction and restoration of affected areas.'],
   ],
   [
-    ['生态系统服务管理', '识别业务对自然提供的水源、调蓄等服务的依赖及影响。', '例如：检查场站对自然排水和水源的依赖。'],
-    ['生態系統服務管理', '識別業務對自然提供的水源、調蓄等服務的依賴及影響。', '例如：檢查場站對自然排水和水源的依賴。'],
+    ['生态系统服务管理', '识别业务对自然提供的水源供应、洪水调蓄等服务的依赖及影响。', '例如：检查场站对自然排水和水源的依赖。'],
+    ['生態系統服務管理', '識別業務對自然提供的水源供應、洪水調蓄等服務的依賴及影響。', '例如：檢查場站對自然排水和水源的依賴。'],
     ['Ecosystem services', 'Identify the business’s dependence on and effects on services provided by nature, such as water supply and flood regulation.', 'Examples: checking a depot’s dependence on natural drainage and water sources.'],
   ],
   [
@@ -101,17 +101,17 @@ const rows = [
   [
     ['自有员工工作条件管理', '管理员工的就业、工时、工资、协商、工作与生活平衡及健康安全。', '例如：司机排班、工资记录、安全作业安排。'],
     ['自有員工工作條件管理', '管理員工的就業、工時、工資、協商、工作與生活平衡及健康安全。', '例如：司機排班、工資記錄、安全作業安排。'],
-    ['Own workforce working conditions', 'Manage employment, hours, pay, dialogue, work-life balance, and health and safety for the own workforce.', 'Examples: driver rosters, pay records and safe working arrangements.'],
+    ['Own workforce: working conditions', 'Manage employment, hours, pay, dialogue, work-life balance, and health and safety for the business’s own workforce.', 'Examples: driver rosters, pay records and safe working arrangements.'],
   ],
   [
     ['自有员工公平待遇与发展', '管理员工的平等待遇、同工同酬、培训、残障融入、反骚扰及多元化。', '例如：培训安排、公平招聘、骚扰投诉处理。'],
     ['自有員工公平待遇與發展', '管理員工的平等待遇、同工同酬、培訓、殘疾共融、反騷擾及多元化。', '例如：培訓安排、公平招聘、騷擾投訴處理。'],
-    ['Own workforce equal treatment and development', 'Manage equal treatment and pay, training, disability inclusion, anti-harassment and diversity for the own workforce.', 'Examples: training, fair recruitment and handling harassment complaints.'],
+    ['Own workforce: equal treatment and development', 'Manage equal treatment and pay, training, disability inclusion, anti-harassment and diversity for the business’s own workforce.', 'Examples: training, fair recruitment and handling harassment complaints.'],
   ],
   [
     ['自有员工其他劳动权利', '管理童工、强迫劳动、住房、水和卫生及员工隐私方面的风险。', '例如：用工年龄核查、员工资料权限管理。'],
     ['自有員工其他勞動權利', '管理童工、強迫勞動、住房、水和衞生及員工私隱方面的風險。', '例如：用工年齡核查、員工資料權限管理。'],
-    ['Other rights of the own workforce', 'Manage risks concerning child labour, forced labour, housing, water and sanitation, and workforce privacy.', 'Examples: age checks and access controls for employee information.'],
+    ['Own workforce: other rights', 'Manage risks concerning child labour, forced labour, housing, water and sanitation, and workforce privacy.', 'Examples: age checks and access controls for employee information.'],
   ],
   [
     ['合作方工作人员的工作条件', '管理承运商等价值链工作人员的就业、工时、工资、协商及健康安全等工作条件。', '例如：承运商安全监督、外包人员工时要求。'],
@@ -211,9 +211,9 @@ export function managementActivity(factor, locale = 'en') {
 }
 
 const boundaryRows = [
-  ['本项关注气候风险对业务的影响；减少温室气体排放见气候变化减缓。', '本項關注氣候風險對業務的影響；減少溫室氣體排放見氣候變化減緩。', 'This topic concerns climate risks to operations. Reducing greenhouse gas emissions is covered by climate change mitigation.'],
+  ['本项关注气候风险对业务的影响；减少温室气体排放见温室气体排放管理。', '本項關注氣候風險對業務的影響；減少溫室氣體排放見溫室氣體排放管理。', 'This topic concerns climate risks to operations. Reducing greenhouse gas emissions is covered by greenhouse gas emissions management.'],
   ['本项关注温室气体排放；燃料、电力等能源投入与使用另见能源管理。', '本項關注溫室氣體排放；燃料、電力等能源投入與使用另見能源管理。', 'This topic concerns greenhouse gas emissions. Fuel, electricity and other energy inputs and use are covered by energy management.'],
-  ['本项关注能源使用与效率；相关温室气体排放另见气候变化减缓。', '本項關注能源使用與效率；相關溫室氣體排放另見氣候變化減緩。', 'This topic concerns energy use and efficiency. Associated greenhouse gas emissions are covered by climate change mitigation.'],
+  ['本项关注能源使用与效率；相关温室气体排放另见温室气体排放管理。', '本項關注能源使用與效率；相關溫室氣體排放另見溫室氣體排放管理。', 'This topic concerns energy use and efficiency. Associated greenhouse gas emissions are covered by greenhouse gas emissions management.'],
   ['本项关注进入空气的污染物；水体和土壤污染分别判断。', '本項關注進入空氣的污染物；水體和土壤污染分別判斷。', 'Consider pollutants released into air here. Review water and soil pollution separately.'],
   ['本项关注污染物进入水体；取水、用水及水资源压力见水资源管理。', '本項關注污染物進入水體；取水、用水及水資源壓力見水資源管理。', 'Consider pollutants entering water here. Water withdrawal, use and scarcity are covered by water resources management.'],
   ['本项关注土壤受污染；进入空气或水体的污染物分别判断。', '本項關注土壤受污染；進入空氣或水體的污染物分別判斷。', 'Consider soil contamination here. Review pollutants entering air or water separately.'],

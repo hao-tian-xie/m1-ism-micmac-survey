@@ -4,13 +4,13 @@ import {
   AdminAuthError,
   extractListPayload,
   extractSession,
-} from './admin-api.mjs?v=vt3-guided-20261025';
+} from './admin-api.mjs?v=vt3-editorial-20261025';
 import {
   adminCopy,
   adminLanguageNames,
   adminLocales,
   createAdminTranslator,
-} from './admin-translations.mjs?v=vt3-guided-20261025';
+} from './admin-translations.mjs?v=vt3-editorial-20261025';
 
 const app = document.querySelector('#admin-app');
 const LOCALE_QUERY_KEY = 'lang';
@@ -752,6 +752,8 @@ function renderToast() {
 
 function render() {
   document.documentElement.lang = state.locale;
+  document.title = `${t('overviewTitle')} · ${t('adminLabel')}`;
+  document.querySelector('meta[name="description"]').content = t('loginLead');
   document.body.dataset.screen = state.auth === 'signedIn' ? state.view : 'admin-login';
   if (state.auth === 'checking') {
     app.innerHTML = `<div class="login-layout"><aside class="login-rail">${renderBrand()}<div class="admin-sidebar-footer"><div class="admin-footer-actions">${languageButtons()}</div></div></aside><main class="login-main"><div class="login-stage"><div class="loading-state" role="status">${escapeHtml(t('loading'))}</div></div></main></div>`;

@@ -1,9 +1,11 @@
 # ESG 主题关系问卷
 
-用于访谈中小物流企业管理者与行业专家的 ESG 管理活动关系问卷。当前版本：**vt3**（程序版本 `1.7.0-vt3`）。
+改善一项 ESG 管理工作，会直接帮助哪些其他工作？这份问卷邀请中小物流企业管理者与行业专家，结合业务经验逐项判断这些联系。当前版本：**vt3**（程序版本 `1.7.1-vt3`，页面文案修订 `vt3-editorial-20261025`）。
+
+每项任务先记录专家想到的工作，再分组检查全部目标，最后确认回答，并可补充一条关键关系的说明。三语页面按同一套[文案规则](docs/writing-guide.md)组织。
 
 - 在线问卷：[hao-tian-xie.github.io/m1-ism-micmac-survey](https://hao-tian-xie.github.io/m1-ism-micmac-survey/)
-- 问卷入口先展示交互式研究介绍：先回想实际经验，再浏览 ESRS 的 E/S/G 议题分组，最后用带问号的虚线物流示例理解单向、双向、无促进关系和无法判断。两组示例的方向可独立切换，演示状态仅在内存中保留，不进入答卷或浏览器草稿。介绍支持三语切换、键盘切换和侧栏回看；内容及样式分别位于 `interview-orientation.mjs` 和 `interview-orientation.css`。本页依据 `ESGr2_M1_ESRS_ISM_CEO_Interview_Slides_Guide.md` 改编，正式作答仍以问卷每题的主题和说明为准。
+- 问卷入口先展示交互式研究介绍：先回想实际经验，再浏览 ESRS 的 E/S/G 议题分组，最后操作物流示例，理解单向、双向、无明确帮助和无法判断。两组示例的方向可独立切换；演示状态仅在内存中保留，与答卷和浏览器草稿分开。介绍支持三语切换、键盘切换和侧栏回看。内容及样式分别位于 `interview-orientation.mjs` 和 `interview-orientation.css`，根据 `ESGr2_M1_ESRS_ISM_CEO_Interview_Slides_Guide.md` 改编。正式作答时，每题提供对应议题与说明。
 - 收集 API：[m1-ism-micmac-survey-api.bolly-express-website.workers.dev](https://m1-ism-micmac-survey-api.bolly-express-website.workers.dev/api/m1-submissions)
 - 题库：38 个 ESRS Set 1 sustainability matters（环境 19 个、社会 12 个、治理 7 个；包括 G1 腐败和贿赂的两个官方 sub-subtopics），支持简体中文、繁体中文和英文
 - 流程：交互式研究介绍 → 专家信息与研究者分配的题组 → 业务经验 → 方向与记录练习 → 8–12 项来源任务 → 检查与补充 → 一次提交。原有 7 道业务经验和遗漏问题全部保留，选填题可展开或稍后返回补充。
