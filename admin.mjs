@@ -4,13 +4,13 @@ import {
   AdminAuthError,
   extractListPayload,
   extractSession,
-} from './admin-api.mjs?v=vt3-20261023-r2';
+} from './admin-api.mjs?v=vt3-guided-20261025';
 import {
   adminCopy,
   adminLanguageNames,
   adminLocales,
   createAdminTranslator,
-} from './admin-translations.mjs?v=vt3-20261023-r2';
+} from './admin-translations.mjs?v=vt3-guided-20261025';
 
 const app = document.querySelector('#admin-app');
 const LOCALE_QUERY_KEY = 'lang';
@@ -584,14 +584,14 @@ function renderDetail() {
 
 function renderExpertRecord(record) {
   if (record.protocolVersion !== 'vt3') return '';
-  const statusKey = { selected: 'expertSelected', none: 'expertNone', unable: 'expertUnable', reviewed: 'expertReviewed', unreviewed: 'expertUnreviewed', not_asked: 'expertNotAsked', support: 'expertSupport', no_support: 'expertNoSupport' };
+  const statusKey = { selected: 'expertSelected', none: 'expertNone', unable: 'expertUnable', partial: 'expertUnreviewed', reviewed: 'expertReviewed', unreviewed: 'expertUnreviewed', not_asked: 'expertNotAsked', support: 'expertSupport', no_support: 'expertNoSupport' };
   const statusLabel = (status) => t(statusKey[status] || 'unknown');
   const rows = record.sourceSelections || [];
   const coverage = record.coverage || {};
-  return `<section class="admin-panel"><div class="panel-heading"><div><h2>${escapeHtml(t('expertCoverage'))}</h2><p>${escapeHtml(t('expertBatch'))} ${escapeHtml(record.assignment?.batch)} · ${escapeHtml(record.wordingVersion)}</p></div></div>
+  return `<section class="admin-panel"><div class="panel-heading"><div><h2>${escapeHtml(t('expertCoverage'))}</h2><p>${escapeHtml(t('expertBatch'))} ${escapeHtml(record.assignment?.batch)} · ${escapeHtml(record.assignment?.focus || '')} · ${escapeHtml(record.assignment?.sourceIds?.length || '')} · ${escapeHtml(record.wordingVersion)}</p></div></div>
     <dl class="profile-list">${[['judged', 'expertJudged'], ['unable', 'expertUnable'], ['unreviewed', 'expertUnreviewed'], ['unassigned', 'expertUnassigned']].map(([key, label]) => `<div class="profile-row"><dt>${escapeHtml(t(label))}</dt><dd>${escapeHtml(coverage[key] ?? 0)}</dd></div>`).join('')}</dl>
     <p class="detail-note">${escapeHtml(t('expertPartial'))}</p>
-    <div class="answer-list">${rows.map((row) => `<article class="answer-item"><h3>${escapeHtml(row.sourceId)} · ${escapeHtml(statusLabel(row.status))}</h3><p>${escapeHtml(t('expertTargets'))}: ${escapeHtml(row.targetIds.join(', ') || '—')}</p><p>${escapeHtml(t('expertReviewStates'))}: ${escapeHtml(Object.entries(row.groupReviews || {}).map(([group, status]) => `${group}: ${statusLabel(status)}`).join(' / '))}</p>${row.explanation ? `<p>${escapeHtml(row.sourceId)} → ${escapeHtml(row.explanation.targetId)}: ${escapeHtml(row.explanation.note || '—')}</p><p>${escapeHtml(t('expertReverse'))}: ${escapeHtml(statusLabel(row.explanation.reverse))}</p>` : ''}</article>`).join('')}</div></section>`;
+    <div class="answer-list">${rows.map((row) => `<article class="answer-item"><h3>${escapeHtml(row.sourceId)} · ${escapeHtml(statusLabel(row.status))}</h3><p>${escapeHtml(t('expertTargets'))}: ${escapeHtml(row.targetIds.join(', ') || '—')}</p><p>${escapeHtml(t('expertReviewStates'))}: ${escapeHtml(Object.entries(row.groupReviews || {}).map(([group, status]) => `${group}: ${statusLabel(status)}`).join(' / '))}</p>${row.targetReviews ? `<p>${escapeHtml(t('expertRecall'))}: ${escapeHtml(row.freeRecall || '—')}</p><details><summary>${escapeHtml(t('expertTargetStates'))}</summary><p>${escapeHtml(Object.entries(row.targetReviews).map(([id, status]) => `${id}: ${statusLabel(status)}`).join(' / '))}</p></details>` : ''}${row.explanation ? `<p>${escapeHtml(row.sourceId)} → ${row.explanation.viaId ? `${escapeHtml(row.explanation.viaId)} → ` : ''}${escapeHtml(row.explanation.targetId)}: ${escapeHtml(row.explanation.note || '—')}</p>${row.explanation.linkType ? `<p>${escapeHtml(t('expertPathType'))}: ${escapeHtml(t({ direct: 'expertDirect', via: 'expertVia', unclear: 'expertUnclear' }[row.explanation.linkType] || 'unknown'))}</p>` : ''}<p>${escapeHtml(t('expertReverse'))}: ${escapeHtml(statusLabel(row.explanation.reverse))}</p>` : ''}</article>`).join('')}</div></section>`;
 }
 
 function renderModuleAnswers(record) {

@@ -1,3 +1,4 @@
+import { GUIDED_PLAN_ID, GUIDED_WORDING_VERSION, guidedAssignment, guidedRowError } from './guided-elicitation.mjs';
 // vt3 observations are directional. Missing judgments never become zeros.
 export const EXPERT_PROTOCOL_VERSION = 'vt3';
 export const ASSIGNMENT_PLAN_ID = 'vt3-balanced-12-v1';
@@ -23,9 +24,10 @@ export function balancedSourceOrder(factors) {
   }).sort((a, b) => a.position - b.position || a.groupIndex - b.groupIndex).map(({ id }) => id);
 }
 
-export function sourceAssignment(factors, batch) {
+export function sourceAssignment(factors, batch, options) {
   if (!Number.isInteger(batch) || batch < 1 || batch > 10) return null;
   const order = balancedSourceOrder(factors);
+  if (options) return guidedAssignment(factors, batch, options, order);
   const count = Math.min(12, order.length);
   return {
     planId: ASSIGNMENT_PLAN_ID,
@@ -45,6 +47,10 @@ export function blankSourceJudgment(factors, sourceId) {
 
 export function sourceJudgmentError(row, factors) {
   const ids = factors.map(({ id }) => id);
+  if (row?.targetReviews !== undefined) {
+    if (!ids.includes(row.sourceId)) return 'source-status';
+    return guidedRowError(row, factors);
+  }
   if (!row || !ids.includes(row.sourceId) || !SOURCE_STATES.includes(row.status)) return 'source-status';
   const groups = targetGroups(factors, row.sourceId);
   if (!row.groupReviews || Object.keys(row.groupReviews).length !== groups.length
@@ -77,6 +83,11 @@ export function expertMatrices(factors, rows = []) {
     }
     const row = rowById.get(sourceId);
     if (!row) return 'unassigned';
+    if (row.targetReviews) {
+      const status = row.targetReviews[targetId];
+      directInfluenceMatrix[sourceIndex][targetIndex] = status === 'support' ? 1 : status === 'no_support' ? 0 : null;
+      return status;
+    }
     const group = topicGroup(factors[targetIndex]);
     const review = row.groupReviews?.[group];
     if (row.status !== 'unable' && row.targetIds.includes(targetId)) { directInfluenceMatrix[sourceIndex][targetIndex] = 1; return 'support'; }
@@ -129,7 +140,7 @@ export function expertMatrices(factors, rows = []) {
 export function expertSubmissionFields({ factors, assignment, sourceSelections }) {
   return {
     protocolVersion: EXPERT_PROTOCOL_VERSION,
-    wordingVersion: 'vt3-20261023',
+    wordingVersion: sourceSelections.some((row) => row.targetReviews) ? GUIDED_WORDING_VERSION : 'vt3-20261023',
     assignment,
     sourceSelections,
     confirmedTopics: { ids: assignment.sourceIds, total: assignment.sourceIds.length, complete: true },
@@ -149,23 +160,27 @@ function sameValue(left, right) {
 }
 
 export function validateExpertSubmission(record, factors) {
-  if (record.protocolVersion !== EXPERT_PROTOCOL_VERSION || record.wordingVersion !== 'vt3-20261023') return 'invalid-protocol';
-  const assignment = sourceAssignment(factors, record.assignment?.batch);
+  if (record.protocolVersion !== EXPERT_PROTOCOL_VERSION || !['vt3-20261023', GUIDED_WORDING_VERSION].includes(record.wordingVersion)) return 'invalid-protocol';
+  const assignment = sourceAssignment(factors, record.assignment?.batch, record.assignment?.planId === GUIDED_PLAN_ID ? { focus: record.assignment.focus, taskCount: record.assignment.taskCount } : undefined);
   if (!assignment || !sameValue(assignment, record.assignment)) return 'invalid-assignment';
   if (record.presentationOrder !== undefined && (!Array.isArray(record.presentationOrder) || record.presentationOrder.length !== assignment.sourceIds.length || new Set(record.presentationOrder).size !== assignment.sourceIds.length || record.presentationOrder.some((id) => !assignment.sourceIds.includes(id)))) return 'invalid-presentation-order';
   const rows = record.sourceSelections;
   if (!Array.isArray(rows) || rows.length !== assignment.sourceIds.length
     || rows.some((row, i) => row?.sourceId !== assignment.sourceIds[i])) return 'invalid-source-tasks';
+  const guided = record.wordingVersion === GUIDED_WORDING_VERSION;
+  if (guided !== (record.assignment.planId === GUIDED_PLAN_ID)
+    || (guided && rows.some((row) => !row.targetReviews))) return 'invalid-source-fields';
   for (const row of rows) {
     const error = sourceJudgmentError(row, factors);
     if (error) return `invalid-${error}`;
-    const allowedKeys = ['sourceId', 'status', 'targetIds', 'groupReviews', 'explanation'];
+    const allowedKeys = ['sourceId', 'status', 'targetIds', 'groupReviews', 'explanation', ...(row.targetReviews ? ['targetReviews', 'freeRecall', 'recallStatus'] : [])];
     if (Object.keys(row).some((key) => !allowedKeys.includes(key))) return 'invalid-source-fields';
-    if (row.explanation && Object.keys(row.explanation).some((key) => !['targetId', 'note', 'reverse'].includes(key))) return 'invalid-explanation';
+    if (!row.targetReviews && row.explanation && Object.keys(row.explanation).some((key) => !['targetId', 'note', 'reverse'].includes(key))) return 'invalid-explanation';
   }
   let expected;
   try { expected = expertSubmissionFields({ factors, assignment, sourceSelections: rows }); }
   catch (error) { return error.message; }
+  if (expected.wordingVersion !== record.wordingVersion) return 'invalid-wording-version';
   for (const key of ['responses', 'directInfluenceMatrix', 'initialReachabilityMatrix', 'judgmentStatusMatrix', 'coverage', 'progress', 'confirmedTopics']) {
     if (['responses', 'directInfluenceMatrix', 'initialReachabilityMatrix', 'judgmentStatusMatrix'].includes(key) && record[key] === undefined) continue;
     if (!sameValue(expected[key], record[key])) return `invalid-${key}`;

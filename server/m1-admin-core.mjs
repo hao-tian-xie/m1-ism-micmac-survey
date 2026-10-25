@@ -191,9 +191,10 @@ function pickedSourceTasks(value) {
     sourceId: stringOrEmpty(row?.sourceId),
     targetIds: Array.isArray(row?.targetIds) ? row.targetIds.filter((id) => typeof id === 'string') : [],
     noDirectInfluence: row?.noDirectInfluence === true,
-    ...(row?.status ? { status: ['selected', 'none', 'unable'].includes(row.status) ? row.status : '',
+    ...(row?.status ? { status: ['selected', 'none', 'unable', 'partial'].includes(row.status) ? row.status : '',
       groupReviews: isObject(row.groupReviews) ? Object.fromEntries(Object.entries(row.groupReviews).filter(([key, state]) => /^[a-zA-Z0-9_-]{1,64}$/.test(key) && ['reviewed', 'unable', 'unreviewed'].includes(state))) : {},
-      ...(isObject(row.explanation) ? { explanation: { targetId: stringOrEmpty(row.explanation.targetId), note: stringOrEmpty(row.explanation.note), reverse: stringOrEmpty(row.explanation.reverse) } } : {}),
+      ...(isObject(row.targetReviews) ? { freeRecall: stringOrEmpty(row.freeRecall), recallStatus: stringOrEmpty(row.recallStatus), targetReviews: Object.fromEntries(Object.entries(row.targetReviews).filter(([, status]) => ['support', 'no_support', 'unable', 'unreviewed'].includes(status))) } : {}),
+      ...(isObject(row.explanation) ? { explanation: { targetId: stringOrEmpty(row.explanation.targetId), note: stringOrEmpty(row.explanation.note), reverse: stringOrEmpty(row.explanation.reverse), ...(row.targetReviews ? { linkType: stringOrEmpty(row.explanation.linkType), viaId: stringOrEmpty(row.explanation.viaId) } : {}) } } : {}),
     } : {}),
   }));
 }
@@ -265,7 +266,7 @@ export function m1AdminDetail(record) {
     collectionMethod: stringOrEmpty(submission.collectionMethod),
     ...(submission.protocolVersion === 'vt3' ? {
       protocolVersion: 'vt3', presentationOrder: Array.isArray(submission.presentationOrder) ? submission.presentationOrder.filter((id) => typeof id === 'string') : [], wordingVersion: stringOrEmpty(submission.wordingVersion),
-      assignment: { planId: stringOrEmpty(submission.assignment?.planId), batch: finiteNumberOrNull(submission.assignment?.batch), sourceIds: Array.isArray(submission.assignment?.sourceIds) ? submission.assignment.sourceIds.filter((id) => typeof id === 'string') : [] },
+      assignment: { planId: stringOrEmpty(submission.assignment?.planId), batch: finiteNumberOrNull(submission.assignment?.batch), sourceIds: Array.isArray(submission.assignment?.sourceIds) ? submission.assignment.sourceIds.filter((id) => typeof id === 'string') : [], ...(submission.assignment?.focus ? { focus: stringOrEmpty(submission.assignment.focus), taskCount: finiteNumberOrNull(submission.assignment.taskCount) } : {}) },
       coverage: pickedCoverage(submission.coverage),
       presentedPrompts: submission.questionnaireConfigRevision === 0
         ? (Array.isArray(submission.moduleAnswers) ? submission.moduleAnswers : [])
@@ -280,6 +281,9 @@ export function m1AdminDetail(record) {
       roleCode: stringOrEmpty(submission.participant?.roleCode),
       experience: stringOrEmpty(submission.participant?.experience),
       experienceCode: stringOrEmpty(submission.participant?.experienceCode),
+      preparationVersion: stringOrEmpty(submission.participant?.preparationVersion),
+      preparationCompleted: submission.participant?.preparationCompleted === true,
+      reviewCheckpoints: Array.isArray(submission.participant?.reviewCheckpoints) ? submission.participant.reviewCheckpoints.filter(Number.isInteger) : [],
     },
     study: {
       title: stringOrEmpty(submission.study?.title),

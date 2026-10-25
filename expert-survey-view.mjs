@@ -1,6 +1,7 @@
-import { managementActivity } from './management-activities.mjs?v=vt3-20261023-r2';
-import { sourceJudgmentError, targetGroups, topicGroup } from './expert-protocol.mjs?v=vt3-20261023-r2';
-import { expertErrorKey } from './vt3-copy.mjs?v=vt3-20261023-r2';
+import { managementActivity } from './management-activities.mjs?v=vt3-guided-20261025';
+import { sourceJudgmentError, targetGroups, topicGroup } from './expert-protocol.mjs?v=vt3-guided-20261025';
+import { expertErrorKey } from './vt3-copy.mjs?v=vt3-guided-20261025';
+import { guidedCounts } from './guided-elicitation.mjs?v=vt3-guided-20261025';
 
 const h = (value) => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 const local = (value, locale) => typeof value === 'string' ? value : value?.[locale] || value?.en || '';
@@ -72,7 +73,7 @@ export function renderExpertReview({ factors, assignment, rows, reviewedIds, cov
       const factor = factors.find((item) => item.id === id);
       const row = byId.get(id);
       const groups = Object.values(row?.groupReviews || {});
-      return `<li><button type="button" data-action="review-topic" data-topic-index="${index}"><span>${String(index + 1).padStart(2, '0')} · ${h(id)}</span><b>${h(managementActivity(factor, locale).title)}</b><small>${h(row ? t({ selected: 'stateSelected', none: 'stateNone', unable: 'stateUnable' }[row.status] || 'taskPending') : t('taskPending'))}</small><small>${h(t('reviewedGroupsSummary', { reviewed: groups.filter((v) => v === 'reviewed').length, unable: groups.filter((v) => v === 'unable').length, unreviewed: groups.filter((v) => v === 'unreviewed').length }))}</small></button></li>`;
+      return `<li><button type="button" data-action="review-topic" data-topic-index="${index}"><span>${String(index + 1).padStart(2, '0')} · ${h(id)}</span><b>${h(managementActivity(factor, locale).title)}</b><small>${h(row ? t({ selected: 'stateSelected', none: 'stateNone', unable: 'stateUnable', partial: 'taskPartial' }[row.status] || 'taskPending') : t('taskPending'))}</small><small>${h(row?.targetReviews ? t('pageSummary', guidedCounts(row)) : t('reviewedGroupsSummary', { reviewed: groups.filter((v) => v === 'reviewed').length, unable: groups.filter((v) => v === 'unable').length, unreviewed: groups.filter((v) => v === 'unreviewed').length }))}</small></button></li>`;
     }).join('')}</ol>
     <form id="final-submit-form" class="vt3-final-form" novalidate>${moduleFields}
       ${!valid ? `<p role="alert">${h(t('incompleteTasks'))}</p>` : ''}${errorHtml}

@@ -48,7 +48,7 @@ test('explanation and reverse follow-up are optional and independently labelled'
 test('questionnaire keeps the official ESRS reference and loads the vt3 stylesheet', () => {
   assert.match(index, /id="esrs-pdf-link"/);
   assert.match(index, /https:\/\/www\.efrag\.org/);
-  assert.match(index, /expert-survey\.css\?v=vt3-20261023/);
+  assert.match(index, /expert-survey\.css\?v=vt3-guided-20261025/);
 });
 test('source and target content is escaped before entering the page', () => {
   const malicious = [{ id: 'T1', name: { en: '<script>bad()</script>' }, description: { en: '<img onerror="bad()">' } }, { id: 'T2', name: { en: 'Target' }, description: { en: '<svg onload="bad()">' } }];

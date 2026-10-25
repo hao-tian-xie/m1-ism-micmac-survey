@@ -672,3 +672,10 @@ export function createAdminTranslator(locale = 'zh-CN') {
     active[key] ?? fallback[key] ?? key,
   );
 }
+
+const guidedAdminWording = {
+  'zh-CN': { expertRecall: '自由回忆', expertTargetStates: '逐项目标判断', expertPathType: '帮助路径', expertDirect: '直接帮助', expertVia: '完全经过中间工作', expertUnclear: '路径尚待确认' },
+  'zh-HK': { expertRecall: '自由回憶', expertTargetStates: '逐項目標判斷', expertPathType: '幫助路徑', expertDirect: '直接幫助', expertVia: '完全經過中間工作', expertUnclear: '路徑尚待確認' },
+  en: { expertRecall: 'Free recall', expertTargetStates: 'Target-level judgments', expertPathType: 'Support path', expertDirect: 'Direct support', expertVia: 'Entirely through an intermediate activity', expertUnclear: 'Path awaiting clarification' },
+};
+for (const locale of Object.keys(guidedAdminWording)) Object.assign(adminCopy[locale], guidedAdminWording[locale]);

@@ -45,6 +45,6 @@ test('the guide covers the updated subjective-question and submission flow', () 
     ['.vt3-source', '.vt3-targets', '.vt3-source-meaning', '.vt3-target-group', '.vt3-task-actions .primary-button'],
   );
   assert.equal(copy['zh-CN'].guideFinalSubmitTitle, '提交您的问卷');
-  assert.match(vt3Copy.en.guideFinalQuestionText, /12 source tasks/);
-  assert.match(vt3Copy.en.guideHoverText, /reviewed/);
+  assert.match(vt3Copy.en.guideFinalQuestionText, /source tasks and target states/);
+  assert.match(vt3Copy.en.guideHoverText, /distinctions from related topics/);
 });

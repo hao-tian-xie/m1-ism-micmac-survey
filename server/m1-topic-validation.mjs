@@ -1,4 +1,5 @@
 import { expertMatrices, expertSubmissionFields, validateExpertSubmission } from '../expert-protocol.mjs';
+import { GUIDED_WORDING_VERSION } from '../guided-elicitation.mjs';
 import { toPublicQuestionnaireConfig } from './question-config-model.mjs';
 import { M1_DEFAULT_QUESTIONNAIRE_CONFIG } from './m1-default-question-config.mjs';
 
@@ -177,7 +178,8 @@ export function validateM1TopicSubmission(record, context) {
   if (record.protocolVersion !== undefined) {
     if (!Array.isArray(record.factors) || !topicFactorIdsMatch(record.factors, context.factors)) return 'invalid-factors';
     if (!topicSnapshotMatches(record.topicSnapshot, context) || !topLevelTopicSnapshotMatches(record, context)) return 'invalid-topic-snapshot';
-    if (record.collectionMethod !== 'guided-source-groups-with-coverage-vt3') return 'invalid-collection-method';
+    const collectionMethod = record.wordingVersion === GUIDED_WORDING_VERSION ? 'guided-recall-pages-and-paths-vt3' : 'guided-source-groups-with-coverage-vt3';
+    if (record.collectionMethod !== collectionMethod) return 'invalid-collection-method';
     return validateExpertSubmission(record, context.factors);
   }
   const pairs = context.pairs;

@@ -1,7 +1,8 @@
+import { guidedCopy } from './guided-copy.mjs?v=vt3-guided-20261025';
 export const vt3Copy = {
   'zh-CN': {
     heroTitle: '哪些 ESG 管理工作会帮助其他工作开展？',
-    minutesUnit: '{topicCount}项议题题库 · 每人12项来源任务 · 约30–45分钟',
+
     beginTopics: '继续：交流业务经验',
     stepSurvey: '关系判断',
     stepQualitative: '业务经验',
@@ -27,12 +28,12 @@ export const vt3Copy = {
     resetDraftConfirm: '再次点击，清除本次未提交草稿',
     profileError: '请填写受访者编号、角色及研究者分配的题组。',
     sourceStep: '01 · 当前来源工作',
-    targetStep: '02 · 选择受到帮助的工作',
+
     sourceMeaning: '访谈中的管理含义',
     originalTopic: 'ESRS 来源议题与原始解释',
     interviewScope: '请根据您的行业经验，考虑一家具有相关业务的中小物流企业。您所在企业尚未开展某项业务，不等于行业中没有这种联系。',
-    relationPrompt: '如果改善“{source}”，哪些其他管理工作会更容易开展或改善？',
-    relationRule: '可跨领域多选。请判断来源工作对目标工作的实际帮助。同属一类、都很重要或同时出现在报告中，本身不代表促进关系；反方向需另外判断。',
+
+
     groupEnvironment: 'E · 环境', groupSocial: 'S · 社会', groupGovernance: 'G · 治理', groupOther: '其他议题',
     groupCount: '{total}项 · 已选{selected}项',
     reviewGroup: '该分组的检查状态',
@@ -43,18 +44,18 @@ export const vt3Copy = {
     reviewRule: '已勾选的目标记录为有促进关系。只有确认已检查全部目标后，该组未勾选项才记为无明确促进关系；其余无法判断或尚未检查的目标仍保留为未判断。',
     selectGroupReview: '请确认该组其余目标是已检查、无法判断，还是尚未检查完。',
     stateStep: '04 · 确认本题回答状态',
-    stateSelected: '我已选择有促进关系的目标工作',
-    stateNone: '已检查的分组中，没有明确促进关系',
+
+
     stateUnable: '我不熟悉来源工作，整题无法判断',
     stateUnableHelp: '选择“整题无法判断”会清除本题所选目标，并将三个分组记录为无法判断。',
-    explanationStep: '03 · 补充一条关键关系（选填）',
+
     explanationHelp: '可选一条重要、不清楚或跨领域的关系，说明帮助如何产生。其余关系直接记录，不必逐条解释。',
     explanationTarget: '要说明的目标工作',
     explanationPlaceholder: '选择一项已勾选的目标',
     mechanismLabel: '来源工作怎样帮助目标工作？可举一个运营例子。',
     mechanismPlaceholder: '例如说明资料、人员、程序或合作协调如何产生帮助。请勿填写企业、客户或个人的识别信息。',
-    reverseLabel: '另问一次：反过来，改善该目标工作会帮助当前来源工作吗？',
-    reverseNotAsked: '尚未追问', reverseSupport: '会产生促进作用', reverseNoSupport: '没有明确促进作用', reverseUnable: '无法判断',
+
+    reverseNotAsked: '尚未追问',   reverseUnable: '无法判断',
     taskProgress: '来源任务 {i} / {total}',
     taskDirectory: '本次来源任务',
     taskDirectoryHelp: '可返回修改已确认的题目。每题均保留其他全部目标议题。',
@@ -74,15 +75,15 @@ export const vt3Copy = {
     hostUncertain: '可以选择无法判断，我们先讨论您熟悉的部分。',
     reviewTitle: '检查本次记录，再补充遗漏',
     reviewLead: '可返回修改任何来源任务。确认后，将关系判断、检查状态、业务经验及关系说明一起提交。',
-    reviewCounts: '已确认{done}/{total}项来源任务 · 已记录{links}条促进关系',
+
     coverageSummary: '已判断{judged}个方向；无法判断{unable}个，尚未检查{unreviewed}个，未分配且未追问{unassigned}个。',
     incompleteTasks: '还有未确认或需要核对的任务，请先返回检查。',
     reviewedGroupsSummary: '{reviewed}组已全部检查 · {unable}组其余项目无法判断 · {unreviewed}组未检查完',
     completeSavedText: '本次关系判断、检查状态及补充内容已提交。',
     versionLabel: '问卷版本 vt3',
-    welcomeMethod: '每次围绕一项来源工作，从 E、S、G 三组中选择受到帮助的其他工作，再确认检查状态。重要关系可补充说明。',
-    welcomeCoverage: '完整题库保留38项 ESRS 来源议题。每位专家按分配题组完成约12项来源任务；每题仍提供其余全部目标议题。',
-    welcomeTime: '访谈约30–45分钟：介绍与示范约6分钟，来源判断约27分钟，关键关系与遗漏补充约7分钟。实际时间可调整。',
+
+
+
     resumeNotice: 'vt3 草稿单独保存；v3 草稿不会转换为新版回答。',
     discardSelections: '切换后已清除本题的目标选择和关系说明。',
     studyScope: '中小物流企业的 ESG 管理活动及其促进关系',
@@ -95,7 +96,7 @@ export const vt3Copy = {
   },
   'zh-HK': {
     heroTitle: '哪些 ESG 管理工作會幫助其他工作開展？',
-    minutesUnit: '{topicCount}項議題題庫 · 每人12項來源任務 · 約30–45分鐘',
+
     beginTopics: '繼續：交流業務經驗', stepSurvey: '關係判斷', stepQualitative: '業務經驗', stepResult: '檢查與補充',
     qualitativeTitle: '先談談您的業務經驗',
     qualitativeIntro: '研究者可在訪談時記錄。請根據實際經驗作答；不適用、沒有可靠記錄或暫時無法判斷時，可填寫 NA。',
@@ -111,20 +112,20 @@ export const vt3Copy = {
     assignmentHelp: '研究者按訪談安排分配題組，並讓不同專家重複評價相同來源議題。每組保留跨領域任務，請勿只挑熟悉的議題；不熟悉時可記錄為無法判斷。',
     assignmentPreview: '本次分配的來源議題', assignmentLocked: '本次題組已開始作答。如需改組，請先清除此份未提交草稿。',
     resetDraft: '清除本次草稿並重新分組', resetDraftConfirm: '再次點擊，清除本次未提交草稿', profileError: '請填寫受訪者編號、角色及研究者分配的題組。',
-    sourceStep: '01 · 當前來源工作', targetStep: '02 · 選擇受到幫助的工作', sourceMeaning: '訪談中的管理含義', originalTopic: 'ESRS 來源議題與原始解釋',
+    sourceStep: '01 · 當前來源工作',  sourceMeaning: '訪談中的管理含義', originalTopic: 'ESRS 來源議題與原始解釋',
     interviewScope: '請根據您的行業經驗，考慮一家具相關業務的中小物流企業。您所在企業尚未開展某項業務，不等於行業中沒有這種聯繫。',
-    relationPrompt: '如果改善「{source}」，哪些其他管理工作會更容易開展或改善？',
-    relationRule: '可跨領域多選。請判斷來源工作對目標工作的實際幫助。同屬一類、都很重要或同時出現在報告中，本身不代表促進關係；反方向需另外判斷。',
+
+
     groupEnvironment: 'E · 環境', groupSocial: 'S · 社會', groupGovernance: 'G · 治理', groupOther: '其他議題', groupCount: '{total}項 · 已選{selected}項',
     reviewGroup: '該分組的檢查狀態', reviewPlaceholder: '請選擇檢查狀態', reviewReviewed: '已檢查；未勾選項記為無明確促進關係', reviewUnable: '已勾選能確認的目標；其餘目標不熟悉，無法判斷', reviewUnreviewed: '尚未檢查完；其餘未勾選目標保留為未判斷',
     reviewRule: '已勾選的目標記錄為有促進關係。只有確認已檢查全部目標後，該組未勾選項才記為無明確促進關係；其餘無法判斷或尚未檢查的目標仍保留為未判斷。',
     selectGroupReview: '請確認該組其餘目標是已檢查、無法判斷，還是尚未檢查完。',
-    stateStep: '04 · 確認本題回答狀態', stateSelected: '我已選擇有促進關係的目標工作', stateNone: '已檢查的分組中，沒有明確促進關係', stateUnable: '我不熟悉來源工作，整題無法判斷',
+    stateStep: '04 · 確認本題回答狀態',   stateUnable: '我不熟悉來源工作，整題無法判斷',
     stateUnableHelp: '選擇「整題無法判斷」會清除本題所選目標，並將三個分組記錄為無法判斷。',
-    explanationStep: '03 · 補充一條關鍵關係（選填）', explanationHelp: '可選一條重要、不清楚或跨領域的關係，說明幫助如何產生。其餘關係直接記錄，不必逐條解釋。',
+     explanationHelp: '可選一條重要、不清楚或跨領域的關係，說明幫助如何產生。其餘關係直接記錄，不必逐條解釋。',
     explanationTarget: '要說明的目標工作', explanationPlaceholder: '選擇一項已勾選的目標', mechanismLabel: '來源工作怎樣幫助目標工作？可舉一個營運例子。',
     mechanismPlaceholder: '例如說明資料、人員、程序或合作協調如何產生幫助。請勿填寫企業、客戶或個人的識別資訊。',
-    reverseLabel: '另問一次：反過來，改善該目標工作會幫助當前來源工作嗎？', reverseNotAsked: '尚未追問', reverseSupport: '會產生促進作用', reverseNoSupport: '沒有明確促進作用', reverseUnable: '無法判斷',
+     reverseNotAsked: '尚未追問',   reverseUnable: '無法判斷',
     taskProgress: '來源任務 {i} / {total}', taskDirectory: '本次來源任務', taskDirectoryHelp: '可返回修改已確認的題目。每題均保留其他全部目標議題。',
     taskPending: '請選擇回答狀態，並為各分組選擇檢查狀態。', taskReady: '本題可確認；未判斷項會按檢查狀態保留。',
     errorSource: '請先選擇本題回答狀態。', errorGroup: '請為每個分組選擇檢查狀態。', errorSelectedGroup: '所選目標所在的分組須確認已檢查。也可取消選擇，並將該分組保留為未判斷。',
@@ -132,17 +133,17 @@ export const vt3Copy = {
     errorReverse: '反向追問與另一道來源題的回答不一致。請返回核對，或將這次反向追問改為「尚未追問」。', errorExplanation: '請從已勾選目標中選擇要說明的關係，說明不得超過800字。',
     hostGuide: '訪談者提示', hostStart: '如果這項管理工作得到改善，還有哪些工作會更容易完成？', hostCross: '除了剛才這一類，其他兩個領域有沒有可能受到幫助？', hostMechanism: '這項幫助具體怎樣產生？能舉一個營運中的例子嗎？', hostUncertain: '可以選擇無法判斷，我們先討論您熟悉的部分。',
     reviewTitle: '檢查本次記錄，再補充遺漏', reviewLead: '可返回修改任何來源任務。確認後，將關係判斷、檢查狀態、業務經驗及關係說明一起提交。',
-    reviewCounts: '已確認{done}/{total}項來源任務 · 已記錄{links}條促進關係', coverageSummary: '已判斷{judged}個方向；無法判斷{unable}個，尚未檢查{unreviewed}個，未分配且未追問{unassigned}個。',
+     coverageSummary: '已判斷{judged}個方向；無法判斷{unable}個，尚未檢查{unreviewed}個，未分配且未追問{unassigned}個。',
     incompleteTasks: '還有未確認或需要核對的任務，請先返回檢查。',
     reviewedGroupsSummary: '{reviewed}組已全部檢查 · {unable}組其餘項目無法判斷 · {unreviewed}組未檢查完', completeSavedText: '本次關係判斷、檢查狀態及補充內容已提交。', versionLabel: '問卷版本 vt3',
-    welcomeMethod: '每次圍繞一項來源工作，從 E、S、G 三組中選擇受到幫助的其他工作，再確認檢查狀態。重要關係可補充說明。',
-    welcomeCoverage: '完整題庫保留38項 ESRS 來源議題。每位專家按分配題組完成約12項來源任務；每題仍提供其餘全部目標議題。',
-    welcomeTime: '訪談約30–45分鐘：介紹與示範約6分鐘，來源判斷約27分鐘，關鍵關係與遺漏補充約7分鐘。實際時間可調整。', resumeNotice: 'vt3 草稿獨立保存；v3 草稿不會轉換為新版回答。', discardSelections: '切換後已清除本題的目標選擇和關係說明。',
+
+
+     resumeNotice: 'vt3 草稿獨立保存；v3 草稿不會轉換為新版回答。', discardSelections: '切換後已清除本題的目標選擇和關係說明。',
     studyScope: '中小物流企業的 ESG 管理活動及其促進關係', firstSourceLabel: '先從哪項熟悉的工作開始？（選填）', firstSourceDefault: '按分配順序開始', firstSourceHelp: '只調整本組的作答順序，其餘來源任務都會保留。', skipUnfamiliar: '本題無法判斷，記錄並繼續', skipUnfamiliarHelp: '不熟悉這項來源工作時可直接記錄。此操作會清除本題已有目標選擇和關係說明。', reviewReviewedChoice: '已檢查全部目標', reviewUnableChoice: '其餘目標無法判斷', reviewUnreviewedChoice: '尚未檢查完',
   },
   en: {
     heroTitle: 'Which ESG management activities help other work?',
-    minutesUnit: '{topicCount}-topic catalogue · 12 source tasks per expert · about 30–45 minutes',
+
     beginTopics: 'Continue to business experience', stepSurvey: 'Relationship judgments', stepQualitative: 'Business experience', stepResult: 'Review and add context',
     qualitativeTitle: 'Start with your business experience', qualitativeIntro: 'The researcher may record answers during the interview. Answer from practical experience. Enter NA if a question is not applicable, has no reliable record, or cannot be judged yet.',
     qualitativeQ1: 'In the past two or three years, which external ESG requirements or changes in the operating environment changed everyday decisions in your organisation? Give a few clear examples.',
@@ -156,23 +157,23 @@ export const vt3Copy = {
     assignmentLabel: 'Task group assigned by the researcher', assignmentPlaceholder: 'Select your assigned task group', assignmentOption: 'Group {n} · {count} source tasks',
     assignmentHelp: 'The researcher assigns groups and arranges overlapping judgments by different experts. Each group includes tasks across domains. Keep the assigned tasks; record “unable to judge” where needed.',
     assignmentPreview: 'Your assigned source topics', assignmentLocked: 'You have started this task group. To change groups, first clear this unsubmitted draft.', resetDraft: 'Clear this draft and choose another group', resetDraftConfirm: 'Click again to clear this unsubmitted draft', profileError: 'Enter a respondent code, role and researcher-assigned task group.',
-    sourceStep: '01 · Current source activity', targetStep: '02 · Select activities it helps', sourceMeaning: 'Management meaning in this interview', originalTopic: 'ESRS source topic and original explanation',
+    sourceStep: '01 · Current source activity',  sourceMeaning: 'Management meaning in this interview', originalTopic: 'ESRS source topic and original explanation',
     interviewScope: 'Use your industry experience to consider a small or medium-sized logistics business with the relevant operations. An activity absent from your own business may still matter elsewhere in the industry.',
-    relationPrompt: 'If a business improves “{source}”, which other management activities become easier to carry out or improve?',
-    relationRule: 'Select across domains where appropriate. Judge practical support from the source activity to the target. Sharing a category, being important or appearing in the same report does not establish support. Judge the reverse direction separately.',
+
+
     groupEnvironment: 'E · Environment', groupSocial: 'S · Social', groupGovernance: 'G · Governance', groupOther: 'Other topics', groupCount: '{total} activities · {selected} selected',
     reviewGroup: 'Review status for this group', reviewPlaceholder: 'Choose a review status', reviewReviewed: 'Reviewed; unchecked targets mean no clear support', reviewUnable: 'Confirmed targets are selected; remaining targets are unfamiliar and cannot be judged', reviewUnreviewed: 'Review incomplete; leave remaining unchecked targets unjudged',
     reviewRule: 'Selected targets record support. Unchecked targets mean no clear support only after you confirm that all targets in the group were reviewed. Remaining targets that you cannot judge or have not reviewed stay unjudged.', selectGroupReview: 'Confirm whether the remaining targets were reviewed, cannot be judged, or still need review.',
-    stateStep: '04 · Confirm this answer’s status', stateSelected: 'I selected target activities that receive support', stateNone: 'No clear support within the groups I reviewed', stateUnable: 'I am unfamiliar with the source; unable to judge this task', stateUnableHelp: 'Choosing “unable to judge this task” clears its selected targets and records all three groups as unable to judge.',
-    explanationStep: '03 · Explain one key relationship (optional)', explanationHelp: 'Choose an important, unclear or cross-domain relationship and explain how the support occurs. Other relationships can be recorded without a separate explanation.',
+    stateStep: '04 · Confirm this answer’s status',   stateUnable: 'I am unfamiliar with the source; unable to judge this task', stateUnableHelp: 'Choosing “unable to judge this task” clears its selected targets and records all three groups as unable to judge.',
+     explanationHelp: 'Choose an important, unclear or cross-domain relationship and explain how the support occurs. Other relationships can be recorded without a separate explanation.',
     explanationTarget: 'Target activity to explain', explanationPlaceholder: 'Choose a selected target', mechanismLabel: 'How does the source activity help this target? You may give an operating example.', mechanismPlaceholder: 'Describe how information, people, procedures or coordination provide support. Do not include identifiable company, customer or personal information.',
-    reverseLabel: 'Ask separately: would improving this target also help the current source activity?', reverseNotAsked: 'Not asked', reverseSupport: 'Provides support', reverseNoSupport: 'No clear support', reverseUnable: 'Unable to judge',
+     reverseNotAsked: 'Not asked',   reverseUnable: 'Unable to judge',
     taskProgress: 'Source task {i} / {total}', taskDirectory: 'Your source tasks', taskDirectoryHelp: 'Return to edit confirmed tasks. Each task retains all other target topics.', taskPending: 'Choose an answer status and a review status for each group.', taskReady: 'Ready to confirm. Unjudged targets will retain their review status.',
     errorSource: 'Choose an answer status first.', errorGroup: 'Choose a review status for every group.', errorSelectedGroup: 'Confirm that groups containing selected targets were reviewed. You can also deselect targets and leave that group unjudged.', errorTarget: 'Select at least one target, or choose the no-clear-support answer.', errorNone: 'Confirm at least one reviewed group and clear selected targets. If the whole task is unfamiliar, choose unable to judge.', errorReverse: 'This reverse follow-up conflicts with another source-task answer. Check that answer or change this follow-up to “Not asked”.', errorExplanation: 'Choose a target you selected. Keep its explanation within 800 characters.',
     hostGuide: 'Interviewer prompts', hostStart: 'If this management activity improves, what other work becomes easier?', hostCross: 'Could activities in the other two domains also benefit?', hostMechanism: 'How does that support occur? Can you give an operating example?', hostUncertain: 'You can choose unable to judge. Let us discuss the areas you know.',
-    reviewTitle: 'Review your record and add anything missing', reviewLead: 'Return to edit any source task. Submit the relationship judgments, review states, business experience and explanations together.', reviewCounts: '{done}/{total} source tasks confirmed · {links} recorded support links', coverageSummary: '{judged} directions judged; {unable} unable to judge, {unreviewed} not reviewed, and {unassigned} unassigned without a follow-up.', incompleteTasks: 'Some tasks are unconfirmed or need checking. Return to them before submitting.', reviewedGroupsSummary: 'Groups: {reviewed} fully reviewed, {unable} with remaining targets unknown, {unreviewed} with review incomplete',
+    reviewTitle: 'Review your record and add anything missing', reviewLead: 'Return to edit any source task. Submit the relationship judgments, review states, business experience and explanations together.',  coverageSummary: '{judged} directions judged; {unable} unable to judge, {unreviewed} not reviewed, and {unassigned} unassigned without a follow-up.', incompleteTasks: 'Some tasks are unconfirmed or need checking. Return to them before submitting.', reviewedGroupsSummary: 'Groups: {reviewed} fully reviewed, {unable} with remaining targets unknown, {unreviewed} with review incomplete',
     completeSavedText: 'Your relationship judgments, review states and additional answers have been submitted.', versionLabel: 'Questionnaire version vt3',
-    welcomeMethod: 'Focus on one source activity at a time. Select activities it helps from the E, S and G groups, then confirm each group’s review status. You may explain key relationships.', welcomeCoverage: 'The full catalogue retains 38 ESRS-derived topics. Each expert completes about 12 assigned source tasks. Every task still offers all other target topics.', welcomeTime: 'Allow about 30–45 minutes: roughly 6 minutes for introduction and practice, 27 for source tasks, and 7 for key relationships and missing topics. Timing can be adjusted.', resumeNotice: 'vt3 drafts are stored separately. v3 drafts are not converted into new answers.', discardSelections: 'The change cleared this task’s target selections and explanation.',
+       resumeNotice: 'vt3 drafts are stored separately. v3 drafts are not converted into new answers.', discardSelections: 'The change cleared this task’s target selections and explanation.',
     studyScope: 'ESG management activities and their supporting relationships in small and medium-sized logistics businesses', firstSourceLabel: 'Start with a familiar activity (optional)', firstSourceDefault: 'Use the assigned order', firstSourceHelp: 'This changes the order only. All assigned source tasks remain.', skipUnfamiliar: 'Unable to judge this task; record and continue', skipUnfamiliarHelp: 'Use this if the source activity is unfamiliar. It clears any target selections and explanation for this task.', reviewReviewedChoice: 'All targets reviewed', reviewUnableChoice: 'Remaining targets: unable to judge', reviewUnreviewedChoice: 'Review incomplete',
   },
 };
@@ -183,43 +184,44 @@ export function expertErrorKey(code) {
     'selected-group': 'errorSelectedGroup', targets: 'errorTarget',
     'select-target': 'errorTarget', 'none-scope': 'errorNone',
     'unable-scope': 'errorSource', explanation: 'errorExplanation',
-    'reverse-conflict': 'errorReverse',
+    'reverse-conflict': 'errorReverse', recall: 'recallError', 'target-reviews': 'targetReviewError', pathway: 'pathwayError',
   })[code] || 'taskPending';
 }
 
 const guideWording = {
   'zh-CN': {
-    guideBatchTitle: '确认分配题组', guideStartTitle: '继续交流业务经验', guideStartText: '填写受访者编号、角色和分配题组后，继续填写业务经验。选填题也可稍后返回补充。',
-    guideIfTitle: '了解当前来源工作', guideIfText: '先看管理含义与物流示例，再展开 ESRS 来源议题核对原始名称与完整解释。',
-    guideThenTitle: '按 E、S、G 分组选择目标', guideThenText: '勾选受到来源工作实际帮助的目标，可跨领域多选。请为每组选择检查状态；未判断的分组不会记作无关系。',
+    guideBatchTitle: '确认分配题组', guideStartTitle: '继续交流业务经验',
+    guideIfTitle: '了解当前来源工作',
+    guideThenTitle: '按 E、S、G 分组选择目标',
     guideNotesTitle: '结合实际工作理解', guideNotesText: '管理含义与示例用于解释来源议题。',
-    guideHoverTitle: '检查目标与分组状态', guideHoverText: '目标卡片列出管理含义，可展开原始 ESRS 解释。确认已检查的分组中，未勾选目标才记为无明确促进关系。',
-    guideNextTitle: '确认回答状态后继续', guideNextText: '选择有促进关系、已检查部分无明确关系，或整题无法判断，再确认本题。关键关系可选填说明并单独追问反方向。',
+    guideHoverTitle: '检查目标与分组状态',
+    guideNextTitle: '确认回答状态后继续',
     guideQualitativeTitle: '记录业务经验', guideQualitativeText: '先回答开场问题，其他选填题可展开补充。也可在访谈中由研究者记录，提交前返回修改。',
-    guideFinalQuestionTitle: '检查与补充遗漏', guideFinalQuestionText: '检查12项来源任务及未判断的覆盖情况，再补充题库遗漏的议题或业务背景。',
+    guideFinalQuestionTitle: '检查与补充遗漏',
     guideFinalSubmitText: '确认后一次提交全部内容。若提交失败，可在原草稿中重试。',
   },
   'zh-HK': {
-    guideBatchTitle: '確認分配題組', guideStartTitle: '繼續交流業務經驗', guideStartText: '填寫受訪者編號、角色和分配題組後，繼續填寫業務經驗。選填題也可稍後返回補充。',
-    guideIfTitle: '了解當前來源工作', guideIfText: '先看管理含義與物流示例，再展開 ESRS 來源議題核對原始名稱與完整解釋。',
-    guideThenTitle: '按 E、S、G 分組選擇目標', guideThenText: '勾選受到來源工作實際幫助的目標，可跨領域多選。請為每組選擇檢查狀態；未判斷的分組不會記作無關係。',
+    guideBatchTitle: '確認分配題組', guideStartTitle: '繼續交流業務經驗',
+    guideIfTitle: '了解當前來源工作',
+    guideThenTitle: '按 E、S、G 分組選擇目標',
     guideNotesTitle: '結合實際工作理解', guideNotesText: '管理含義與示例用於解釋來源議題。',
-    guideHoverTitle: '檢查目標與分組狀態', guideHoverText: '目標卡片列出管理含義，可展開原始 ESRS 解釋。確認已檢查的分組中，未勾選目標才記為無明確促進關係。',
-    guideNextTitle: '確認回答狀態後繼續', guideNextText: '選擇有促進關係、已檢查部分無明確關係，或整題無法判斷，再確認本題。關鍵關係可選填說明並獨立追問反方向。',
+    guideHoverTitle: '檢查目標與分組狀態',
+    guideNextTitle: '確認回答狀態後繼續',
     guideQualitativeTitle: '記錄業務經驗', guideQualitativeText: '先回答開場問題，其他選填題可展開補充。也可在訪談中由研究者記錄，提交前返回修改。',
-    guideFinalQuestionTitle: '檢查與補充遺漏', guideFinalQuestionText: '檢查12項來源任務及未判斷的覆蓋情況，再補充題庫遺漏的議題或業務背景。',
+    guideFinalQuestionTitle: '檢查與補充遺漏',
     guideFinalSubmitText: '確認後一次提交全部內容。若提交失敗，可在原草稿中重試。',
   },
   en: {
-    guideBatchTitle: 'Confirm your assigned group', guideStartTitle: 'Continue to business experience', guideStartText: 'Enter your respondent code, role and assigned task group, then continue to business experience. Optional questions can be completed later.',
-    guideIfTitle: 'Understand the source activity', guideIfText: 'Read the management meaning and logistics example. Expand the ESRS source topic to see its original name and full explanation.',
-    guideThenTitle: 'Select targets across E, S and G', guideThenText: 'Select activities the source practically helps, across domains where appropriate. Choose each group’s review status. Unjudged groups will not count as no-support judgments.',
+    guideBatchTitle: 'Confirm your assigned group', guideStartTitle: 'Continue to business experience',
+    guideIfTitle: 'Understand the source activity',
+    guideThenTitle: 'Select targets across E, S and G',
     guideNotesTitle: 'Relate the topic to practical work', guideNotesText: 'The management meaning and example explain the source topic.',
-    guideHoverTitle: 'Review targets and group states', guideHoverText: 'Cards show management meanings and expandable ESRS explanations. Unchecked targets count as no clear support only in groups you confirm as reviewed.',
-    guideNextTitle: 'Confirm your answer status', guideNextText: 'Choose selected support links, no clear support in reviewed groups, or unable to judge the whole task. You may explain a key link and ask about the reverse direction separately.',
+    guideHoverTitle: 'Review targets and group states',
+    guideNextTitle: 'Confirm your answer status',
     guideQualitativeTitle: 'Record business experience', guideQualitativeText: 'Start with the opening question and expand other optional questions as needed. The researcher may record answers during the interview. You can return before submitting.',
-    guideFinalQuestionTitle: 'Review and add missing topics', guideFinalQuestionText: 'Check your 12 source tasks and judgment coverage, then add any missing topics or business context.',
+    guideFinalQuestionTitle: 'Review and add missing topics',
     guideFinalSubmitText: 'Submit all answers together. If submission fails, retry from the same draft.',
   },
 };
 for (const locale of Object.keys(guideWording)) Object.assign(vt3Copy[locale], guideWording[locale]);
+for (const locale of Object.keys(guidedCopy)) Object.assign(vt3Copy[locale], guidedCopy[locale]);

@@ -209,3 +209,48 @@ export function managementActivity(factor, locale = 'en') {
   const localized = (text) => typeof text === 'string' ? text : text?.[locale] || text?.en || '';
   return { title: localized(factor?.name) || factor?.id || '', meaning: localized(factor?.description), example: '' };
 }
+
+const boundaryRows = [
+  ['本项关注气候风险对业务的影响；减少温室气体排放见气候变化减缓。', '本項關注氣候風險對業務的影響；減少溫室氣體排放見氣候變化減緩。', 'This topic concerns climate risks to operations. Reducing greenhouse gas emissions is covered by climate change mitigation.'],
+  ['本项关注温室气体排放；燃料、电力等能源投入与使用另见能源管理。', '本項關注溫室氣體排放；燃料、電力等能源投入與使用另見能源管理。', 'This topic concerns greenhouse gas emissions. Fuel, electricity and other energy inputs and use are covered by energy management.'],
+  ['本项关注能源使用与效率；相关温室气体排放另见气候变化减缓。', '本項關注能源使用與效率；相關溫室氣體排放另見氣候變化減緩。', 'This topic concerns energy use and efficiency. Associated greenhouse gas emissions are covered by climate change mitigation.'],
+  ['本项关注进入空气的污染物；水体和土壤污染分别判断。', '本項關注進入空氣的污染物；水體和土壤污染分別判斷。', 'Consider pollutants released into air here. Review water and soil pollution separately.'],
+  ['本项关注污染物进入水体；取水、用水及水资源压力见水资源管理。', '本項關注污染物進入水體；取水、用水及水資源壓力見水資源管理。', 'Consider pollutants entering water here. Water withdrawal, use and scarcity are covered by water resources management.'],
+  ['本项关注土壤受污染；进入空气或水体的污染物分别判断。', '本項關注土壤受污染；進入空氣或水體的污染物分別判斷。', 'Consider soil contamination here. Review pollutants entering air or water separately.'],
+  ['本项关注生物和食品资源受到污染；物种生存状况另见物种影响管理。', '本項關注生物和食品資源受到污染；物種生存狀況另見物種影響管理。', 'This topic concerns contamination of organisms and food resources. Species condition is covered by effects on species.'],
+  ['本项关注需关注物质的识别和管理；高度关注物质另有单独议题。', '本項關注需關注物質的識別和管理；高度關注物質另有獨立議題。', 'This topic concerns identifying and managing substances of concern. Substances of very high concern have a separate topic.'],
+  ['本项聚焦高度关注物质的接触、使用及替代安排。', '本項聚焦高度關注物質的接觸、使用及替代安排。', 'Focus on exposure, use and substitution arrangements for substances of very high concern.'],
+  ['本项聚焦微塑料的产生与释放；其他物质和废弃物另行判断。', '本項聚焦微塑料的產生與釋放；其他物質和廢棄物另行判斷。', 'Focus on the generation and release of microplastics. Review other substances and waste separately.'],
+  ['本项关注水的取用、排放及水资源压力；污染物进入水体另见水污染。', '本項關注水的取用、排放及水資源壓力；污染物進入水體另見水污染。', 'Consider water withdrawal, use, discharge and scarcity here. Pollutants entering water are covered by water pollution.'],
+  ['本项关注海洋资源的使用及相关影响；可按所熟悉的海运业务判断。', '本項關注海洋資源的使用及相關影響；可按所熟悉的海運業務判斷。', 'Focus on the use of and effects on marine resources, drawing on relevant shipping experience.'],
+  ['本项关注造成生物多样性损失的压力；物种和生态系统的状态分别有对应议题。', '本項關注造成生物多樣性損失的壓力；物種和生態系統的狀態分別有對應議題。', 'Focus on pressures that drive biodiversity loss. Species condition and ecosystem condition have separate topics.'],
+  ['本项关注物种数量和生存状况；生态系统的范围和状态另行判断。', '本項關注物種數量和生存狀況；生態系統的範圍和狀態另行判斷。', 'Focus on species populations and condition. Review ecosystem extent and condition separately.'],
+  ['本项关注生态系统的范围和状态；企业依赖的自然服务另见生态系统服务。', '本項關注生態系統的範圍和狀態；企業依賴的自然服務另見生態系統服務。', 'Focus on ecosystem extent and condition. Natural services used by the business are covered by ecosystem services.'],
+  ['本项关注自然环境提供的服务，以及企业对这些服务的依赖和影响。', '本項關注自然環境提供的服務，以及企業對這些服務的依賴和影響。', 'Focus on services provided by nature and the business’s dependence on and effects on them.'],
+  ['本项关注投入业务的材料和资源；交付后的去向及废弃物分别判断。', '本項關注投入業務的材料和資源；交付後的去向及廢棄物分別判斷。', 'Focus on materials and resources entering operations. Review post-delivery outputs and waste separately.'],
+  ['本项关注产品或服务交付后的资源去向、耐用性、再用和回收。', '本項關注產品或服務交付後的資源去向、耐用性、再用和回收。', 'Focus on resource destinations, durability, reuse and recycling after products or services are delivered.'],
+  ['本项关注废弃物的减量、分类、储存、转运和处理。', '本項關注廢棄物的減量、分類、儲存、轉運和處理。', 'Focus on waste reduction, sorting, storage, transport and treatment.'],
+  ['本项对象是本企业员工的工作条件；承运商等价值链工人另行判断。', '本項對象是本企業員工的工作條件；承運商等價值鏈工人另行判斷。', 'Consider working conditions for the own workforce here. Review carrier and other value-chain workers separately.'],
+  ['本项对象是本企业员工的平等待遇与发展机会，包括培训、共融及反骚扰。', '本項對象是本企業員工的平等待遇與發展機會，包括培訓、共融及反騷擾。', 'Consider equal treatment and development opportunities for the own workforce, including training, inclusion and anti-harassment.'],
+  ['本项对象是本企业员工的其他工作相关权利，包括童工、强迫劳动及隐私。', '本項對象是本企業員工的其他工作相關權利，包括童工、強迫勞動及私隱。', 'Consider other work-related rights of the own workforce, including child labour, forced labour and privacy.'],
+  ['本项对象是承运商及其他价值链工人的工作条件；本企业员工另行判断。', '本項對象是承運商及其他價值鏈工人的工作條件；本企業員工另行判斷。', 'Consider working conditions for carrier and other value-chain workers. Review the own workforce separately.'],
+  ['本项对象是价值链工人的平等待遇与发展机会。', '本項對象是價值鏈工人的平等待遇與發展機會。', 'Consider equal treatment and development opportunities for value-chain workers.'],
+  ['本项对象是价值链工人的其他工作相关权利，包括童工、强迫劳动及隐私。', '本項對象是價值鏈工人的其他工作相關權利，包括童工、強迫勞動及私隱。', 'Consider other work-related rights of value-chain workers, including child labour, forced labour and privacy.'],
+  ['本项对象是受物流活动影响的社区，关注生活条件与资源。', '本項對象是受物流活動影響的社區，關注生活條件與資源。', 'Consider communities affected by logistics activities, focusing on living conditions and resources.'],
+  ['本项对象是社区的表达、集会和人权维护者等权利。', '本項對象是社區的表達、集會和人權維護者等權利。', 'Consider community rights concerning expression, assembly and human-rights defenders.'],
+  ['本项对象是业务影响所及的原住民族，关注知情同意、自决与文化权利。', '本項對象是業務影響所及的原住民族，關注知情同意、自決與文化權利。', 'Consider affected indigenous peoples, focusing on informed consent, self-determination and cultural rights.'],
+  ['本项对象是客户及最终用户的信息、隐私和表达权利；员工隐私另行判断。', '本項對象是客戶及最終用戶的資訊、私隱和表達權利；員工私隱另行判斷。', 'Consider information, privacy and expression rights of customers and end-users. Review workforce privacy separately.'],
+  ['本项对象是客户及最终用户的健康和人身安全；员工职业安全另行判断。', '本項對象是客戶及最終用戶的健康和人身安全；員工職業安全另行判斷。', 'Consider customer and end-user health and personal safety. Review occupational safety separately.'],
+  ['本项关注客户及最终用户的不歧视、服务可及性和负责任营销。', '本項關注客戶及最終用戶的不歧視、服務可及性和負責任營銷。', 'Focus on non-discrimination, service access and responsible marketing for customers and end-users.'],
+  ['本项关注企业整体的行为准则、价值观及落实方式。', '本項關注企業整體的行為準則、價值觀及落實方式。', 'Focus on organisation-wide conduct standards, values and how they are put into practice.'],
+  ['本项关注反映问题的渠道、调查安排与举报人保护。', '本項關注反映問題的渠道、調查安排與舉報人保護。', 'Focus on channels for raising concerns, investigation arrangements and protection of whistleblowers.'],
+  ['本项聚焦涉及动物的业务活动及相应照护安排。', '本項聚焦涉及動物的業務活動及相應照護安排。', 'Focus on operations involving animals and the associated care arrangements.'],
+  ['本项关注政治参与与游说活动的管理和记录。', '本項關注政治參與與遊說活動的管理和記錄。', 'Focus on managing and recording political engagement and lobbying activities.'],
+  ['本项关注供应商选择、协作与付款；供应商工人的劳动条件另行判断。', '本項關注供應商選擇、協作與付款；供應商工人的勞動條件另行判斷。', 'Focus on supplier selection, coordination and payment. Review supplier workers’ working conditions separately.'],
+  ['本项关注腐败与贿赂的预防、发现和培训；已确认事件的处理另行判断。', '本項關注貪腐與賄賂的預防、發現和培訓；已確認事件的處理另行判斷。', 'Focus on preventing and detecting corruption and bribery, including training. Review confirmed incidents separately.'],
+  ['本项关注已确认腐败与贿赂事件的处理及结果。', '本項關注已確認貪腐與賄賂事件的處理及結果。', 'Focus on the handling and outcomes of confirmed corruption and bribery incidents.'],
+];
+const boundaries = Object.fromEntries(studyConfig.factors.map((factor, index) => [factor.esrs.key, boundaryRows[index]]));
+export function managementBoundary(factor, locale = 'en') {
+  return boundaries[factor?.esrs?.key]?.[localeIndex[locale] ?? 2] || '';
+}

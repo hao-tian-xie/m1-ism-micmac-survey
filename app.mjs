@@ -6,17 +6,17 @@ import {
   tryWriteStorage,
 } from './survey-core.mjs';
 import { displayTopicName, studyConfig } from './survey-config.mjs?v=topic-definitions-contains-20260908';
-import { copy, languageNames, locales } from './translations.mjs?v=vt3-20261023-r2';
+import { copy, languageNames, locales } from './translations.mjs?v=vt3-guided-20261025';
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
 import { resolveLocale } from './locale-state.mjs';
-import { guideStepsForScreen } from './guide-steps.mjs?v=vt3-20261023-r2';
-import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs?v=vt3-20261023-r2';
+import { guideStepsForScreen } from './guide-steps.mjs?v=vt3-guided-20261025';
+import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs?v=vt3-guided-20261025';
 import {
   clampIndex,
   confirmTopicTransition,
   previousAfterTopicQuestion,
   previousBeforeTopicQuestion,
-} from './m1-state-transitions.mjs?v=vt3-20261023-r2';
+} from './m1-state-transitions.mjs?v=vt3-guided-20261025';
 import { joinTopicTextPages, splitTopicTextByFit, topicNodeFits } from './topic-pagination.mjs';
 import {
   FALLBACK_PUBLIC_QUESTIONNAIRE,
@@ -26,22 +26,24 @@ import {
   moduleAnswerError,
   normalizeModuleValue,
   serializeModuleAnswer,
-} from './public-questionnaire.mjs?v=vt3-20261023-r2';
-import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=vt3-20261023-r2';
+} from './public-questionnaire.mjs?v=vt3-guided-20261025';
+import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=vt3-guided-20261025';
 import {
   ORIENTATION_DEMO_VALUES,
   orientationContent,
   orientationDemoFeedback,
   renderInterviewOrientation,
   renderOrientationDemo,
-} from './interview-orientation.mjs?v=vt3-20261023-r2';
+} from './interview-orientation.mjs?v=vt3-guided-20261025';
 
-const STORAGE_KEY_BASE = `bextools:${studyConfig.id}:${studyConfig.version}:vt3`;
+const STORAGE_KEY_BASE = `bextools:${studyConfig.id}:${studyConfig.version}:vt3-guided-20261025`;
 
-import { blankSourceJudgment, expertMatrices, expertSubmissionFields, sourceAssignment, sourceJudgmentError, targetGroups, topicGroup } from './expert-protocol.mjs?v=vt3-20261023-r2';
-import { managementActivity } from './management-activities.mjs?v=vt3-20261023-r2';
-import { vt3Copy, expertErrorKey } from './vt3-copy.mjs?v=vt3-20261023-r2';
-import { renderExpertSurvey, renderExpertReview } from './expert-survey-view.mjs?v=vt3-20261023-r2';
+import { blankSourceJudgment, expertMatrices, expertSubmissionFields, sourceAssignment, sourceJudgmentError, targetGroups, topicGroup } from './expert-protocol.mjs?v=vt3-guided-20261025';
+import { managementActivity } from './management-activities.mjs?v=vt3-guided-20261025';
+import { vt3Copy, expertErrorKey } from './vt3-copy.mjs?v=vt3-guided-20261025';
+import { renderExpertSurvey, renderExpertReview } from './expert-survey-view.mjs?v=vt3-guided-20261025';
+import { ASSIGNMENT_FOCI, TASK_COUNTS, GUIDED_WORDING_VERSION, blankGuidedSource, syncGuidedRow, setTargetReview, targetPages, checkpointPositions } from './guided-elicitation.mjs?v=vt3-guided-20261025';
+import { renderGuidedSurvey, renderGuidedPractice, renderGuidedCheckpoint } from './guided-survey-view.mjs?v=vt3-guided-20261025';
 const NONE_VALUE = '__none__';
 let factors = studyConfig.factors;
 let factorIds = factors.map((factor) => factor.id);
@@ -182,11 +184,19 @@ function moduleVersions() {
   return Object.fromEntries(questionModules.map((module) => [module.id, module.version]));
 }
 
+function requestedAssignmentOptions() {
+  const query = new URLSearchParams(window.location.search);
+  return { focus: ASSIGNMENT_FOCI.includes(query.get('focus')) ? query.get('focus') : 'balanced',
+    taskCount: TASK_COUNTS.includes(Number(query.get('tasks'))) ? Number(query.get('tasks')) : 12 };
+}
+
 function blankState(locale = preferredLocale()) {
   return {
     locale,
     protocolVersion: 'vt3',
-    assignment: sourceAssignment(factors, Number(new URLSearchParams(window.location.search).get('batch'))),
+    allocationOptions: requestedAssignmentOptions(),
+    assignment: sourceAssignment(factors, Number(new URLSearchParams(window.location.search).get('batch')), requestedAssignmentOptions()),
+    guidedViews: {}, practiceAnswers: {}, practiceDone: false, completedCheckpoints: [], checkpoint: null,
     sourceJudgments: {},
     startingSourceId: '',
     taskError: '',
@@ -244,7 +254,8 @@ function loadState() {
     if (!revisionMatches || !topicIdsMatch) return blankState();
 
     if (saved.protocolVersion !== 'vt3' && !saved.submissionId) return blankState();
-    const assignment = sourceAssignment(factors, saved.assignment?.batch);
+    const allocationOptions = saved.allocationOptions || requestedAssignmentOptions();
+    const assignment = sourceAssignment(factors, saved.assignment?.batch, allocationOptions);
     const answers = saved.answers || {};
     const factorSelections = Object.fromEntries(factorIds.map((sourceId) => {
       const stored = saved.factorSelections?.[sourceId];
@@ -276,19 +287,30 @@ function loadState() {
       ...(saved.participant && typeof saved.participant === 'object' ? saved.participant : {}),
     };
     next.assignment = assignment;
+    next.allocationOptions = allocationOptions;
+    next.guidedViews = saved.guidedViews && typeof saved.guidedViews === 'object' ? saved.guidedViews : {};
+    next.practiceAnswers = saved.practiceAnswers || {};
+    next.practiceDone = saved.practiceDone === true;
+    next.completedCheckpoints = Array.isArray(saved.completedCheckpoints) ? saved.completedCheckpoints.filter((n) => checkpointPositions(assignment?.sourceIds.length || 0).includes(n)) : [];
+    next.checkpoint = checkpointPositions(assignment?.sourceIds.length || 0).includes(saved.checkpoint) ? saved.checkpoint : null;
     next.startingSourceId = assignment?.sourceIds.includes(saved.startingSourceId) ? saved.startingSourceId : '';
     next.sourceJudgments = {};
     if (assignment && saved.sourceJudgments && typeof saved.sourceJudgments === 'object') {
       for (const id of assignment.sourceIds) {
         const row = saved.sourceJudgments[id];
         if (!row || row.sourceId !== id || !Array.isArray(row.targetIds)) continue;
-        next.sourceJudgments[id] = {
-          sourceId: id, status: row.status || '', targetIds: validTargetIds(id, row.targetIds),
-          groupReviews: Object.fromEntries(targetGroups(factors, id).map((group) => [group, row.groupReviews?.[group] || ''])),
-          ...(row.explanation && validTargetIds(id, row.targetIds).includes(row.explanation.targetId) ? {
-            explanation: { targetId: row.explanation.targetId, note: String(row.explanation.note || '').slice(0, 800), reverse: row.explanation.reverse || 'not_asked' },
-          } : {}),
-        };
+        if (!row.targetReviews) continue;
+        const clean = blankGuidedSource(factors, id);
+        clean.freeRecall = String(row.freeRecall || '').slice(0, 1200);
+        clean.recallStatus = ['recorded', 'skipped'].includes(row.recallStatus) ? (clean.freeRecall.trim() ? 'recorded' : 'skipped') : '';
+        for (const targetId of Object.keys(clean.targetReviews)) {
+          if (['support', 'no_support', 'unable', 'unreviewed'].includes(row.targetReviews[targetId])) clean.targetReviews[targetId] = row.targetReviews[targetId];
+        }
+        if (row.explanation && Object.hasOwn(clean.targetReviews, row.explanation.targetId)) {
+          clean.explanation = { targetId: row.explanation.targetId, note: String(row.explanation.note || '').slice(0, 800),
+            reverse: row.explanation.reverse || 'not_asked', linkType: row.explanation.linkType || 'direct', viaId: row.explanation.viaId || '' };
+        }
+        next.sourceJudgments[id] = syncGuidedRow(factors, clean);
       }
     }
     next.answers = answers;
@@ -336,11 +358,19 @@ let orientationDemoValues = ['', ''];
 let guideIndex = 0;
 let guideReturnScreen = state.screen;
 let guideIsOpen = false;
-let guideSessionSteps = guideStepsForScreen(state.screen, { submitted: Boolean(state.submissionId) });
+let guideSessionSteps = guideStepsForScreen(state.screen, { submitted: Boolean(state.submissionId), guidedPhase: currentGuidedPhase() });
 let persistTimer = null;
 let lastPersistedSnapshot = '';
 let sourceTopicPagination = null;
 const topicDescriptionCache = new Map();
+
+function currentGuidedPhase() {
+  if (state.screen !== 'survey') return undefined;
+  if (!state.practiceDone) return 'practice';
+  if (state.checkpoint) return 'checkpoint';
+  const id = currentSource()?.id;
+  return sourceRow(id)?.recallStatus ? (state.guidedViews[id]?.phase || 'targets') : 'recall';
+}
 
 function t(key, values = {}) {
   const template = vt3Copy[state.locale]?.[key] || copy[state.locale][key] || vt3Copy.en[key] || copy.en[key] || key;
@@ -411,7 +441,7 @@ function taskFactors() {
   return ordered.map((id) => factors.find((factor) => factor.id === id)).filter(Boolean);
 }
 function currentSource() { return taskFactors()[state.currentIndex]; }
-function sourceRow(id) { return state.sourceJudgments[id] || blankSourceJudgment(factors, id); }
+function sourceRow(id) { return state.sourceJudgments[id] || blankGuidedSource(factors, id); }
 function reviewedCount() {
   return taskFactors().filter((factor) => state.reviewedFactors.includes(factor.id) && !sourceJudgmentError(sourceRow(factor.id), factors)).length;
 }
@@ -806,6 +836,8 @@ function navigateToTopic(index) {
   if (state.screen !== 'survey' || !Number.isInteger(index) || !taskFactors()[index]) return;
   const factor = taskFactors()[index];
   if (!topicIsAvailable(index, state.currentIndex, state.reviewedFactors, factor.id)) return;
+  if (state.checkpoint) state.completedCheckpoints = [...new Set([...state.completedCheckpoints, state.checkpoint])];
+  state.checkpoint = null;
   state.currentIndex = index;
   persist();
   render();
@@ -943,7 +975,7 @@ function showGuideStep(index) {
 
 function openGuide() {
   guideReturnScreen = state.screen;
-  guideSessionSteps = guideStepsForScreen(state.screen, { submitted: Boolean(state.submissionId) });
+  guideSessionSteps = guideStepsForScreen(state.screen, { submitted: Boolean(state.submissionId), guidedPhase: currentGuidedPhase() });
   guideIsOpen = true;
   guideIndex = 0;
   showGuideStep(0);
@@ -1172,10 +1204,12 @@ function renderProfile() {
           <span>${escapeHtml(t('assignmentLabel'))}<em>*</em></span>
           <select name="task-batch" required aria-required="true" aria-invalid="${state.showValidation && !state.assignment}" aria-describedby="assignment-help" ${Object.keys(state.sourceJudgments).length ? 'disabled' : ''}>
             <option value="">${escapeHtml(t('assignmentPlaceholder'))}</option>
-            ${Array.from({ length: 10 }, (_, index) => { const batch = index + 1; return `<option value="${batch}" ${state.assignment?.batch === batch ? 'selected' : ''}>${escapeHtml(t('assignmentOption', { n: String(batch).padStart(2, '0'), count: Math.min(12, factors.length) }))}</option>`; }).join('')}
+            ${Array.from({ length: 10 }, (_, index) => { const batch = index + 1; return `<option value="${batch}" ${state.assignment?.batch === batch ? 'selected' : ''}>${escapeHtml(t('assignmentOption', { n: String(batch).padStart(2, '0'), count: Math.min(state.allocationOptions.taskCount, factors.length) }))}</option>`; }).join('')}
           </select>
           <small id="assignment-help">${escapeHtml(t(Object.keys(state.sourceJudgments).length ? 'assignmentLocked' : 'assignmentHelp'))}</small>
         </label>
+        <label class="field-group"><span>${escapeHtml(t('allocationFocus'))}</span><select name="allocation-focus" ${Object.keys(state.sourceJudgments).length ? 'disabled' : ''}>${ASSIGNMENT_FOCI.map((value) => `<option value="${value}" ${state.allocationOptions.focus === value ? 'selected' : ''}>${escapeHtml(t({ balanced: 'focusBalanced', environment: 'focusEnvironment', social: 'focusSocial', governance: 'focusGovernance' }[value]))}</option>`).join('')}</select><small>${escapeHtml(t('allocationHelp'))}</small></label>
+        <label class="field-group"><span>${escapeHtml(t('allocationCount'))}</span><select name="allocation-count" ${Object.keys(state.sourceJudgments).length ? 'disabled' : ''}>${TASK_COUNTS.map((count) => `<option value="${count}" ${state.allocationOptions.taskCount === count ? 'selected' : ''}>${count}</option>`).join('')}</select></label>
         ${state.assignment ? `<label class="field-group"><span>${escapeHtml(t('firstSourceLabel'))}</span><select name="first-source" ${Object.keys(state.sourceJudgments).length ? 'disabled' : ''}><option value="">${escapeHtml(t('firstSourceDefault'))}</option>${state.assignment.sourceIds.map((id) => `<option value="${id}" ${state.startingSourceId === id ? 'selected' : ''}>${escapeHtml(id)} · ${escapeHtml(managementActivity(factors.find((factor) => factor.id === id), state.locale).title)}</option>`).join('')}</select><small>${escapeHtml(t('firstSourceHelp'))}</small></label>` : ''}
         ${state.assignment ? `<details class="vt3-assignment-preview"><summary>${escapeHtml(t('assignmentPreview'))}</summary><ol>${taskFactors().map((factor) => `<li>${escapeHtml(factor.id)} · ${escapeHtml(managementActivity(factor, state.locale).title)}</li>`).join('')}</ol></details>` : ''}
         ${Object.keys(state.sourceJudgments).length ? `<button type="button" class="text-button" data-action="reset-draft">${escapeHtml(t(state.confirmReset ? 'resetDraftConfirm' : 'resetDraft'))}</button>` : ''}
@@ -1244,9 +1278,12 @@ function topicGridStyle() {
 function renderSurvey() {
   const source = currentSource();
   if (!source) return renderProfile();
-  return renderShell(renderExpertSurvey({
+  if (!state.practiceDone) return renderShell(renderGuidedPractice({ t, answers: state.practiceAnswers }), 'vt3-shell');
+  if (state.checkpoint) return renderShell(renderGuidedCheckpoint({ factors, rows: taskFactors().filter(({ id }) => state.reviewedFactors.includes(id)).slice(-4).map(({ id }) => sourceRow(id)), order: taskFactors().map(({ id }) => id), done: reviewedCount(), total: taskFactors().length, locale: state.locale, t }), 'vt3-shell');
+  return renderShell(renderGuidedSurvey({
     factors, sourceId: source.id, row: sourceRow(source.id), locale: state.locale, t,
-    position: state.currentIndex + 1, total: taskFactors().length, error: state.taskError,
+    position: state.currentIndex + 1, total: taskFactors().length, batch: state.assignment.batch,
+    flow: state.guidedViews[source.id], error: state.taskError,
   }), 'vt3-shell');
 }
 
@@ -1539,6 +1576,9 @@ function confirmCurrentTopic() {
   state.reviewedFactors = state.assignment.sourceIds.filter((id) => id === source.id || state.reviewedFactors.includes(id));
   const transition = confirmTopicTransition({ currentIndex: state.currentIndex, total: taskFactors().length,
     hasAfterTopics: true, reviewedIds: state.reviewedFactors, currentId: source.id });
+  state.guidedViews[source.id] = { ...(state.guidedViews[source.id] || {}), phase: 'confirm' };
+  const done = state.reviewedFactors.length;
+  if (checkpointPositions(taskFactors().length).includes(done) && !state.completedCheckpoints.includes(done)) state.checkpoint = done;
   state.currentIndex = transition.currentIndex;
   persist({ immediate: true });
   goTo(transition.screen === 'complete' ? 'complete' : 'survey');
@@ -1550,11 +1590,12 @@ function buildCurrentSubmission() {
   return {
     schemaVersion: 1, studyId: studyConfig.id, locale: state.locale, submittedAt: new Date().toISOString(),
     participant: { code: state.participant.code.trim(), role: t(state.participant.role), roleCode: state.participant.role,
-      experience: state.participant.experience ? t(state.participant.experience) : '', experienceCode: state.participant.experience },
+      experience: state.participant.experience ? t(state.participant.experience) : '', experienceCode: state.participant.experience,
+      preparationVersion: GUIDED_WORDING_VERSION, preparationCompleted: state.practiceDone, reviewCheckpoints: state.completedCheckpoints },
     ...expertFields,
     presentationOrder: taskFactors().map(({ id }) => id),
     factors: factorIds.map((id) => ({ id })), clientSubmissionId: state.clientSubmissionId, status: 'complete',
-    collectionMethod: 'guided-source-groups-with-coverage-vt3', qualitativeSectionComplete: true,
+    collectionMethod: 'guided-recall-pages-and-paths-vt3', qualitativeSectionComplete: true,
     questionnaireConfigRevision: questionnaireConfig.revision, topicSnapshot: loadedTopicSnapshot,
     topicSnapshotId: loadedTopicSnapshot.snapshotId, topicRevision: loadedTopicSnapshot.revision, topicIds: [...factorIds],
     moduleAnswers: questionModules.map((module) => serializeModuleAnswer(module, state.moduleAnswers[module.id])),
@@ -1753,6 +1794,12 @@ app.addEventListener('submit', (event) => {
 });
 
 app.addEventListener('input', (event) => {
+  if (event.target.name === 'free-recall') {
+    const id = event.target.dataset.sourceId; const row = structuredClone(sourceRow(id));
+    row.freeRecall = event.target.value;
+    if (row.recallStatus) row.recallStatus = row.freeRecall.trim() ? 'recorded' : 'skipped';
+    state.sourceJudgments[id] = row; markCurrentTopicPending(id); persistSoon(); return;
+  }
   if (event.target.name === 'code') {
     state.participant.code = event.target.value;
     updateProfileValidation();
@@ -1783,6 +1830,39 @@ app.addEventListener('input', (event) => {
 
 app.addEventListener('change', (event) => {
   const target = event.target;
+  if (['allocation-focus', 'allocation-count'].includes(target.name)) {
+    if (Object.keys(state.sourceJudgments).length) return;
+    if (target.name === 'allocation-focus' && ASSIGNMENT_FOCI.includes(target.value)) state.allocationOptions.focus = target.value;
+    if (target.name === 'allocation-count' && TASK_COUNTS.includes(Number(target.value))) state.allocationOptions.taskCount = Number(target.value);
+    state.assignment = sourceAssignment(factors, state.assignment?.batch, state.allocationOptions);
+    state.startingSourceId = ''; state.currentIndex = 0; persist({ immediate: true }); render(); return;
+  }
+  if (target.dataset.guidedTarget) {
+    const sourceId = target.dataset.sourceId;
+    if (!state.assignment?.sourceIds.includes(sourceId)) return;
+    state.sourceJudgments[sourceId] = setTargetReview(factors, sourceRow(sourceId), target.dataset.guidedTarget, target.value);
+    state.taskError = ''; markCurrentTopicPending(sourceId); persist({ immediate: true }); render();
+    app.querySelector(`[data-guided-target="${target.dataset.guidedTarget}"][value="${target.value}"]`)?.focus({ preventScroll: true }); return;
+  }
+  if (['explanation-target', 'reverse-judgment', 'link-type', 'via-topic'].includes(target.name) && sourceRow(target.dataset.sourceId)?.targetReviews) {
+    const sourceId = target.dataset.sourceId;
+    if (!state.assignment?.sourceIds.includes(sourceId)) return;
+    let row = structuredClone(sourceRow(sourceId));
+    if (target.name === 'explanation-target') {
+      if (row.targetIds.includes(target.value)) row.explanation = { targetId: target.value, note: '', reverse: 'not_asked', linkType: 'direct', viaId: '' };
+      else delete row.explanation;
+    } else if (row.explanation) {
+      if (target.name === 'reverse-judgment') row.explanation.reverse = target.value;
+      if (target.name === 'via-topic') row.explanation.viaId = target.value;
+      if (target.name === 'link-type' && ['direct', 'via', 'unclear'].includes(target.value)) {
+        row.explanation.linkType = target.value; row.explanation.viaId = '';
+        row.targetReviews[row.explanation.targetId] = { direct: 'support', via: 'no_support', unclear: 'unable' }[target.value];
+      }
+    }
+    state.sourceJudgments[sourceId] = syncGuidedRow(factors, row); state.taskError = '';
+    markCurrentTopicPending(sourceId); persist({ immediate: true }); render();
+    app.querySelector(`[name="${target.name}"]`)?.focus({ preventScroll: true }); return;
+  }
   if (target.name === 'first-source') {
     if (Object.keys(state.sourceJudgments).length) return;
     state.startingSourceId = state.assignment?.sourceIds.includes(target.value) ? target.value : '';
@@ -1790,7 +1870,7 @@ app.addEventListener('change', (event) => {
   }
   if (target.name === 'task-batch') {
     if (Object.keys(state.sourceJudgments).length) return;
-    state.assignment = sourceAssignment(factors, Number(target.value));
+    state.assignment = sourceAssignment(factors, Number(target.value), state.allocationOptions);
     state.currentIndex = 0; state.reviewedFactors = []; state.startingSourceId = '';
     persist({ immediate: true }); render(); return;
   }
@@ -1879,6 +1959,43 @@ app.addEventListener('click', (event) => {
   if (state.submitState === 'submitting') return;
 
   switch (button.dataset.action) {
+    case 'practice-answer':
+      state.practiceAnswers[button.dataset.question] = button.dataset.value; persist({ immediate: true }); render();
+      break;
+    case 'practice-continue':
+      if (state.practiceAnswers.direction === 'forward' && state.practiceAnswers.missing === 'unreviewed') { state.practiceDone = true; persist({ immediate: true }); render(); pageTop(); }
+      break;
+    case 'recall-continue': {
+      const sourceId = currentSource()?.id; if (!sourceId) break;
+      const row = structuredClone(sourceRow(sourceId)); row.recallStatus = row.freeRecall.trim() ? 'recorded' : 'skipped';
+      state.sourceJudgments[sourceId] = row; state.guidedViews[sourceId] = { phase: 'targets', page: 0 };
+      markCurrentTopicPending(sourceId); persist({ immediate: true }); render(); pageTop(); break;
+    }
+    case 'recall-back': {
+      const id = currentSource()?.id; if (!id) break;
+      state.guidedViews[id] = { ...(state.guidedViews[id] || {}), phase: 'recall' }; persist({ immediate: true }); render(); pageTop(); break;
+    }
+    case 'target-page': {
+      const id = currentSource()?.id; if (!id || !sourceRow(id).recallStatus) break;
+      const page = Number(button.dataset.page);
+      state.guidedViews[id] = { phase: page < 0 ? 'recall' : 'targets', page: Math.max(0, page) };
+      persist({ immediate: true }); render(); pageTop(); break;
+    }
+    case 'page-review': {
+      const id = currentSource()?.id; if (!id) break;
+      const pages = targetPages(factors, id, state.assignment.batch);
+      const page = pages[state.guidedViews[id]?.page || 0]; let row = sourceRow(id);
+      for (const targetId of page.ids) if (row.targetReviews[targetId] === 'unreviewed') row = setTargetReview(factors, row, targetId, button.dataset.value);
+      state.sourceJudgments[id] = row; state.taskError = ''; markCurrentTopicPending(id); persist({ immediate: true }); render(); break;
+    }
+    case 'key-link-step': {
+      const id = currentSource()?.id; if (!id) break;
+      state.guidedViews[id] = { ...(state.guidedViews[id] || {}), phase: 'confirm' };
+      persist({ immediate: true }); render(); pageTop(); break;
+    }
+    case 'checkpoint-continue':
+      if (state.checkpoint) state.completedCheckpoints = [...new Set([...state.completedCheckpoints, state.checkpoint])];
+      state.checkpoint = null; persist({ immediate: true }); render(); pageTop(); break;
     case 'orientation-section':
       setOrientationSection(Number(button.dataset.section));
       break;
@@ -1900,7 +2017,10 @@ app.addEventListener('click', (event) => {
     case 'source-unable': {
       const source = currentSource();
       if (!source) break;
-      state.sourceJudgments[source.id] = { sourceId: source.id, status: 'unable', targetIds: [], groupReviews: Object.fromEntries(targetGroups(factors, source.id).map((group) => [group, 'unable'])) };
+      const old = sourceRow(source.id); const row = blankGuidedSource(factors, source.id);
+      row.freeRecall = old.freeRecall; row.recallStatus = row.freeRecall.trim() ? 'recorded' : 'skipped';
+      row.targetReviews = Object.fromEntries(Object.keys(row.targetReviews).map((id) => [id, 'unable']));
+      state.sourceJudgments[source.id] = syncGuidedRow(factors, row);
       markCurrentTopicPending(source.id); confirmCurrentTopic();
       break;
     }
@@ -1910,6 +2030,8 @@ app.addEventListener('click', (event) => {
       break;
     case 'review-topic':
       if (!state.assignment?.sourceIds[Number(button.dataset.topicIndex)]) break;
+      if (state.checkpoint) state.completedCheckpoints = [...new Set([...state.completedCheckpoints, state.checkpoint])];
+      state.checkpoint = null;
       state.currentIndex = Number(button.dataset.topicIndex); state.taskError = ''; goTo('survey');
       break;
     case 'stage-nav':
@@ -2082,7 +2204,7 @@ async function initializeApp() {
   state.moduleAnswerVersions = moduleVersions();
   if (!beforeTopicModules().length) state.qualitativeSectionComplete = true;
   guideReturnScreen = state.screen;
-  guideSessionSteps = guideStepsForScreen(state.screen, { submitted: Boolean(state.submissionId) });
+  guideSessionSteps = guideStepsForScreen(state.screen, { submitted: Boolean(state.submissionId), guidedPhase: currentGuidedPhase() });
   render();
 }
 
