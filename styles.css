@@ -32,7 +32,7 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--font);
-  font-size: 17.6px;
+  font-size: var(--font-size-body);
   line-height: 1.42;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -127,7 +127,7 @@ a:hover {
 
 .brand-copy b {
   color: var(--ink-strong);
-  font-size: 18px;
+  font-size: var(--font-size-section);
   font-weight: 600;
   letter-spacing: 0.01em;
 }
@@ -135,7 +135,7 @@ a:hover {
 .brand-copy small {
   margin-top: 7px;
   color: var(--muted);
-  font-size: 15px;
+  font-size: var(--font-size-body);
   font-weight: 400;
   letter-spacing: 0;
   text-transform: none;
@@ -159,7 +159,7 @@ a:hover {
 .save-status {
   gap: 8px;
   color: var(--muted);
-  font-size: 15px;
+  font-size: var(--font-size-body);
   font-weight: 400;
 }
 
@@ -194,7 +194,7 @@ body[data-screen="welcome"] .save-status {
   padding: 9px 11px;
   background: transparent;
   color: var(--muted);
-  font-size: 15px;
+  font-size: var(--font-size-body);
   font-weight: 400;
 }
 
@@ -225,7 +225,7 @@ body[data-screen="welcome"] .save-status {
   padding: 0;
   background: transparent;
   color: var(--muted);
-  font-size: 15px;
+  font-size: var(--font-size-body);
   font-weight: 400;
 }
 
@@ -241,7 +241,7 @@ body[data-screen="welcome"] .save-status {
   border: 1px solid currentColor;
   border-radius: 50%;
   font-family: "Space Mono", monospace;
-  font-size: 12px;
+  font-size: var(--font-size-body);
   line-height: 1;
 }
 
@@ -300,14 +300,14 @@ body[data-screen="welcome"] .save-status {
   margin: 0;
   color: var(--accent);
   font-family: "Space Mono", monospace;
-  font-size: 12px;
+  font-size: var(--font-size-body);
   letter-spacing: 0.02em;
 }
 
 .guide-callout-head h2 {
   margin: 8px 0 0;
   color: var(--ink-strong);
-  font-size: clamp(26px, 4vw, 34px);
+  font-size: var(--font-size-section);
   font-weight: 500;
   line-height: 1.08;
 }
@@ -320,7 +320,7 @@ body[data-screen="welcome"] .save-status {
   place-items: center;
   background: transparent;
   color: var(--muted);
-  font-size: 28px;
+  font-size: var(--font-size-section);
   line-height: 1;
 }
 
@@ -331,7 +331,7 @@ body[data-screen="welcome"] .save-status {
 .guide-dialog-copy {
   margin: 20px 0 0;
   color: var(--ink);
-  font-size: 18px;
+  font-size: var(--font-size-body);
   line-height: 1.5;
 }
 
@@ -365,7 +365,7 @@ body[data-screen="welcome"] .save-status {
 .eyebrow {
   margin: 0 0 12px;
   color: var(--accent);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   font-weight: 600;
   letter-spacing: 0.035em;
   text-transform: none;
@@ -381,7 +381,7 @@ body[data-screen="welcome"] .save-status {
   min-height: 48px;
   padding: 11px 18px;
   border-radius: 0;
-  font-size: 16px;
+  font-size: var(--font-size-body);
   font-weight: 500;
   transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
 }
@@ -448,7 +448,7 @@ body[data-screen="welcome"] .save-status {
   max-width: 640px;
   margin: 0;
   color: var(--ink-strong);
-  font-size: clamp(42px, 3.7vw, 48px);
+  font-size: var(--font-size-title);
   font-weight: 500;
   letter-spacing: -0.025em;
   line-height: 1.06;
@@ -459,7 +459,7 @@ body[data-screen="welcome"] .save-status {
   max-width: 620px;
   margin: 24px 0 0;
   color: var(--ink);
-  font-size: 19px;
+  font-size: var(--font-size-body);
   line-height: 1.46;
 }
 
@@ -473,7 +473,7 @@ body[data-screen="welcome"] .save-status {
 
 .scope-card span {
   color: var(--accent);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   font-weight: 600;
 }
 
@@ -503,7 +503,7 @@ body[data-screen="welcome"] .save-status {
 .study-stats b {
   margin-right: 5px;
   color: var(--ink-strong);
-  font-size: 19px;
+  font-size: var(--font-size-body);
   font-weight: 600;
 }
 
@@ -521,7 +521,7 @@ body[data-screen="welcome"] .save-status {
   gap: 7px;
   margin: 14px 0 0;
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 .privacy-note i {
@@ -544,7 +544,7 @@ body[data-screen="welcome"] .save-status {
 
 .guide-kicker,
 .guide-count {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   font-weight: 500;
 }
 
@@ -568,7 +568,7 @@ body[data-screen="welcome"] .save-status {
 
 .welcome-guide li span {
   color: var(--accent);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   font-weight: 600;
 }
 
@@ -595,7 +595,7 @@ body[data-screen="welcome"] .save-status {
 .topic-category-title {
   margin: 28px 0 0;
   color: var(--accent);
-  font-size: 18px;
+  font-size: var(--font-size-section);
   font-weight: 600;
   letter-spacing: 0.02em;
 }
@@ -609,7 +609,7 @@ body[data-screen="welcome"] .save-status {
 .section-heading h2 {
   margin: 0;
   color: var(--ink-strong);
-  font-size: 32px;
+  font-size: var(--font-size-section);
   font-weight: 500;
   line-height: 1.1;
 }
@@ -662,7 +662,7 @@ body[data-screen="welcome"] .save-status {
 
 .factor-preview summary > span {
   color: var(--accent);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   font-weight: 600;
 }
 
@@ -675,7 +675,7 @@ body[data-screen="welcome"] .save-status {
 
 .factor-preview summary i {
   color: var(--muted);
-  font-size: 18px;
+  font-size: var(--font-size-body);
   font-style: normal;
   text-align: right;
   transition: transform 150ms ease;
@@ -689,7 +689,7 @@ body[data-screen="welcome"] .save-status {
 .factor-preview p {
   margin: -2px 0 18px 52px;
   color: var(--muted);
-  font-size: 16px;
+  font-size: var(--font-size-body);
 }
 
 /* Survey shell and numbered progress */
@@ -735,7 +735,7 @@ body[data-screen="welcome"] .save-status {
   margin: 0;
   padding: 9px 0;
   color: var(--muted);
-  font-size: 16px;
+  font-size: var(--font-size-body);
   line-height: 1.25;
 }
 
@@ -798,7 +798,7 @@ body[data-screen="welcome"] .save-status {
   justify-content: space-between;
   gap: 12px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 .sidebar-progress-copy b {
@@ -823,7 +823,7 @@ body[data-screen="welcome"] .save-status {
   display: block;
   margin-top: 9px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 .topic-index {
@@ -839,14 +839,14 @@ body[data-screen="welcome"] .save-status {
   gap: 7px;
   align-items: baseline;
   color: var(--ink-strong);
-  font-size: 13px;
+  font-size: var(--font-size-body);
   line-height: 1.25;
 }
 
 .topic-index-step {
   color: var(--accent);
   font-family: "Space Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
+  font-size: var(--font-size-body);
 }
 
 .topic-index-title {
@@ -856,7 +856,7 @@ body[data-screen="welcome"] .save-status {
 
 .topic-index-heading strong {
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--font-size-body);
   font-weight: 400;
   white-space: nowrap;
 }
@@ -864,7 +864,7 @@ body[data-screen="welcome"] .save-status {
 .topic-index-hint {
   margin: 5px 0 9px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--font-size-body);
   line-height: 1.3;
 }
 
@@ -881,7 +881,7 @@ body[data-screen="welcome"] .save-status {
   background: var(--paper);
   color: var(--muted);
   font-family: var(--font);
-  font-size: 13px;
+  font-size: var(--font-size-body);
   font-weight: 400;
   line-height: 1;
   pointer-events: auto;
@@ -913,7 +913,7 @@ body[data-screen="welcome"] .save-status {
 .page-heading h1 {
   margin: 0;
   color: var(--ink-strong);
-  font-size: clamp(38px, 4vw, 50px);
+  font-size: var(--font-size-title);
   font-weight: 500;
   letter-spacing: -0.025em;
   line-height: 1.08;
@@ -924,7 +924,7 @@ body[data-screen="welcome"] .save-status {
   max-width: 620px;
   margin: 12px 0 0;
   color: var(--muted);
-  font-size: 18px;
+  font-size: var(--font-size-body);
 }
 
 /* Profile */
@@ -946,7 +946,7 @@ body[data-screen="welcome"] .save-status {
 .field-group > span,
 .field-group legend {
   color: var(--ink-strong);
-  font-size: 16px;
+  font-size: var(--font-size-body);
   font-weight: 500;
 }
 
@@ -991,7 +991,7 @@ body[data-screen="welcome"] .save-status {
 
 .field-group small {
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 .experience-group {
@@ -1035,7 +1035,7 @@ body[data-screen="welcome"] .save-status {
 .radio-card span {
   min-width: 0;
   color: var(--muted);
-  font-size: 15px;
+  font-size: var(--font-size-body);
 }
 
 .radio-card span i {
@@ -1050,7 +1050,7 @@ body[data-screen="welcome"] .save-status {
 .form-error {
   margin: -6px 0 24px;
   color: var(--danger);
-  font-size: 15px;
+  font-size: var(--font-size-body);
 }
 
 .form-actions,
@@ -1091,12 +1091,12 @@ body[data-screen="welcome"] .save-status {
 .pair-position {
   margin: 0;
   color: var(--ink-strong);
-  font-size: 21px;
+  font-size: var(--font-size-body);
 }
 
 .pair-position b {
   color: var(--accent);
-  font-size: 28px;
+  font-size: var(--font-size-body);
   font-weight: 600;
 }
 
@@ -1110,7 +1110,7 @@ body[data-screen="welcome"] .save-status {
   grid-template-columns: 1fr auto;
   gap: 5px 20px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 .pair-progress span b {
@@ -1124,7 +1124,7 @@ body[data-screen="welcome"] .save-status {
   align-items: center;
   justify-content: flex-end;
   color: var(--accent);
-  font-size: 15px;
+  font-size: var(--font-size-body);
   font-weight: 500;
 }
 
@@ -1168,12 +1168,12 @@ body[data-screen="welcome"] .save-status {
   align-items: baseline;
   gap: 8px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 .factor-card > span i {
   color: var(--accent);
-  font-size: 23px;
+  font-size: var(--font-size-body);
   font-style: normal;
   font-weight: 600;
 }
@@ -1181,7 +1181,7 @@ body[data-screen="welcome"] .save-status {
 .factor-card h2 {
   margin: 0;
   color: var(--ink-strong);
-  font-size: 24px;
+  font-size: var(--font-size-section);
   font-weight: 600;
   line-height: 1.18;
   overflow-wrap: anywhere;
@@ -1190,7 +1190,7 @@ body[data-screen="welcome"] .save-status {
 .factor-card p {
   margin: 5px 0 0;
   color: var(--muted);
-  font-size: 16px;
+  font-size: var(--font-size-body);
 }
 
 .pair-divider {
@@ -1206,7 +1206,7 @@ body[data-screen="welcome"] .save-status {
 .question-block h1 {
   margin: 0;
   color: var(--ink-strong);
-  font-size: 25px;
+  font-size: var(--font-size-title);
   font-weight: 500;
   line-height: 1.24;
 }
@@ -1216,7 +1216,7 @@ body[data-screen="welcome"] .save-status {
   gap: 8px;
   margin: 10px 0 0;
   color: var(--muted);
-  font-size: 15px;
+  font-size: var(--font-size-body);
 }
 
 .question-block p i {
@@ -1273,7 +1273,7 @@ body[data-screen="welcome"] .save-status {
   background: transparent;
   color: currentColor;
   font-family: inherit;
-  font-size: 19px;
+  font-size: var(--font-size-body);
   font-weight: 600;
 }
 
@@ -1285,14 +1285,14 @@ body[data-screen="welcome"] .save-status {
 }
 
 .option-direction b {
-  font-size: 17px;
+  font-size: var(--font-size-body);
   font-weight: 600;
 }
 
 .option-direction i {
   min-width: 28px;
   color: var(--accent);
-  font-size: 20px;
+  font-size: var(--font-size-body);
   font-style: normal;
   text-align: center;
 }
@@ -1304,13 +1304,13 @@ body[data-screen="welcome"] .save-status {
 }
 
 .option-copy strong {
-  font-size: 18px;
+  font-size: var(--font-size-body);
   font-weight: 500;
 }
 
 .option-copy small {
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   overflow-wrap: anywhere;
 }
 
@@ -1328,7 +1328,7 @@ body[data-screen="welcome"] .save-status {
   padding: 8px 2px;
   background: transparent;
   color: var(--muted);
-  font-size: 15px;
+  font-size: var(--font-size-body);
 }
 
 .note-toggle:hover {
@@ -1350,7 +1350,7 @@ body[data-screen="welcome"] .save-status {
 
 .note-field > span {
   color: var(--ink-strong);
-  font-size: 15px;
+  font-size: var(--font-size-body);
   font-weight: 500;
 }
 
@@ -1378,13 +1378,13 @@ body[data-screen="welcome"] .save-status {
   display: grid;
   gap: 2px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   text-align: center;
 }
 
 .survey-hints small {
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 /* Review */
@@ -1423,12 +1423,12 @@ body[data-screen="welcome"] .save-status {
 
 .review-summary span {
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 .review-summary b {
   color: var(--ink-strong);
-  font-size: 27px;
+  font-size: var(--font-size-body);
   font-weight: 500;
 }
 
@@ -1462,14 +1462,14 @@ body[data-screen="welcome"] .save-status {
 .panel-heading h2 {
   margin: 0;
   color: var(--ink-strong);
-  font-size: 25px;
+  font-size: var(--font-size-section);
   font-weight: 500;
 }
 
 .panel-heading p {
   margin: 5px 0 0;
   color: var(--muted);
-  font-size: 15px;
+  font-size: var(--font-size-body);
 }
 
 .filter-button {
@@ -1478,7 +1478,7 @@ body[data-screen="welcome"] .save-status {
   border-bottom: 1px solid var(--ink);
   background: transparent;
   color: var(--ink);
-  font-size: 15px;
+  font-size: var(--font-size-body);
 }
 
 .filter-button:hover,
@@ -1523,19 +1523,19 @@ body[data-screen="welcome"] .save-status {
 
 .matrix-summary b {
   color: var(--ink-strong);
-  font-size: 25px;
+  font-size: var(--font-size-body);
   font-weight: 500;
 }
 
 .matrix-summary small {
   max-width: 760px;
   color: var(--muted);
-  font-size: 15px;
+  font-size: var(--font-size-body);
 }
 
 .matrix-summary > i {
   color: var(--accent);
-  font-size: 22px;
+  font-size: var(--font-size-body);
   font-style: normal;
   transition: transform 150ms ease;
 }
@@ -1557,7 +1557,7 @@ body[data-screen="welcome"] .save-status {
   min-width: 520px;
   border-collapse: collapse;
   table-layout: fixed;
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 .direction-matrix th,
@@ -1638,7 +1638,7 @@ body[data-screen="welcome"] .save-status {
 
 .review-index {
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 .review-pair {
@@ -1668,7 +1668,7 @@ body[data-screen="welcome"] .save-status {
 
 .relation-badge {
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   text-align: right;
 }
 
@@ -1678,7 +1678,7 @@ body[data-screen="welcome"] .save-status {
 
 .review-edit {
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   text-align: right;
 }
 
@@ -1702,7 +1702,7 @@ body[data-screen="welcome"] .save-status {
 .complete-mark {
   margin-bottom: 26px;
   color: var(--accent);
-  font-size: 54px;
+  font-size: var(--font-size-body);
   line-height: 1;
 }
 
@@ -1714,7 +1714,7 @@ body[data-screen="welcome"] .save-status {
   max-width: 680px;
   margin: 0;
   color: var(--ink-strong);
-  font-size: clamp(40px, 4.4vw, 54px);
+  font-size: var(--font-size-title);
   font-weight: 500;
   letter-spacing: -0.025em;
   line-height: 1.06;
@@ -1725,7 +1725,7 @@ body[data-screen="welcome"] .save-status {
   max-width: 600px;
   margin: 20px 0 0;
   color: var(--muted);
-  font-size: 18px;
+  font-size: var(--font-size-body);
 }
 
 .download-grid {
@@ -1758,7 +1758,7 @@ body[data-screen="welcome"] .save-status {
 
 .file-icon {
   color: var(--accent);
-  font-size: 15px;
+  font-size: var(--font-size-body);
   font-weight: 600;
 }
 
@@ -1769,13 +1769,13 @@ body[data-screen="welcome"] .save-status {
 }
 
 .download-card b {
-  font-size: 18px;
+  font-size: var(--font-size-body);
   font-weight: 500;
 }
 
 .download-card small {
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   overflow-wrap: anywhere;
 }
 
@@ -1795,7 +1795,7 @@ body[data-screen="welcome"] .save-status {
   padding: 11px 15px;
   background: var(--ink-strong);
   color: #ffffff;
-  font-size: 15px;
+  font-size: var(--font-size-body);
   opacity: 0;
   pointer-events: none;
   transform: translateY(8px);
@@ -1880,7 +1880,7 @@ body[data-screen="welcome"] .save-status {
 
 @media (max-width: 767px), (max-width: 900px) and (max-height: 500px) {
   body {
-    font-size: 17px;
+    font-size: var(--font-size-body);
     line-height: 1.46;
   }
 
@@ -1920,7 +1920,7 @@ body[data-screen="welcome"] .save-status {
     display: block;
     max-width: 168px;
     overflow: hidden;
-    font-size: 16px;
+    font-size: var(--font-size-section);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -1942,7 +1942,7 @@ body[data-screen="welcome"] .save-status {
     flex: 0 0 22px;
     width: 22px;
     gap: 5px;
-    font-size: 14px;
+    font-size: var(--font-size-body);
     justify-content: center;
     white-space: nowrap;
   }
@@ -1982,7 +1982,7 @@ body[data-screen="welcome"] .save-status {
     overflow: visible;
     clip: auto;
     color: var(--danger);
-    font-size: 12px;
+    font-size: var(--font-size-body);
     line-height: 1.05;
     white-space: normal;
   }
@@ -1991,7 +1991,7 @@ body[data-screen="welcome"] .save-status {
     min-width: 44px;
     min-height: 44px;
     padding: 8px 7px;
-    font-size: 14px;
+    font-size: var(--font-size-body);
   }
 
   .language-switch button:first-child {
@@ -2005,12 +2005,12 @@ body[data-screen="welcome"] .save-status {
   }
 
   .guide-callout-head h2 {
-    font-size: 24px;
+    font-size: var(--font-size-section);
   }
 
   .guide-dialog-copy {
     margin-top: 14px;
-    font-size: 15.5px;
+    font-size: var(--font-size-body);
   }
 
   .guide-dots {
@@ -2026,7 +2026,7 @@ body[data-screen="welcome"] .save-status {
   .guide-dialog-actions .primary-button {
     min-height: 42px;
     padding: 8px 12px;
-    font-size: 15px;
+    font-size: var(--font-size-body);
   }
 
   .welcome-page,
@@ -2042,12 +2042,12 @@ body[data-screen="welcome"] .save-status {
   }
 
   .welcome-copy h1 {
-    font-size: clamp(36px, 10vw, 44px);
+    font-size: var(--font-size-title);
   }
 
   .hero-lead {
     margin-top: 19px;
-    font-size: 17px;
+    font-size: var(--font-size-body);
   }
 
   .scope-card {
@@ -2104,7 +2104,7 @@ body[data-screen="welcome"] .save-status {
     min-width: 0;
     padding: 3px 4px 6px;
     overflow: hidden;
-    font-size: 13px;
+    font-size: var(--font-size-body);
     white-space: nowrap;
     text-overflow: ellipsis;
   }
@@ -2123,7 +2123,7 @@ body[data-screen="welcome"] .save-status {
   .steps .step-link {
     grid-template-columns: 20px minmax(0, 1fr);
     gap: 5px;
-    font-size: 13px;
+    font-size: var(--font-size-body);
   }
 
   .steps li.is-active {
@@ -2171,7 +2171,7 @@ body[data-screen="welcome"] .save-status {
 
   .topic-index-item {
     min-height: 28px;
-    font-size: 12px;
+    font-size: var(--font-size-body);
   }
 
   .content-stage {
@@ -2185,12 +2185,12 @@ body[data-screen="welcome"] .save-status {
 
   .page-heading h1,
   .complete-page h1 {
-    font-size: clamp(32px, 9vw, 40px);
+    font-size: var(--font-size-title);
   }
 
   .page-heading > p:last-child,
   .complete-page > p:not(.eyebrow) {
-    font-size: 17px;
+    font-size: var(--font-size-body);
   }
 
   .profile-form {
@@ -2216,7 +2216,7 @@ body[data-screen="welcome"] .save-status {
     gap: 6px;
     background: transparent;
     color: var(--muted);
-    font-size: 14px;
+    font-size: var(--font-size-body);
   }
 
   .top-previous:hover {
@@ -2242,7 +2242,7 @@ body[data-screen="welcome"] .save-status {
   }
 
   .factor-card h2 {
-    font-size: 21px;
+    font-size: var(--font-size-section);
   }
 
   .question-block {
@@ -2250,7 +2250,7 @@ body[data-screen="welcome"] .save-status {
   }
 
   .question-block h1 {
-    font-size: 22px;
+    font-size: var(--font-size-title);
   }
 
   .relation-option {
@@ -2266,11 +2266,11 @@ body[data-screen="welcome"] .save-status {
 
   .option-direction i {
     min-width: 20px;
-    font-size: 17px;
+    font-size: var(--font-size-body);
   }
 
   .option-copy strong {
-    font-size: 17px;
+    font-size: var(--font-size-body);
   }
 
   .option-copy small {
@@ -2321,7 +2321,7 @@ body[data-screen="welcome"] .save-status {
     display: block;
     margin: -4px 0 9px;
     color: var(--accent);
-    font-size: 14px;
+    font-size: var(--font-size-body);
   }
 
   .review-row {
@@ -2389,11 +2389,11 @@ body[data-screen="welcome"] .save-status {
 
   .study-stats span {
     padding-inline: 9px;
-    font-size: 14px;
+    font-size: var(--font-size-body);
   }
 
   .study-stats b {
-    font-size: 17px;
+    font-size: var(--font-size-body);
   }
 
   .survey-topline {
@@ -2499,7 +2499,7 @@ body[data-screen="welcome"] .save-status {
   width: 210px;
   gap: 9px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   text-align: right;
 }
 
@@ -2525,7 +2525,7 @@ body[data-screen="welcome"] .save-status {
   display: block;
   margin-bottom: 20px;
   color: var(--accent);
-  font-size: 17px;
+  font-size: var(--font-size-body);
   font-weight: 600;
 }
 
@@ -2534,7 +2534,7 @@ body[data-screen="welcome"] .save-status {
   margin-bottom: 15px;
   color: var(--accent);
   font-family: "Space Mono", monospace;
-  font-size: 17px;
+  font-size: var(--font-size-body);
   font-weight: 400;
   letter-spacing: .12em;
 }
@@ -2544,14 +2544,14 @@ body[data-screen="welcome"] .save-status {
   margin-bottom: 7px;
   color: var(--muted);
   font-family: "Space Mono", monospace;
-  font-size: 13px;
+  font-size: var(--font-size-body);
   letter-spacing: .04em;
 }
 
 .source-topic h2 {
   margin: 0;
   color: var(--ink-strong);
-  font-size: clamp(27px, 2.4vw, 34px);
+  font-size: var(--font-size-section);
   font-weight: 600;
   letter-spacing: -0.01em;
   line-height: 1.15;
@@ -2560,7 +2560,7 @@ body[data-screen="welcome"] .save-status {
 .source-topic p {
   margin: 11px 0 0;
   color: var(--muted);
-  font-size: 15px;
+  font-size: var(--font-size-body);
   line-height: 1.42;
 }
 
@@ -2572,7 +2572,7 @@ body[data-screen="welcome"] .save-status {
   max-width: 760px;
   margin: 0;
   color: var(--ink-strong);
-  font-size: clamp(27px, 2.8vw, 36px);
+  font-size: var(--font-size-title);
   font-weight: 500;
   letter-spacing: -0.015em;
   line-height: 1.16;
@@ -2583,14 +2583,14 @@ body[data-screen="welcome"] .save-status {
   max-width: 700px;
   margin: 9px 0 0;
   color: var(--muted);
-  font-size: 15px;
+  font-size: var(--font-size-body);
 }
 
 .choice-hint {
   max-width: 700px;
   margin: 9px 0 0;
   color: var(--muted);
-  font-size: 15px;
+  font-size: var(--font-size-body);
 }
 
 .target-fieldset {
@@ -2653,7 +2653,7 @@ body[data-screen="welcome"] .save-status {
 
 .target-code {
   color: var(--accent);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   font-weight: 600;
 }
 
@@ -2666,7 +2666,7 @@ body[data-screen="welcome"] .save-status {
 
 .target-copy strong {
   color: var(--ink-strong);
-  font-size: 16px;
+  font-size: var(--font-size-body);
   font-weight: 500;
   line-height: 1.22;
   hyphens: auto;
@@ -2738,7 +2738,7 @@ body[data-screen="welcome"] .save-status {
 
 .topic-review-source small {
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--font-size-body);
 }
 
 .topic-review-result {
@@ -2746,7 +2746,7 @@ body[data-screen="welcome"] .save-status {
   grid-template-columns: 20px minmax(0, 1fr);
   gap: 7px;
   color: var(--muted);
-  font-size: 15px;
+  font-size: var(--font-size-body);
   line-height: 1.3;
 }
 
@@ -2771,7 +2771,7 @@ body[data-screen="welcome"] .save-status {
 
 .pair-review-index {
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--font-size-body);
 }
 
 .pair-review-factors {
@@ -2805,7 +2805,7 @@ body[data-screen="welcome"] .save-status {
 
 .pair-review-result {
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   text-align: right;
 }
 
@@ -2816,7 +2816,7 @@ body[data-screen="welcome"] .save-status {
   gap: 14px;
   margin-top: 12px;
   color: var(--danger);
-  font-size: 15px;
+  font-size: var(--font-size-body);
 }
 
 .submit-error button {
@@ -2840,13 +2840,13 @@ body[data-screen="welcome"] .save-status {
 .receipt-block span,
 .receipt-block small {
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 .receipt-block strong {
   color: var(--accent);
   font-family: "Space Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 17px;
+  font-size: var(--font-size-title);
   font-weight: 500;
   overflow-wrap: anywhere;
 }
@@ -2906,7 +2906,7 @@ body[data-screen="welcome"] .save-status {
   }
 
   .source-topic h2 {
-    font-size: 22px;
+    font-size: var(--font-size-section);
   }
 
   .topic-question {
@@ -2918,13 +2918,13 @@ body[data-screen="welcome"] .save-status {
   }
 
   .topic-question h1 {
-    font-size: clamp(21px, 6vw, 27px);
+    font-size: var(--font-size-title);
     line-height: 1.12;
   }
 
   .topic-question > p {
     margin-top: 5px;
-    font-size: 13px;
+    font-size: var(--font-size-body);
   }
 
   .target-fieldset {
@@ -2949,7 +2949,7 @@ body[data-screen="welcome"] .save-status {
   }
 
   .target-copy strong {
-    font-size: 14.5px;
+    font-size: var(--font-size-body);
     line-height: 1.14;
   }
 
@@ -3008,7 +3008,7 @@ body[data-screen="welcome"] .save-status {
   border-left: 3px solid var(--accent);
   background: var(--accent-soft);
   color: var(--muted);
-  font-size: 15px;
+  font-size: var(--font-size-body);
 }
 
 .qualitative-form {
@@ -3032,14 +3032,14 @@ body[data-screen="welcome"] .save-status {
   grid-template-columns: 38px minmax(0, 1fr);
   gap: 10px;
   align-items: start;
-  font-size: 18px;
+  font-size: var(--font-size-section);
   line-height: 1.45;
 }
 
 .qualitative-question-label i {
   color: var(--accent);
   font-family: "Space Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 14px;
+  font-size: var(--font-size-section);
   font-style: normal;
   padding-top: 2px;
 }
@@ -3070,7 +3070,7 @@ body[data-screen="welcome"] .save-status {
 .frozen-result-card header h2 {
   margin: 2px 0 0;
   color: var(--ink-strong);
-  font-size: 28px;
+  font-size: var(--font-size-section);
   font-weight: 500;
 }
 
@@ -3078,7 +3078,7 @@ body[data-screen="welcome"] .save-status {
   max-width: 680px;
   margin: 9px 0 0;
   color: var(--muted);
-  font-size: 15px;
+  font-size: var(--font-size-body);
 }
 
 .frozen-result-stats {
@@ -3104,12 +3104,12 @@ body[data-screen="welcome"] .save-status {
 
 .frozen-result-stats span {
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 .frozen-result-stats b {
   color: var(--accent);
-  font-size: 28px;
+  font-size: var(--font-size-body);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
@@ -3123,7 +3123,7 @@ body[data-screen="welcome"] .save-status {
 
 .frozen-topic-group h3 {
   margin: 0 0 10px;
-  font-size: 16px;
+  font-size: var(--font-size-section);
   font-weight: 500;
 }
 
@@ -3150,19 +3150,19 @@ body[data-screen="welcome"] .save-status {
 .frozen-topic-code {
   color: var(--muted);
   font-family: "Space Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
+  font-size: var(--font-size-body);
 }
 
 .frozen-topic-label {
   min-width: 0;
   color: var(--ink-strong);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   overflow-wrap: anywhere;
 }
 
 .frozen-topic-group li b {
   color: var(--accent);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   font-weight: 500;
   text-align: right;
 }
@@ -3172,7 +3172,7 @@ body[data-screen="welcome"] .save-status {
 .result-verification-error p,
 .feedback-saved p {
   color: var(--muted);
-  font-size: 15px;
+  font-size: var(--font-size-body);
 }
 
 .result-verification-status {
@@ -3194,7 +3194,7 @@ body[data-screen="welcome"] .save-status {
 }
 
 .feedback-form .field-group > span {
-  font-size: 19px;
+  font-size: var(--font-size-body);
   line-height: 1.5;
 }
 
@@ -3216,7 +3216,7 @@ body[data-screen="welcome"] .save-status {
 .feedback-saved h2 {
   margin: 0;
   color: var(--ink-strong);
-  font-size: 23px;
+  font-size: var(--font-size-section);
   font-weight: 500;
 }
 
@@ -3243,7 +3243,7 @@ body[data-screen="welcome"] .save-status {
   .qualitative-question-label {
     grid-template-columns: 30px minmax(0, 1fr);
     gap: 8px;
-    font-size: 16px;
+    font-size: var(--font-size-section);
   }
 
   .qualitative-field textarea,
@@ -3266,7 +3266,7 @@ body[data-screen="welcome"] .save-status {
   }
 
   .frozen-result-card header h2 {
-    font-size: 24px;
+    font-size: var(--font-size-section);
   }
 
   .frozen-result-groups {
@@ -3301,7 +3301,7 @@ body[data-screen="welcome"] .save-status {
   .topic-actions .text-button,
   .topic-actions .primary-button {
     padding-inline: 10px;
-    font-size: 15px;
+    font-size: var(--font-size-body);
   }
 
   .review-actions {
@@ -3350,7 +3350,7 @@ body[data-screen="welcome"] .save-status {
   body[data-screen="survey"] .topic-actions .text-button {
     gap: 7px;
     padding-inline: 6px;
-    font-size: 14px;
+    font-size: var(--font-size-body);
     white-space: nowrap;
   }
 }
@@ -3374,14 +3374,14 @@ body[data-screen="welcome"] .save-status {
   }
 
   body[data-screen="survey"] .target-copy strong {
-    font-size: 13.5px;
+    font-size: var(--font-size-body);
     line-height: 1.1;
   }
 }
 
 .study-summary {
   grid-column: 1 / -1;
-  font-size: 1.15rem;
+  font-size: var(--font-size-body);
   font-weight: 600;
 }
 
@@ -3400,7 +3400,7 @@ body[data-screen="welcome"] .save-status {
 .qualitative-progress {
   margin: 18px 0 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--font-size-body);
   font-variant-numeric: tabular-nums;
 }
 
@@ -3433,7 +3433,7 @@ body[data-screen="welcome"] .save-status {
 .result-card header h2 {
   margin: 2px 0 0;
   color: var(--ink-strong);
-  font-size: 28px;
+  font-size: var(--font-size-section);
   font-weight: 500;
 }
 
@@ -3441,7 +3441,7 @@ body[data-screen="welcome"] .save-status {
   max-width: 680px;
   margin: 9px 0 0;
   color: var(--muted);
-  font-size: 15px;
+  font-size: var(--font-size-body);
 }
 
 .result-card-stats {
@@ -3467,12 +3467,12 @@ body[data-screen="welcome"] .save-status {
 
 .result-card-stats span {
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 .result-card-stats b {
   color: var(--accent);
-  font-size: 28px;
+  font-size: var(--font-size-body);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
@@ -3486,7 +3486,7 @@ body[data-screen="welcome"] .save-status {
 
 .result-topic-group h3 {
   margin: 0 0 10px;
-  font-size: 16px;
+  font-size: var(--font-size-section);
   font-weight: 500;
 }
 
@@ -3513,19 +3513,19 @@ body[data-screen="welcome"] .save-status {
 .result-topic-code {
   color: var(--muted);
   font-family: "Space Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
+  font-size: var(--font-size-body);
 }
 
 .result-topic-label {
   min-width: 0;
   color: var(--ink-strong);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   overflow-wrap: anywhere;
 }
 
 .result-topic-group li b {
   color: var(--accent);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   font-weight: 500;
   text-align: right;
 }
@@ -3588,7 +3588,7 @@ body[data-screen="welcome"] .save-status {
   }
 
   .result-card header h2 {
-    font-size: 24px;
+    font-size: var(--font-size-section);
   }
 
   .result-card-groups {
@@ -3653,11 +3653,11 @@ body[data-screen="welcome"] .save-status {
   }
 
   .source-topic h2 {
-    font-size: clamp(24px, 3vw, 31px);
+    font-size: var(--font-size-section);
   }
 
   .topic-question h1 {
-    font-size: clamp(25px, 3.5vw, 32px);
+    font-size: var(--font-size-title);
   }
 
   .target-list {
@@ -3670,7 +3670,7 @@ body[data-screen="welcome"] .save-status {
   }
 
   .target-copy strong {
-    font-size: 15px;
+    font-size: var(--font-size-body);
     line-height: 1.18;
   }
 
@@ -3768,7 +3768,7 @@ body[data-screen="welcome"] .save-status {
 .topic-kicker,
 .question-kicker {
   font-family: var(--font);
-  font-size: clamp(17px, 1.6vw, 21px);
+  font-size: var(--font-size-body);
   font-weight: 600;
   letter-spacing: .02em;
   line-height: 1;
@@ -3793,7 +3793,7 @@ body[data-screen="welcome"] .save-status {
   margin: 0;
   font-family: var(--font);
   color: inherit;
-  font-size: clamp(17px, 1.6vw, 21px);
+  font-size: var(--font-size-title);
   font-weight: 600;
   letter-spacing: .02em;
   line-height: 1;
@@ -3848,13 +3848,13 @@ body[data-screen="welcome"] .save-status {
   }
 
   body[data-screen="survey"] .source-topic h2 {
-    font-size: clamp(24px, 2.2vw, 30px);
+    font-size: var(--font-size-section);
     line-height: 1.05;
   }
 
   body[data-screen="survey"] .source-topic p {
     margin-top: clamp(3px, .6vh, 7px);
-    font-size: clamp(13px, 1.15vw, 15px);
+    font-size: var(--font-size-body);
     line-height: 1.2;
   }
 
@@ -3868,7 +3868,7 @@ body[data-screen="welcome"] .save-status {
 
   body[data-screen="survey"] .choice-hint {
     margin-top: clamp(2px, .4vh, 4px);
-    font-size: clamp(12px, 1.1vw, 15px);
+    font-size: var(--font-size-body);
     line-height: 1.15;
   }
 
@@ -3900,13 +3900,13 @@ body[data-screen="welcome"] .save-status {
   }
 
   body[data-screen="survey"] .target-code {
-    font-size: clamp(11px, 1vw, 14px);
+    font-size: var(--font-size-body);
   }
 
   body[data-screen="survey"] .target-copy strong {
     display: block;
     overflow: visible;
-    font-size: clamp(14px, min(1.4vw, 1.9vh), 19px);
+    font-size: var(--font-size-body);
     line-height: 1;
     overflow-wrap: anywhere;
   }
@@ -3930,11 +3930,11 @@ body[data-screen="welcome"] .save-status {
   }
 
   body[data-screen="survey"] .target-code {
-    font-size: clamp(10px, .95vw, 12px);
+    font-size: var(--font-size-body);
   }
 
   body[data-screen="survey"] .target-copy strong {
-    font-size: clamp(10px, min(1.1vw, 1.5vh), 14px);
+    font-size: var(--font-size-body);
     line-height: 1;
   }
 }
@@ -3982,14 +3982,14 @@ body[data-screen="welcome"] .save-status {
   }
 
   body[data-screen="survey"] .source-topic-body h2 {
-    font-size: 20px;
+    font-size: var(--font-size-section);
     line-height: 1.08;
   }
 
   body[data-screen="survey"] .source-topic-body p {
     display: block;
     columns: 1;
-    font-size: clamp(9px, 2.5vw, 11px);
+    font-size: var(--font-size-body);
     line-height: 1.1;
   }
 
@@ -4031,7 +4031,7 @@ body[data-screen="welcome"] .save-status {
   }
 
   body[data-screen="survey"] .target-code {
-    font-size: 9px;
+    font-size: var(--font-size-body);
   }
 
   body[data-screen="survey"] .target-copy {
@@ -4040,7 +4040,7 @@ body[data-screen="welcome"] .save-status {
   }
 
   body[data-screen="survey"] .target-copy strong {
-    font-size: clamp(8px, 2.3vw, 11px);
+    font-size: var(--font-size-body);
     line-height: 1;
     overflow-wrap: anywhere;
   }
@@ -4059,13 +4059,13 @@ body[data-screen="welcome"] .save-status {
   }
 
   body[data-screen="survey"] .target-copy strong {
-    font-size: clamp(9px, min(1vw, 1.35vh), 13px);
+    font-size: var(--font-size-body);
   }
 }
 
 @media (min-width: 768px) and (max-width: 1040px) and (min-height: 681px) {
   body[data-screen="survey"] .target-copy strong {
-    font-size: clamp(12px, min(1.35vw, 1.7vh), 17px);
+    font-size: var(--font-size-body);
   }
 }
 
@@ -4077,13 +4077,13 @@ body[data-screen="welcome"] .save-status {
 
 @media (min-width: 1200px) and (max-width: 1279px) {
   body[data-screen="survey"] .target-copy strong {
-    font-size: clamp(13px, min(1.25vw, 1.7vh), 17px);
+    font-size: var(--font-size-body);
   }
 }
 
 @media (min-width: 1280px) {
   body[data-screen="survey"] .target-copy strong {
-    font-size: clamp(14px, min(1.4vw, 1.9vh), 19px);
+    font-size: var(--font-size-body);
   }
 }
 
@@ -4136,14 +4136,14 @@ body[data-screen="welcome"] .save-status {
   justify-content: flex-end;
   gap: 14px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   line-height: 1.2;
   white-space: nowrap;
 }
 
 .source-progress-copy .pair-position {
   color: var(--ink-strong);
-  font-size: 16px;
+  font-size: var(--font-size-body);
 }
 
 .source-progress progress {
@@ -4187,11 +4187,11 @@ body[data-screen="welcome"] .save-status {
 
   .source-progress-copy {
     gap: 8px;
-    font-size: 12px;
+    font-size: var(--font-size-body);
   }
 
   .source-progress-copy .pair-position {
-    font-size: 14px;
+    font-size: var(--font-size-body);
   }
 
   .source-topic-body {
@@ -4207,7 +4207,7 @@ body[data-screen="welcome"] .save-status {
   .topic-actions .primary-button {
     min-width: 0;
     padding-inline: 7px;
-    font-size: 14px;
+    font-size: var(--font-size-body);
     white-space: nowrap;
   }
 
@@ -4235,41 +4235,41 @@ body[data-screen="survey"] .target-copy {
   body[data-screen="survey"] .topic-index-item {
     min-height: 26px;
     padding: 3px 1px;
-    font-size: clamp(10px, .9vw, 12px);
+    font-size: var(--font-size-body);
   }
 
   body[data-screen="survey"] .target-copy strong {
-    font-size: clamp(16px, min(1.6vw, 2.1vh), 21px);
+    font-size: var(--font-size-body);
   }
 }
 
 @media (min-width: 768px) and (max-height: 680px) {
   body[data-screen="survey"] .target-copy strong {
-    font-size: clamp(11px, min(1.3vw, 1.7vh), 16px);
+    font-size: var(--font-size-body);
   }
 }
 
 @media (min-width: 768px) and (max-width: 839px) and (max-height: 680px) {
   body[data-screen="survey"] .target-copy strong {
-    font-size: clamp(10px, min(1.15vw, 1.55vh), 14px);
+    font-size: var(--font-size-body);
   }
 }
 
 @media (min-width: 768px) and (max-width: 1040px) and (min-height: 681px) {
   body[data-screen="survey"] .target-copy strong {
-    font-size: clamp(14px, min(1.55vw, 1.9vh), 19px);
+    font-size: var(--font-size-body);
   }
 }
 
 @media (min-width: 1200px) and (max-width: 1279px) {
   body[data-screen="survey"] .target-copy strong {
-    font-size: clamp(15px, min(1.45vw, 1.9vh), 19px);
+    font-size: var(--font-size-body);
   }
 }
 
 @media (min-width: 1280px) {
   body[data-screen="survey"] .target-copy strong {
-    font-size: clamp(16px, min(1.6vw, 2.1vh), 21px);
+    font-size: var(--font-size-body);
   }
 }
 
@@ -4283,13 +4283,13 @@ body[data-screen="survey"] .target-copy {
   }
 
   body[data-screen="survey"] .target-copy strong {
-    font-size: 16px;
+    font-size: var(--font-size-body);
   }
 }
 
 @media (max-width: 767px) and (max-height: 580px) {
   body[data-screen="survey"] .target-copy strong {
-    font-size: 15px;
+    font-size: var(--font-size-body);
   }
 }
 
@@ -4301,7 +4301,7 @@ body[data-screen="survey"] .target-copy {
 
   body[data-screen="survey"] .steps li {
     padding-block: 6px;
-    font-size: 14px;
+    font-size: var(--font-size-body);
   }
 
   body[data-screen="survey"] .sidebar-progress {
@@ -4311,7 +4311,7 @@ body[data-screen="survey"] .target-copy {
 
   body[data-screen="survey"] .sidebar-progress-copy,
   body[data-screen="survey"] .sidebar-progress small {
-    font-size: 12px;
+    font-size: var(--font-size-body);
   }
 
   body[data-screen="survey"] .sidebar-progress small {
@@ -4326,7 +4326,7 @@ body[data-screen="survey"] .target-copy {
   body[data-screen="survey"] .topic-index-item {
     min-height: 22px;
     padding-block: 2px;
-    font-size: 10px;
+    font-size: var(--font-size-body);
   }
 }
 
@@ -4341,7 +4341,7 @@ body[data-screen="survey"] .target-copy {
 
   body[data-screen="survey"] .steps li {
     padding-block: 3px;
-    font-size: 13px;
+    font-size: var(--font-size-body);
   }
 
   body[data-screen="survey"] .sidebar-progress {
@@ -4357,7 +4357,7 @@ body[data-screen="survey"] .target-copy {
   body[data-screen="survey"] .topic-index-item {
     min-height: 17px;
     padding-block: 1px;
-    font-size: 9px;
+    font-size: var(--font-size-body);
   }
 }
 
@@ -4396,7 +4396,7 @@ body[data-screen="complete"] .content-stage {
 }
 
 .qualitative-shell .page-heading h1 {
-  font-size: clamp(27px, 2.8vw, 36px);
+  font-size: var(--font-size-title);
   font-weight: 500;
   letter-spacing: -0.015em;
   line-height: 1.16;
@@ -4405,13 +4405,13 @@ body[data-screen="complete"] .content-stage {
 .qualitative-shell .page-heading > p:last-child {
   max-height: 4.7em;
   overflow: hidden;
-  font-size: 15px;
+  font-size: var(--font-size-body);
 }
 
 .qualitative-shell .qualitative-privacy {
   max-height: 4.8em;
   overflow: hidden;
-  font-size: 15px;
+  font-size: var(--font-size-body);
 }
 
 .written-question-form {
@@ -4467,7 +4467,7 @@ body[data-screen="complete"] .content-stage {
   border: 1px solid var(--line-strong);
   background: var(--paper);
   color: var(--muted);
-  font-size: 16px;
+  font-size: var(--font-size-body);
   white-space: nowrap;
 }
 
@@ -4488,7 +4488,7 @@ body[data-screen="complete"] .content-stage {
   margin: 0 0 0 48px;
   overflow: hidden;
   color: var(--muted);
-  font-size: 15px;
+  font-size: var(--font-size-body);
   line-height: 1.4;
   white-space: pre-line;
 }
@@ -4537,7 +4537,7 @@ body[data-screen="complete"] .content-stage {
 
 .module-option-card span {
   min-width: 0;
-  font-size: 16px;
+  font-size: var(--font-size-body);
   line-height: 1.42;
   overflow-wrap: anywhere;
 }
@@ -4567,18 +4567,18 @@ body[data-screen="complete"] .content-stage {
   height: var(--written-answer-height);
   min-height: var(--written-answer-height);
   max-height: var(--written-answer-height);
-  font-size: 16px;
+  font-size: var(--font-size-body);
   line-height: 1.42;
   resize: none;
 }
 
 .written-question-form .qualitative-field small {
   min-height: 18px;
-  font-size: 13px;
+  font-size: var(--font-size-body);
 }
 
 .written-question-form .submit-error button {
-  font-size: 16px;
+  font-size: var(--font-size-body);
 }
 
 .written-question-form .form-actions {
@@ -4628,13 +4628,13 @@ body[data-screen="survey"] .source-topic-body p {
   margin-bottom: 0;
   columns: 2;
   column-gap: 18px;
-  font-size: clamp(10px, .95vw, 13px);
+  font-size: var(--font-size-body);
   line-height: 1.15;
   overflow: visible;
 }
 
 body[data-screen="survey"] .target-copy strong {
-  font-size: clamp(11px, min(1.2vw, 1.7vh), 16px);
+  font-size: var(--font-size-body);
   line-height: .98;
 }
 
@@ -4650,7 +4650,7 @@ body[data-screen="survey"] .source-progress {
   }
 
   body[data-screen="survey"] .source-topic-body p {
-    font-size: 10px;
+    font-size: var(--font-size-body);
     line-height: 1.1;
   }
 }
@@ -4814,12 +4814,8 @@ body[data-screen="survey"] .target-list {
   grid-auto-rows: minmax(0, 1fr);
 }
 
-/* The title slot is deliberately four readable lines at most.  The public
-   topic contract caps names at 80 characters and fitTopicSourceSlot may
-   reduce the type to 10px, so an allowed title is contained by the slot
-   without clipping the title node itself.  The surrounding body may hide
-   page overflow to preserve the fixed survey viewport, but the title never
-   uses overflow clipping or text ellipsis. */
+/* Legacy source titles wrap at the shared section size. The current vt3
+   flow uses content-height cards in expert-survey.css. */
 body[data-screen="survey"] .source-topic-body {
   grid-template-rows: auto 4.4em minmax(0, 1fr);
 }
@@ -4868,7 +4864,7 @@ body[data-screen="survey"] .source-topic-body p {
 
 /* Lossless Section 03 explanation fallback.  The source body remains a
    fixed slot; only the description's visible page changes when the complete
-   text cannot fit after the normal type/column fitting pass. */
+   text cannot fit after the column fitting pass. */
 body[data-screen="survey"] .source-topic-description {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
@@ -4905,7 +4901,7 @@ body[data-screen="survey"] .source-topic-pagination {
   pointer-events: none;
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--font-size-body);
   line-height: 1;
 }
 
@@ -4921,7 +4917,7 @@ body[data-screen="survey"] .source-topic-pagination .icon-button {
   min-height: 22px;
   padding: 0;
   border: 1px solid var(--line);
-  font-size: 15px;
+  font-size: var(--font-size-section);
   line-height: 1;
 }
 
@@ -4973,7 +4969,7 @@ body[data-screen="survey"] .source-topic-description p {
   column-gap: clamp(18px, 2vw, 32px);
   column-fill: auto;
   color: var(--muted);
-  font-size: clamp(14px, 1.05vw, 16px);
+  font-size: var(--font-size-body);
   line-height: 1.45;
   white-space: pre-line;
   overflow: visible;
@@ -5016,7 +5012,7 @@ body[data-screen="survey"] .source-topic-pagination.is-visible {
   body[data-screen="survey"] .source-topic-description p {
     columns: 1;
     column-count: 1;
-    font-size: 15px;
+    font-size: var(--font-size-body);
     line-height: 1.45;
   }
 }
@@ -5105,7 +5101,7 @@ body[data-screen="survey"] .target-definition {
   border-inline-start: 3px solid var(--accent);
   background: var(--paper);
   color: var(--ink);
-  font-size: 15px;
+  font-size: var(--font-size-body);
   font-weight: 400;
   line-height: 1.45;
   white-space: pre-line;
@@ -5161,7 +5157,7 @@ body[data-screen="survey"] .target-option:has(input:focus-visible) {
   }
 
   body[data-screen="survey"] .target-definition {
-    font-size: 14px;
+    font-size: var(--font-size-body);
     padding: 10px 12px;
   }
 }
@@ -5233,13 +5229,13 @@ body[data-screen="survey"] .target-option:has(input:focus-visible) {
 }
 
 .qualitative-shell .written-question-row .qualitative-question-label {
-  font-size: 16px;
+  font-size: var(--font-size-section);
   font-weight: 500;
   line-height: 1.22;
 }
 
 .qualitative-shell .written-question-row .qualitative-question-label i {
-  font-size: 13px;
+  font-size: var(--font-size-section);
 }
 
 .written-question-form .qualitative-field[data-module-type="subjective_text"] {
@@ -5316,7 +5312,7 @@ body[data-screen="survey"] .topic-notes li {
   display: grid;
   gap: 2px;
   min-width: 0;
-  font-size: .88rem;
+  font-size: var(--font-size-body);
   line-height: 1.35;
 }
 
@@ -5352,7 +5348,7 @@ body[data-screen="survey"] .topic-notes li span {
   body[data-screen="survey"] .topic-notes li {
     grid-template-columns: auto 1fr;
     gap: 7px;
-    font-size: .78rem;
+    font-size: var(--font-size-body);
   }
 }
 
@@ -5438,7 +5434,7 @@ body[data-screen="survey"] .topic-notes li span {
 
 @media (max-width: 767px) {
   .topic-index-heading {
-    font-size: 12px;
+    font-size: var(--font-size-body);
   }
 
   .topic-index-hint {

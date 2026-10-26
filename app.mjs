@@ -6,17 +6,17 @@ import {
   tryWriteStorage,
 } from './survey-core.mjs';
 import { displayTopicName, studyConfig } from './survey-config.mjs?v=topic-definitions-contains-20260908';
-import { copy, languageNames, locales } from './translations.mjs?v=vt3-editorial-20261025';
+import { copy, languageNames, locales } from './translations.mjs?v=vt3-type-20261026';
 import { resolveSubmissionEndpoint } from './api-endpoint.mjs';
 import { resolveLocale } from './locale-state.mjs';
-import { guideStepsForScreen } from './guide-steps.mjs?v=vt3-editorial-20261025';
-import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs?v=vt3-editorial-20261025';
+import { guideStepsForScreen } from './guide-steps.mjs?v=vt3-type-20261026';
+import { canNavigateToStage, topicIsAvailable } from './navigation-rules.mjs?v=vt3-type-20261026';
 import {
   clampIndex,
   confirmTopicTransition,
   previousAfterTopicQuestion,
   previousBeforeTopicQuestion,
-} from './m1-state-transitions.mjs?v=vt3-editorial-20261025';
+} from './m1-state-transitions.mjs?v=vt3-type-20261026';
 import { joinTopicTextPages, splitTopicTextByFit, topicNodeFits } from './topic-pagination.mjs';
 import {
   FALLBACK_PUBLIC_QUESTIONNAIRE,
@@ -26,24 +26,24 @@ import {
   moduleAnswerError,
   normalizeModuleValue,
   serializeModuleAnswer,
-} from './public-questionnaire.mjs?v=vt3-editorial-20261025';
-import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=vt3-editorial-20261025';
+} from './public-questionnaire.mjs?v=vt3-type-20261026';
+import { attachTopicDefinitionHints } from './topic-definition-hints.mjs?v=vt3-type-20261026';
 import {
   ORIENTATION_DEMO_VALUES,
   orientationContent,
   orientationDemoFeedback,
   renderInterviewOrientation,
   renderOrientationDemo,
-} from './interview-orientation.mjs?v=vt3-editorial-20261025';
+} from './interview-orientation.mjs?v=vt3-type-20261026';
 
 const STORAGE_KEY_BASE = `bextools:${studyConfig.id}:${studyConfig.version}:vt3-guided-20261025`;
 
-import { blankSourceJudgment, expertMatrices, expertSubmissionFields, sourceAssignment, sourceJudgmentError, targetGroups, topicGroup } from './expert-protocol.mjs?v=vt3-editorial-20261025';
-import { managementActivity, managementBoundary } from './management-activities.mjs?v=vt3-editorial-20261025';
-import { vt3Copy, expertErrorKey } from './vt3-copy.mjs?v=vt3-editorial-20261025';
-import { renderExpertSurvey, renderExpertReview } from './expert-survey-view.mjs?v=vt3-editorial-20261025';
-import { ASSIGNMENT_FOCI, TASK_COUNTS, GUIDED_WORDING_VERSION, blankGuidedSource, syncGuidedRow, setTargetReview, targetPages, checkpointPositions } from './guided-elicitation.mjs?v=vt3-editorial-20261025';
-import { renderGuidedSurvey, renderGuidedPractice, renderGuidedCheckpoint } from './guided-survey-view.mjs?v=vt3-editorial-20261025';
+import { blankSourceJudgment, expertMatrices, expertSubmissionFields, sourceAssignment, sourceJudgmentError, targetGroups, topicGroup } from './expert-protocol.mjs?v=vt3-type-20261026';
+import { managementActivity, managementBoundary } from './management-activities.mjs?v=vt3-type-20261026';
+import { vt3Copy, expertErrorKey } from './vt3-copy.mjs?v=vt3-type-20261026';
+import { renderExpertSurvey, renderExpertReview } from './expert-survey-view.mjs?v=vt3-type-20261026';
+import { ASSIGNMENT_FOCI, TASK_COUNTS, GUIDED_WORDING_VERSION, blankGuidedSource, syncGuidedRow, setTargetReview, targetPages, checkpointPositions } from './guided-elicitation.mjs?v=vt3-type-20261026';
+import { renderGuidedSurvey, renderGuidedPractice, renderGuidedCheckpoint } from './guided-survey-view.mjs?v=vt3-type-20261026';
 const NONE_VALUE = '__none__';
 let factors = studyConfig.factors;
 let factorIds = factors.map((factor) => factor.id);
@@ -597,25 +597,13 @@ function fitTopicSourceSlot() {
   // needed. Once that decision is made, CSS can collapse short descriptions.
   body.classList.remove('is-content-fitted');
 
-  const fitNode = (node, { minSize, columns = false, maxColumns = 4 } = {}) => {
-    const computed = window.getComputedStyle(node);
-    const minimum = minSize || 10;
-    let size = Math.max(minimum, Number.parseFloat(computed.fontSize) || minimum);
-    node.style.fontSize = `${size}px`;
-    if (columns) node.style.columnCount = '2';
+  const fitNode = (node, { columns = false, maxColumns = 4 } = {}) => {
     for (let columnCount = columns ? 2 : 1; columnCount <= (columns ? maxColumns : 1); columnCount += 1) {
       if (columns) node.style.columnCount = String(columnCount);
-      for (let attempt = 0; attempt < 28; attempt += 1) {
-        if (topicNodeFits(node)) return true;
-        if (size <= minimum) break;
-        size = Math.max(minimum, size - 0.5);
-        node.style.fontSize = `${size}px`;
-      }
+      if (topicNodeFits(node)) return true;
     }
     return topicNodeFits(node);
   };
-
-  fitNode(title, { minSize: 10 });
 
   const fullText = description.textContent || '';
   const topicId = body.dataset.sourceTopicId || '';
@@ -624,7 +612,6 @@ function fitTopicSourceSlot() {
   let cached = topicDescriptionCache.get(key);
   const layoutSignature = `${descriptionRegion.clientWidth}:${descriptionRegion.clientHeight}:${window.innerWidth}:${window.innerHeight}`;
   if (!cached || cached.fullText !== fullText || cached.layoutSignature !== layoutSignature) {
-    description.style.fontSize = '';
     description.style.columnCount = '';
     cached = {
       key,
@@ -633,7 +620,6 @@ function fitTopicSourceSlot() {
       fullText,
       descriptionPages: null,
       currentPage: 0,
-      descriptionFontSize: '',
       descriptionColumnCount: '',
       layoutSignature,
     };
@@ -651,7 +637,6 @@ function fitTopicSourceSlot() {
   cached.pageLabel = pageLabel;
 
   if (Array.isArray(cached.descriptionPages)) {
-    description.style.fontSize = cached.descriptionFontSize || '';
     description.style.columnCount = cached.descriptionColumnCount
       || (cached.descriptionPages.length > 1 ? '1' : '');
     paginationVisible(pagination, cached.descriptionPages.length > 1);
@@ -664,7 +649,6 @@ function fitTopicSourceSlot() {
   description.textContent = fullText;
   const isCompactViewport = window.matchMedia('(max-width: 767px)').matches;
   const fitted = fitNode(description, {
-    minSize: 14,
     columns: !isCompactViewport,
     maxColumns: 2,
   });
@@ -674,7 +658,6 @@ function fitTopicSourceSlot() {
     // in the DOM for a stable slot but is hidden until pagination is needed.
     cached.descriptionPages = [fullText];
     cached.currentPage = 0;
-    cached.descriptionFontSize = description.style.fontSize || '';
     cached.descriptionColumnCount = description.style.columnCount || '';
     sourceTopicPagination = cached;
     // Keep the successful multi-column measurement in place. Clearing it here
@@ -700,7 +683,6 @@ function fitTopicSourceSlot() {
   const losslessPages = joinTopicTextPages(pages) === fullText ? pages : [fullText];
   cached.descriptionPages = losslessPages;
   cached.currentPage = 0;
-  cached.descriptionFontSize = description.style.fontSize || '';
   cached.descriptionColumnCount = '1';
   sourceTopicPagination = cached;
   paginationVisible(pagination, losslessPages.length > 1);

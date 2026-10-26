@@ -1,6 +1,6 @@
-import { managementActivity, managementBoundary } from './management-activities.mjs?v=vt3-editorial-20261025';
-import { targetPages, guidedCounts } from './guided-elicitation.mjs?v=vt3-editorial-20261025';
-import { expertErrorKey } from './vt3-copy.mjs?v=vt3-editorial-20261025';
+import { managementActivity, managementBoundary } from './management-activities.mjs?v=vt3-type-20261026';
+import { targetPages, guidedCounts } from './guided-elicitation.mjs?v=vt3-type-20261026';
+import { expertErrorKey } from './vt3-copy.mjs?v=vt3-type-20261026';
 
 const h = (value) => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 const local = (value, locale) => typeof value === 'string' ? value : value?.[locale] || value?.en || '';

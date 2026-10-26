@@ -10,6 +10,7 @@ const assets = Object.freeze([
   ['admin-api.mjs', 'admin-api.mjs'],
   ['admin-translations.mjs', 'admin-translations.mjs'],
   ['admin.css', 'admin.css'],
+  ['typography.css', 'typography.css'],
 ]);
 
 export async function stageAdminAssets({

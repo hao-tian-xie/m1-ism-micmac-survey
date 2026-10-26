@@ -31,7 +31,7 @@ test('ESG copy, grouped welcome topics, and survey candidate grid match the inte
   assert.doesNotMatch(appSource, /<div class="mini-brand">M1/);
   assert.doesNotMatch(appSource, /data-progress-count/);
   assert.match(appSource, /<progress class="native-progress"/);
-  assert.match(indexSource, /expert-survey\.css\?v=vt3-editorial-20261025/);
+  assert.match(indexSource, /expert-survey\.css\?v=vt3-type-20261026/);
   assert.match(appSource, /factor-preview-grid/);
   assert.match(appSource, /\['environment', 'categoryEnvironment'\]/);
   assert.match(appSource, /\['social', 'categorySocial'\]/);
@@ -47,7 +47,7 @@ test('ESG copy, grouped welcome topics, and survey candidate grid match the inte
   assert.match(surveyFit, /body\[data-screen="survey"\]\s+\.target-list\s*\{[\s\S]*?grid-template-columns:\s*repeat\(10,\s*minmax\(0,\s*1fr\)\)/);
   assert.match(surveyFit, /body\[data-screen="survey"\]\s+\.target-list\s*\{[\s\S]*?grid-template-rows:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
 
-  assert.equal(JSON.parse(packageSource).version, '1.7.1-vt3');
+  assert.equal(JSON.parse(packageSource).version, '1.7.2-vt3');
   const cacheBusts = [
     indexSource.match(/styles\.css\?v=([^"']+)/)?.[1],
     indexSource.match(/app\.mjs\?v=([^"']+)/)?.[1],
@@ -59,5 +59,5 @@ test('ESG copy, grouped welcome topics, and survey candidate grid match the inte
     appSource.match(/public-questionnaire\.mjs\?v=([^"']+)/)?.[1],
     publicQuestionnaireSource.match(/translations\.mjs\?v=([^"']+)/)?.[1],
   ];
-  assert.deepEqual(cacheBusts, Array(9).fill('vt3-editorial-20261025'));
+  assert.deepEqual(cacheBusts, Array(9).fill('vt3-type-20261026'));
 });

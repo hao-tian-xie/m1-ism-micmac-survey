@@ -55,9 +55,9 @@ test('public topic and fixed-layout contracts cap the supported payload', () => 
   assert.equal(MAX_PUBLIC_TOPIC_COUNT, 40);
   assert.equal(MAX_PUBLIC_TOPIC_NAME_LENGTH, 80);
   assert.equal(MAX_PUBLIC_TOPIC_DESCRIPTION_LENGTH, 600);
-  assert.match(app, /fitNode\(title, \{ minSize: 10 \}\)/);
+  assert.doesNotMatch(app, /\.style\.fontSize\s*=/);
   assert.match(app, /const isCompactViewport = window\.matchMedia\('\(max-width: 767px\)'\)\.matches/);
-  assert.match(app, /const fitted = fitNode\(description, \{\s*minSize: 14,\s*columns: !isCompactViewport,\s*maxColumns: 2,\s*\}\)/);
+  assert.match(app, /const fitted = fitNode\(description, \{\s*columns: !isCompactViewport,\s*maxColumns: 2,\s*\}\)/);
 
   const titleRules = [...styles.matchAll(/body\[data-screen="survey"\] \.source-topic-body h2\s*\{[^}]*\}/g)]
     .map(([rule]) => rule);
@@ -67,8 +67,8 @@ test('public topic and fixed-layout contracts cap the supported payload', () => 
     assert.doesNotMatch(rule, /text-overflow\s*:/);
   }
   assert.match(styles, /grid-template-rows:\s*auto 4\.4em minmax\(0, 1fr\)/);
-  const titleLineBox = 4.4 * 10;
-  const minimumLineHeight = 1.1 * 10;
+  const titleLineBox = 4.4 * 20;
+  const minimumLineHeight = 1.1 * 20;
   assert.ok(Math.floor(titleLineBox / minimumLineHeight) >= 4, '80-char names have a four-line minimum title slot');
 });
 

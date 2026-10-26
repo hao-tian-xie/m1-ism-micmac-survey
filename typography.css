@@ -1,0 +1,30 @@
+:root {
+  --font-size-title: 28px;
+  --font-size-section: 20px;
+  --font-size-body: 16px;
+}
+
+:where(html, body, button, input, select, textarea, option, optgroup) {
+  font-size: var(--font-size-body);
+}
+
+:where(h1) {
+  font-size: var(--font-size-title);
+}
+
+:where(h2, h3) {
+  font-size: var(--font-size-section);
+}
+
+:where(h4, h5, h6) {
+  font-size: var(--font-size-body);
+}
+
+:where(small, sub, sup, code, kbd, samp, pre) {
+  font-size: inherit;
+}
+
+::placeholder,
+::file-selector-button {
+  font-size: inherit;
+}

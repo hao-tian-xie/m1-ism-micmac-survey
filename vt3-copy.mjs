@@ -1,4 +1,4 @@
-import { guidedCopy } from './guided-copy.mjs?v=vt3-editorial-20261025';
+import { guidedCopy } from './guided-copy.mjs?v=vt3-type-20261026';
 export const vt3Copy = {
   'zh-CN': {
     heroTitle: "哪些 ESG 管理工作能直接帮助其他工作？",

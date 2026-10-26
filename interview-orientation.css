@@ -16,7 +16,7 @@ html:has(body[data-screen="orientation"]) {
 
 .orientation-meta > span {
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 .orientation-heading h1 {
@@ -28,7 +28,7 @@ html:has(body[data-screen="orientation"]) {
   max-width: 800px;
   margin: 18px 0 0;
   color: var(--muted);
-  font-size: 19px;
+  font-size: var(--font-size-body);
   line-height: 1.5;
 }
 
@@ -40,7 +40,7 @@ html:has(body[data-screen="orientation"]) {
 .orientation-browse {
   margin: 0 0 12px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 .orientation-tabs {
@@ -71,14 +71,14 @@ html:has(body[data-screen="orientation"]) {
 .orientation-number {
   margin-top: 4px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   font-variant-numeric: tabular-nums;
 }
 
 .orientation-tab b {
   display: block;
   color: var(--ink-strong);
-  font-size: 22px;
+  font-size: var(--font-size-section);
   font-weight: 500;
   line-height: 1.2;
   overflow-wrap: anywhere;
@@ -88,7 +88,7 @@ html:has(body[data-screen="orientation"]) {
   display: block;
   margin-top: 8px;
   color: var(--muted);
-  font-size: 15px;
+  font-size: var(--font-size-body);
   line-height: 1.3;
 }
 
@@ -112,14 +112,14 @@ html:has(body[data-screen="orientation"]) {
 .orientation-panel-title {
   margin: 0 0 12px;
   color: var(--ink-strong);
-  font-size: 28px;
+  font-size: var(--font-size-section);
   font-weight: 500;
   line-height: 1.3;
 }
 
 .orientation-panel-lead, .orientation-context, .orientation-purpose p {
   margin: 0;
-  font-size: 17px;
+  font-size: var(--font-size-body);
   line-height: 1.55;
 }
 
@@ -133,7 +133,7 @@ html:has(body[data-screen="orientation"]) {
 
 .orientation-pagination > span {
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 .orientation-pagination > div {
@@ -143,7 +143,7 @@ html:has(body[data-screen="orientation"]) {
 
 .orientation-pagination .text-button {
   gap: 5px;
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 .orientation-question {
@@ -159,7 +159,7 @@ html:has(body[data-screen="orientation"]) {
 .orientation-question h2 {
   margin: 0;
   color: var(--ink-strong);
-  font-size: clamp(24px, 2.3vw, 30px);
+  font-size: var(--font-size-section);
   font-weight: 500;
   line-height: 1.4;
 }
@@ -167,7 +167,7 @@ html:has(body[data-screen="orientation"]) {
 .orientation-question > p:last-child {
   margin: 16px 0 0;
   color: var(--muted);
-  font-size: 15px;
+  font-size: var(--font-size-body);
   line-height: 1.55;
 }
 
@@ -185,7 +185,7 @@ html:has(body[data-screen="orientation"]) {
 .orientation-purpose h3 {
   margin: 0 0 8px;
   color: var(--accent);
-  font-size: 17px;
+  font-size: var(--font-size-section);
   font-weight: 500;
 }
 
@@ -204,13 +204,13 @@ html:has(body[data-screen="orientation"]) {
 
 .orientation-esg-cards article > span {
   color: var(--accent);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 .orientation-esg-cards h3 {
   margin: 10px 0 16px;
   color: var(--ink-strong);
-  font-size: 22px;
+  font-size: var(--font-size-section);
   font-weight: 500;
   line-height: 1.25;
 }
@@ -221,7 +221,7 @@ html:has(body[data-screen="orientation"]) {
   padding: 0;
   gap: 10px;
   list-style: none;
-  font-size: 17px;
+  font-size: var(--font-size-body);
 }
 
 .orientation-principle {
@@ -229,14 +229,14 @@ html:has(body[data-screen="orientation"]) {
   padding: 18px 0;
   border-top: 1px solid var(--line-strong);
   border-bottom: 1px solid var(--line);
-  font-size: 19px;
+  font-size: var(--font-size-body);
   line-height: 1.5;
 }
 
 .orientation-note, .orientation-researcher {
   margin: 18px 0 0;
   color: var(--muted);
-  font-size: 15px;
+  font-size: var(--font-size-body);
   line-height: 1.5;
 }
 
@@ -245,7 +245,7 @@ html:has(body[data-screen="orientation"]) {
 }
 
 .orientation-demo > .eyebrow {
-  font-size: 13px;
+  font-size: var(--font-size-body);
 }
 
 .orientation-demo-graph {
@@ -271,13 +271,13 @@ html:has(body[data-screen="orientation"]) {
 
 .orientation-activity > span {
   color: var(--accent);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 .orientation-activity h3 {
   margin: 0;
   color: var(--ink-strong);
-  font-size: 19px;
+  font-size: var(--font-size-section);
   font-weight: 500;
   line-height: 1.35;
   overflow-wrap: anywhere;
@@ -309,13 +309,13 @@ html:has(body[data-screen="orientation"]) {
   top: -2px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 18px;
+  font-size: var(--font-size-body);
 }
 
 .orientation-demo-link[data-demo-status="none"] > span {
   top: 50%;
   transform: translate(-50%, -50%);
-  font-size: 26px;
+  font-size: var(--font-size-body);
 }
 
 .orientation-demo-pairs {
@@ -329,7 +329,7 @@ html:has(body[data-screen="orientation"]) {
 .orientation-demo-pairs > span {
   margin-right: auto;
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 .orientation-demo-pairs button {
@@ -337,7 +337,7 @@ html:has(body[data-screen="orientation"]) {
   padding: 8px 4px;
   border-bottom: 1px solid transparent;
   background: transparent;
-  font-size: 15px;
+  font-size: var(--font-size-body);
 }
 
 .orientation-demo-pairs button[aria-pressed="true"] {
@@ -348,7 +348,7 @@ html:has(body[data-screen="orientation"]) {
 .orientation-demo-question {
   margin: 18px 0 12px;
   color: var(--ink-strong);
-  font-size: 19px;
+  font-size: var(--font-size-body);
   font-weight: 500;
 }
 
@@ -372,14 +372,14 @@ html:has(body[data-screen="orientation"]) {
 }
 
 .orientation-demo-options b {
-  font-size: 17px;
+  font-size: var(--font-size-body);
   font-weight: 500;
   line-height: 1.25;
 }
 
 .orientation-demo-options small {
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--font-size-body);
   line-height: 1.3;
 }
 
@@ -399,7 +399,7 @@ html:has(body[data-screen="orientation"]) {
   padding: 14px 16px;
   border-left: 2px solid var(--accent);
   background: var(--accent-soft);
-  font-size: 16px;
+  font-size: var(--font-size-body);
   line-height: 1.5;
 }
 
@@ -416,7 +416,7 @@ html:has(body[data-screen="orientation"]) {
   justify-content: space-between;
   gap: 16px;
   color: var(--ink);
-  font-size: 16px;
+  font-size: var(--font-size-body);
   list-style: none;
 }
 
@@ -426,7 +426,7 @@ html:has(body[data-screen="orientation"]) {
 
 .orientation-prompt summary span {
   color: var(--accent);
-  font-size: 20px;
+  font-size: var(--font-size-body);
 }
 
 .orientation-prompt[open] summary span {
@@ -435,7 +435,7 @@ html:has(body[data-screen="orientation"]) {
 
 .orientation-prompt > div {
   padding: 4px 0 18px;
-  font-size: 16px;
+  font-size: var(--font-size-body);
   line-height: 1.6;
 }
 
@@ -458,7 +458,7 @@ html:has(body[data-screen="orientation"]) {
   max-width: 480px;
   margin: 0;
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   line-height: 1.5;
 }
 
@@ -552,7 +552,7 @@ html:has(body[data-screen="orientation"]) {
   }
 
   .orientation-tab b {
-    font-size: 20px;
+    font-size: var(--font-size-section);
   }
 
 }
@@ -564,16 +564,16 @@ html:has(body[data-screen="orientation"]) {
 
   .orientation-meta > span {
     max-width: 50%;
-    font-size: 12px;
+    font-size: var(--font-size-body);
     text-align: right;
   }
 
   .orientation-heading h1 {
-    font-size: clamp(32px, 8.5vw, 42px);
+    font-size: var(--font-size-title);
   }
 
   .orientation-lead {
-    font-size: 17px;
+    font-size: var(--font-size-body);
   }
 
   .orientation-explorer {
@@ -592,17 +592,17 @@ html:has(body[data-screen="orientation"]) {
   }
 
   .orientation-tab b {
-    font-size: 18px;
+    font-size: var(--font-size-section);
   }
 
   .orientation-tab small {
     margin-top: 6px;
-    font-size: 12px;
+    font-size: var(--font-size-body);
   }
 
   .orientation-number {
     margin-top: 0;
-    font-size: 12px;
+    font-size: var(--font-size-body);
   }
 
   .orientation-panel {
@@ -610,11 +610,11 @@ html:has(body[data-screen="orientation"]) {
   }
 
   .orientation-panel-title {
-    font-size: 25px;
+    font-size: var(--font-size-section);
   }
 
   .orientation-panel-lead, .orientation-context, .orientation-purpose p {
-    font-size: 16px;
+    font-size: var(--font-size-body);
   }
 
   .orientation-pagination {
@@ -633,11 +633,11 @@ html:has(body[data-screen="orientation"]) {
   }
 
   .orientation-question h2 {
-    font-size: 24px;
+    font-size: var(--font-size-section);
   }
 
   .orientation-principle {
-    font-size: 18px;
+    font-size: var(--font-size-body);
   }
 
   .orientation-footer {
@@ -646,4 +646,22 @@ html:has(body[data-screen="orientation"]) {
     gap: 20px;
   }
 
+}
+
+@media (max-width: 600px) {
+  .orientation-tabs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .orientation-tab {
+    min-height: 0;
+    padding: 14px 12px;
+    grid-template-columns: 24px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .orientation-tab + .orientation-tab {
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
 }

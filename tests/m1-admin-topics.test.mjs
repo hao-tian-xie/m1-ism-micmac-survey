@@ -127,12 +127,12 @@ test('admin topic UI keeps all locales, CRUD actions, CAS conflict refresh and f
     assert.match(source, /--font:\s*"Archivo Narrow"/u);
     assert.match(source, /border-radius:\s*0/u);
   }
-  assert.match(css, /\.survey-preview-card \.qualitative-question-label[\s\S]*?grid-template-columns:\s*38px minmax\(0,\s*1fr\)[\s\S]*?gap:\s*10px[\s\S]*?font-size:\s*18px[\s\S]*?line-height:\s*1\.45/u);
+  assert.match(css, /\.survey-preview-card \.qualitative-question-label[\s\S]*?grid-template-columns:\s*38px minmax\(0,\s*1fr\)[\s\S]*?gap:\s*10px[\s\S]*?font-size:\s*var\(--font-size-section\)[\s\S]*?line-height:\s*1\.45/u);
   assert.match(css, /\.survey-preview-textarea[\s\S]*?min-height:\s*132px[\s\S]*?padding:\s*13px 14px[\s\S]*?line-height:\s*1\.55/u);
   assert.match(css, /\.survey-preview-options \.module-choice-grid[\s\S]*?grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)[\s\S]*?gap:\s*1px/u);
   assert.match(css, /\.survey-preview-option[\s\S]*?min-height:\s*52px[\s\S]*?padding:\s*11px 13px[\s\S]*?gap:\s*10px/u);
-  assert.equal(cssProperty(publicCss, '.qualitative-question-label', 'font-size'), '18px');
-  assert.equal(cssProperty(css, '.survey-preview-card .qualitative-question-label', 'font-size'), '18px');
+  assert.equal(cssProperty(publicCss, '.qualitative-question-label', 'font-size'), 'var(--font-size-section)');
+  assert.equal(cssProperty(css, '.survey-preview-card .qualitative-question-label', 'font-size'), 'var(--font-size-section)');
   assert.equal(cssProperty(publicCss, '.qualitative-field textarea,\n.feedback-form textarea', 'min-height'), '132px');
   assert.equal(cssProperty(css, '.survey-preview-textarea', 'min-height'), '132px');
   assert.equal(cssProperty(publicCss, '.module-option-card', 'min-height'), '52px');
